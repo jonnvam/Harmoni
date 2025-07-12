@@ -1,0 +1,733 @@
+import 'dart:ui';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:fab_circular_menu_plus/fab_circular_menu_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../core/text_styles.dart';
+import '../core/app_colors.dart';
+
+class CarouselAssets {
+  static const List<String> images = [
+    'assets/images/carousel/t1.jpg',
+    'assets/images/carousel/t2.jpg',
+    'assets/images/carousel/t3.jpg',
+    'assets/images/carousel/t4.jpg',
+    'assets/images/carousel/t5.jpg',
+    'assets/images/carousel/t6.jpg',
+  ];
+}
+
+class TitleSection extends StatelessWidget {
+  final String texto;
+
+  const TitleSection({super.key, required this.texto});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 60, left: 44),
+      child: SizedBox(
+        width: 315,
+        height: 65,
+        child: Text(texto, style: TextStyles.tituloMotivacional),
+      ),
+    );
+  }
+}
+
+//Es la parte de bienvenida
+class Bienvenida extends StatelessWidget {
+  const Bienvenida({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(top: 60, left: 44),
+      child: SizedBox(
+        width: 175,
+        height: 42,
+        child: Text(
+          "Bienvenido/a",
+          style: TextStyles.tituloBienvenida,
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+//Texto de datos para la parte de inicio
+class TextoDatos extends StatelessWidget {
+  final String texto;
+
+  const TextoDatos({super.key, required this.texto});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 22,
+      child: Text(texto, style: TextStyles.textDatos),
+    );
+  }
+}
+
+//Contenedor con diseño
+class ContainerC1 extends StatelessWidget {
+  final double height;
+  final double width;
+  final Widget child;
+
+  static const BoxDecoration _decoration = BoxDecoration(
+    color: Color.fromRGBO(224, 231, 255, 0.85),
+    borderRadius: BorderRadius.all(Radius.circular(15)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color.fromRGBO(165, 180, 252, 0.41), width: 1),
+    ),
+  );
+
+  const ContainerC1({
+    super.key,
+    required this.child,
+    required this.width,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: _decoration,
+      child: child,
+    );
+  }
+}
+
+class ContainerLogin extends StatelessWidget {
+  final Widget child;
+  final double width;
+  final double height;
+
+  const ContainerLogin({
+    super.key,
+    required this.child,
+    required this.width,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.fondo2,
+        borderRadius: const BorderRadius.all(Radius.circular(17)),
+        border: Border.all(color: AppColors.borde2, width: 1),
+      ),
+      child: child,
+    );
+  }
+}
+
+class BotonLogin extends StatelessWidget {
+  final double width;
+  final double height;
+  final String texto;
+  final VoidCallback onPressed;
+
+  const BotonLogin({
+    super.key,
+    required this.texto,
+    required this.onPressed,
+    required this.width,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.fondo3,
+            borderRadius: const BorderRadius.all(Radius.circular(18)),
+            border: Border.all(color: AppColors.borde3, width: 1),
+          ),
+          child: Center(child: Text(texto, style: TextStyles.textoSingLogin)),
+        ),
+      ),
+    );
+  }
+}
+
+class AuthButton extends StatelessWidget {
+  final String texto;
+  final bool isPressed;
+  final VoidCallback onPressed;
+
+  const AuthButton({
+    super.key,
+    required this.texto,
+    required this.isPressed,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 170,
+      height: 53,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: isPressed ? AppColors.fondo3 : AppColors.fondo2,
+            borderRadius: const BorderRadius.all(Radius.circular(18)),
+            border: Border.all(color: AppColors.borde3, width: 1),
+          ),
+          child: Center(child: Text(texto, style: TextStyles.textoSingLogin)),
+        ),
+      ),
+    );
+  }
+}
+
+class CircularElevatedButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final Widget child;
+  final Color backgroundColor;
+  final Color borderColor;
+  final double borderWidth;
+  final EdgeInsets padding;
+
+  const CircularElevatedButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.backgroundColor = const Color.fromARGB(171, 255, 255, 255),
+    this.borderColor = const Color(0xFF6366F1),
+    this.borderWidth = 1.0,
+    this.padding = const EdgeInsets.all(8),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: backgroundColor,
+      shape: CircleBorder(
+        side: BorderSide(color: borderColor, width: borderWidth),
+      ),
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: Padding(padding: padding, child: child),
+      ),
+    );
+  }
+}
+
+class IconButtonWithPadding extends StatelessWidget {
+  final VoidCallback onPressed;
+  final String svgAssetPath;
+  final EdgeInsets padding;
+  final Color backgroundColor;
+  final Color borderColor;
+  final double borderWidth;
+  final EdgeInsets buttonPadding;
+
+  const IconButtonWithPadding({
+    super.key,
+    required this.onPressed,
+    required this.svgAssetPath,
+    this.padding = const EdgeInsets.only(left: 15),
+    this.backgroundColor = const Color(0xFFF3F4F6),
+    this.borderColor = const Color(0xE5EBEEF3),
+    this.borderWidth = 2,
+    this.buttonPadding = const EdgeInsets.all(20),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: padding,
+      child: CircularElevatedButton(
+        onPressed: onPressed,
+        backgroundColor: backgroundColor,
+        borderColor: borderColor,
+        borderWidth: borderWidth,
+        padding: buttonPadding,
+        child: SvgPicture.asset(svgAssetPath, width: 24, height: 24),
+      ),
+    );
+  }
+}
+
+// Menu cuando se toca el Avatar
+class DropMenu extends StatefulWidget {
+  const DropMenu({super.key});
+
+  @override
+  State<DropMenu> createState() => _DropMenuState();
+}
+
+class _DropMenuState extends State<DropMenu> {
+  bool _isOpenMenu = false;
+  OverlayEntry? _overlayEntry;
+
+  static const BoxDecoration _menuItemDecoration = BoxDecoration(
+    color: AppColors.fondoPanico,
+    shape: BoxShape.circle,
+    boxShadow: [
+      BoxShadow(
+        color: AppColors.bordePanico,
+        blurRadius: 10,
+        offset: Offset(0, 4),
+      ),
+    ],
+  );
+
+  @override
+  void dispose() {
+    _closeMenu();
+    super.dispose();
+  }
+
+  void _toggleMenu() {
+    if (_isOpenMenu) {
+      _closeMenu();
+    } else {
+      _openMenu();
+    }
+  }
+
+  void _openMenu() {
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() {
+      _isOpenMenu = true;
+    });
+  }
+
+  void _closeMenu() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    if (mounted) {
+      setState(() {
+        _isOpenMenu = false;
+      });
+    }
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    return OverlayEntry(
+      builder:
+          (context) => GestureDetector(
+            onTap: _closeMenu,
+            child: Material(
+              color: Colors.transparent,
+              child: Stack(
+                children: [
+                  BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: const Color.fromRGBO(0, 0, 0, 0.33),
+                    ),
+                  ),
+                  Positioned(top: 120, right: 20, child: _buildDropMenu()),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildDropMenu() {
+    return Column(
+      children: [
+        _buildMenuItem("assets/images/setting.svg"),
+        _buildMenuItem("assets/images/notification.svg"),
+      ],
+    );
+  }
+
+  Widget _buildMenuItem(String svgAssetPath) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: InkWell(
+        onTap: _closeMenu,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: _menuItemDecoration,
+          child: Center(
+            child: SvgPicture.asset(svgAssetPath, width: 24, height: 24),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 55),
+      child: Row(
+        children: [
+          IconButtonWithPadding(
+            onPressed: () {},
+            svgAssetPath: "assets/images/alarm.svg",
+          ),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.only(right: 15),
+            child: RepaintBoundary(
+              child: InkWell(
+                onTap: _toggleMenu,
+                customBorder: const CircleBorder(),
+                child: const CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Color.fromARGB(255, 44, 42, 42),
+                  backgroundImage: AssetImage("assets/images/ass.jpg"),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+//Carousel de imagenes
+
+class Carousel extends StatefulWidget {
+  const Carousel({super.key});
+
+  @override
+  State<Carousel> createState() => _CarouselState();
+}
+
+class _CarouselState extends State<Carousel> {
+  late final CarouselSliderController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = CarouselSliderController();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CarouselSlider.builder(
+      carouselController: _controller,
+      itemCount: CarouselAssets.images.length,
+      itemBuilder: (context, index, realIndex) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Image.asset(
+              CarouselAssets.images[index],
+              fit: BoxFit.cover,
+              cacheWidth: 400,
+              cacheHeight: 250,
+            ),
+          ),
+        );
+      },
+      options: CarouselOptions(
+        height: 250,
+        viewportFraction: 0.9,
+        autoPlay: true,
+        autoPlayInterval: const Duration(seconds: 4),
+        enlargeCenterPage: true,
+        enableInfiniteScroll: true,
+        autoPlayCurve: Curves.easeInOut,
+        scrollDirection: Axis.horizontal,
+      ),
+    );
+  }
+}
+
+class CircularMenu extends StatelessWidget {
+  final List<Widget> items;
+
+  const CircularMenu({super.key, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: Positioned(
+        top: 200,
+        child: FabCircularMenuPlus(
+          alignment: Alignment.bottomCenter,
+          ringColor: const Color.fromARGB(190, 107, 4, 133),
+          ringDiameter: 240.0,
+          ringWidth: 60.0,
+          fabSize: 60.12,
+          fabElevation: 0,
+          fabMargin: const EdgeInsets.all(0),
+          ringWidthLimitFactor: 10,
+          animationDuration: const Duration(milliseconds: 500),
+          animationCurve: Curves.easeOut,
+          fabOpenIcon: SvgPicture.asset(
+            "assets/images/house.svg",
+            width: 30,
+            height: 30,
+          ),
+          fabColor: AppColors.fondoM,
+          children: items,
+        ),
+      ),
+    );
+  }
+}
+
+//Engloba la parte de arriba de buenos dias o buenas noches
+
+class TopFeeling extends StatelessWidget {
+  const TopFeeling({super.key});
+
+  String _getTimeOfDay() {
+    final hour = DateTime.now().hour;
+    if (hour >= 6 && hour < 12) return "Buenos días";
+    if (hour >= 12 && hour < 18) return "Buenas tardes";
+    return "Buenas noches";
+  }
+
+  String _getTimeIcon() {
+    final hour = DateTime.now().hour;
+    if (hour >= 6 && hour < 18) return "assets/images/sun.svg";
+    return "assets/images/moon.svg";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(children: [SvgPicture.asset(_getTimeIcon())]),
+        const SizedBox(height: 8),
+        Row(
+          children: [Text(_getTimeOfDay(), style: TextStyles.textInicioName)],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text(
+              "¿Cómo te sientes?",
+              style: TextStyle(
+                fontSize: 20,
+                fontFamily: 'Kantumruy Pro',
+                color: AppColors.primary,
+                fontWeight: FontWeight.w100,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+//Las caritas
+class EmotionButton extends StatelessWidget {
+  final String text;
+  final String icon;
+  final VoidCallback onTap;
+
+  const EmotionButton({
+    super.key,
+    required this.text,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        width: 110,
+        height: 45,
+        decoration: BoxDecoration(
+          color: AppColors.fondo5,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: AppColors.fondo4, width: 1),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(icon, width: 20, height: 20),
+            const SizedBox(width: 9),
+            Text(text, style: TextStyles.textFeeling),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+//Progreso de la Flor
+class FlowerProgress extends StatelessWidget {
+  final double progress;
+
+  const FlowerProgress({super.key, required this.progress});
+
+  static const Color _backgroundColor = Color.fromRGBO(240, 232, 241, 0.73);
+  static const Color _progressColor = Color.fromRGBO(217, 87, 230, 0.41);
+
+  String _getFlowerAsset(double progress) {
+    if (progress < 0.25) return "assets/images/flores/flor1.png";
+    if (progress < 0.5) return "assets/images/flores/flor2.png";
+    return "assets/images/flores/flor3.png";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 200,
+      height: 200,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 200,
+            height: 200,
+            child: CircularProgressIndicator(
+              value: progress,
+              strokeWidth: 12,
+              backgroundColor: _backgroundColor,
+              valueColor: const AlwaysStoppedAnimation<Color>(_progressColor),
+            ),
+          ),
+          Positioned(
+            top: 25,
+            child: Image.asset(
+              _getFlowerAsset(progress),
+              width: 150,
+              height: 150,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SettingButton extends StatelessWidget {
+
+  const SettingButton({
+    super.key,
+
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(onTap: (){
+
+    }, child:  
+      IconButtonWithPadding(
+        onPressed: () {},
+        svgAssetPath: "assets/images/setting.svg",
+      )
+      
+      );
+  }
+}
+
+class AvatarTop extends StatelessWidget {
+  const AvatarTop({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 60,
+              backgroundImage: AssetImage("assets/images/ass.jpg"),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Row(
+            children: [
+              ContainerAjustes(
+                width: 107,
+                height: 34,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [ Text("Editar", style: TextStyles.textEditar)],
+                  
+                ),
+                
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+class ContainerAjustes extends StatelessWidget {
+  final double height;
+  final double width;
+  final Widget child;
+
+  static const BoxDecoration _decoration = BoxDecoration(
+    color: Color.fromRGBO(224, 231, 255, 0.85),
+    borderRadius: BorderRadius.all(Radius.circular(15)),
+    
+  );
+
+  const ContainerAjustes({
+    super.key,
+    required this.child,
+    required this.width,
+    required this.height,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: _decoration,
+      child: child,
+    );
+  }
+}
+
