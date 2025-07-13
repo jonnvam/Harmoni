@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/svg.dart';
@@ -41,7 +42,7 @@ class _IaScreenState extends State<IaScreen> {
                       padding: const EdgeInsets.only(top: 20, left: 15),
                       child: Column(
                         children: [
-                          SvgPicture.asset("assets/images/info-circle.svg"),
+                          SvgPicture.asset("assets/images/ia/info-circle.svg"),
                         ],
                       ),
                     ),
@@ -66,7 +67,7 @@ class _IaScreenState extends State<IaScreen> {
                           const SizedBox(width: 15),
                           Row(
                             children: [
-                              SvgPicture.asset("assets/images/copy.svg"),
+                              SvgPicture.asset("assets/images/ia/copy.svg"),
                             ],
                           ),
                         ],
@@ -97,7 +98,7 @@ class _IaScreenState extends State<IaScreen> {
                         padding: const EdgeInsets.only(top: 15, left: 45),
                         child: Column(
                           children: [
-                            SvgPicture.asset("assets/images/lamp-charge.svg"),
+                            SvgPicture.asset("assets/images/ia/lamp-charge.svg"),
                           ],
                         ),
                       ),
@@ -165,7 +166,7 @@ class _IaScreenState extends State<IaScreen> {
                                 ),
                               ),
                             ),
-                            SvgPicture.asset("assets/images/level.svg"),
+                            SvgPicture.asset("assets/images/ia/level.svg"),
                             SizedBox(width: 15),
                           ],
                         ),
@@ -183,7 +184,7 @@ class _IaScreenState extends State<IaScreen> {
               padding: const EdgeInsets.only(bottom: 0),
               child: CircularMenu(
                 fabIcon: SvgPicture.asset(
-                  "assets/images/ia.svg",
+                  "assets/images/icon/ia.svg",
                   width: 30,
                   height: 30,
                 ),
@@ -191,7 +192,17 @@ class _IaScreenState extends State<IaScreen> {
                   IconButton(
                     onPressed: () {},
                     icon: SvgPicture.asset(
-                      "assets/images/psicologos.svg",
+                      "assets/images/icon/psicologos.svg",
+                      width: 30,
+                      height: 30,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => DiarioScreen()));
+                    },
+                    icon: SvgPicture.asset(
+                      "assets/images/icon/diario.svg",
                       width: 30,
                       height: 30,
                     ),
@@ -199,15 +210,7 @@ class _IaScreenState extends State<IaScreen> {
                   IconButton(
                     onPressed: () {},
                     icon: SvgPicture.asset(
-                      "assets/images/diario.svg",
-                      width: 30,
-                      height: 30,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {},
-                    icon: SvgPicture.asset(
-                      "assets/images/metas.svg",
+                      "assets/images/icon/metas.svg",
                       width: 30,
                       height: 30,
                     ),
@@ -222,7 +225,7 @@ class _IaScreenState extends State<IaScreen> {
                       );
                     },
                     icon: SvgPicture.asset(
-                      "assets/images/house.svg",
+                      "assets/images/icon/house.svg",
                       width: 30,
                       height: 30,
                     ),

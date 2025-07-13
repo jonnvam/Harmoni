@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/screens/ia_screen.dart';
-
+import 'package:flutter_application_1/screens/diario_screen.dart';
+import 'package:intl/date_symbol_data_local.dart'; // 👈 necesario para locales
 import 'package:logger/logger.dart';
 
 final logger = Logger();
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   logger.d("Debug mensaje");
   logger.i("Info mensaje");
   logger.e("Error mensaje");
+  await initializeDateFormatting('es_MX', null);
   runApp(const MainApp());
 }
 
@@ -17,6 +19,6 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: Scaffold(body: IaScreen()));
+    return MaterialApp(home: Scaffold(body: DiarioScreen()));
   }
 }

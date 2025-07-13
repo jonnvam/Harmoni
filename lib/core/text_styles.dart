@@ -70,15 +70,39 @@ class TextStyles {
     fontWeight: FontWeight.w100,
   );
   static const TextStyle textAjuste = TextStyle(
-    color:  AppColors.primary,
+    color: AppColors.primary,
     fontSize: 30,
     fontFamily: 'Kantumruy Pro',
     fontWeight: FontWeight.w400,
   );
   static const TextStyle textEditar = TextStyle(
-    color:  AppColors.primary,
+    color: AppColors.primary,
     fontSize: 22,
     fontFamily: 'Kantumruy Pro',
     fontWeight: FontWeight.w300,
+  );
+  static const TextStyle textDiario = TextStyle(
+    color: AppColors.primary,
+    fontSize: 30,
+    fontFamily: 'Kantumruy Pro',
+    fontWeight: FontWeight.w200,
+  );
+  static const TextStyle textDiario2 = TextStyle(
+    color: AppColors.primary,
+    fontSize: 14,
+    fontFamily: 'Kantumruy Pro',
+    fontWeight: FontWeight.w200,
+  );
+static const TextStyle textDiario3 = TextStyle(
+    color: AppColors.primary,
+    fontSize: 22,
+    fontFamily: 'Kantumruy Pro',
+    fontWeight: FontWeight.w200,
+  );
+  static const TextStyle textDiario4 = TextStyle(
+    color: AppColors.primary,
+    fontSize: 14,
+    fontFamily: 'Kantumruy Pro',
+    fontWeight: FontWeight.w100,
   );
 }

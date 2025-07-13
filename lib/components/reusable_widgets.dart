@@ -762,3 +762,68 @@ class ContainerC2 extends StatelessWidget {
     );
   }
 }
+
+//Fechas
+class SevenDayCalendar extends StatelessWidget {
+  final DateTime currentDate;
+  final void Function(DateTime)? onDateSelected;
+
+  const SevenDayCalendar({
+    super.key,
+    required this.currentDate,
+    this.onDateSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 35,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 7,
+        itemBuilder: (context, index) {
+          final date = currentDate.subtract(Duration(days: 3 - index));
+          final isToday = _isSameDate(date, currentDate);
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child:  Container(
+                width: 35,
+                decoration: BoxDecoration(
+                  color: isToday
+                      ? const Color(0xD8E0E7FF)
+                      : const Color.fromARGB(217, 255, 255, 255),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isToday
+                        ? Color.fromRGBO(255, 255, 255, 0.149)
+                        : const Color.fromARGB(105, 255, 255, 255),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 4),
+                    Text(
+                      '${date.day}',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w200,
+                        color: isToday ? const Color.fromARGB(255, 0, 0, 0) : Colors.black,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+          );
+        },
+      ),
+    );
+  }
+
+  bool _isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+}

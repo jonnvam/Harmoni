@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -198,7 +199,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                 padding: const EdgeInsets.only(bottom: 0),
                 child: CircularMenu(
                   fabIcon: SvgPicture.asset(
-                    "assets/images/house.svg",
+                    "assets/images/icon/house.svg",
                     width: 30,
                     height: 30,
                   ),
@@ -206,7 +207,17 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     IconButton(
                       onPressed: () {},
                       icon: SvgPicture.asset(
-                        "assets/images/psicologos.svg",
+                        "assets/images/icon/psicologos.svg",
+                        width: 30,
+                        height: 30,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => DiarioScreen()));
+                      },
+                      icon: SvgPicture.asset(
+                        "assets/images/icon/diario.svg",
                         width: 30,
                         height: 30,
                       ),
@@ -214,15 +225,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     IconButton(
                       onPressed: () {},
                       icon: SvgPicture.asset(
-                        "assets/images/diario.svg",
-                        width: 30,
-                        height: 30,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: SvgPicture.asset(
-                        "assets/images/metas.svg",
+                        "assets/images/icon/metas.svg",
                         width: 30,
                         height: 30,
                       ),
@@ -235,7 +238,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         );
                       },
                       icon: SvgPicture.asset(
-                        "assets/images/ia.svg",
+                        "assets/images/icon/ia.svg",
                         width: 30,
                         height: 30,
                       ),
