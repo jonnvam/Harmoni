@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
@@ -20,7 +21,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-//tuve que haer esto para que las imagenes se precarguen 
+    //tuve que haer esto para que las imagenes se precarguen
     precacheImage(AssetImage("assets/images/flores/flor1.png"), context);
     precacheImage(AssetImage("assets/images/flores/flor2.png"), context);
     precacheImage(AssetImage("assets/images/flores/flor3.png"), context);
@@ -43,7 +44,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      backgroundColor: AppColors.fondo,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -129,6 +130,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                 SizedBox(height: 70),
                 ContainerC1(
                   width: 300,
+                  alignment: Alignment.centerLeft,
                   height: 170,
                   child: Row(
                     children: [
@@ -195,6 +197,11 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 0),
                 child: CircularMenu(
+                  fabIcon: SvgPicture.asset(
+                    "assets/images/house.svg",
+                    width: 30,
+                    height: 30,
+                  ),
                   items: [
                     IconButton(
                       onPressed: () {},
@@ -204,7 +211,6 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         height: 30,
                       ),
                     ),
-                    
                     IconButton(
                       onPressed: () {},
                       icon: SvgPicture.asset(
@@ -222,7 +228,12 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => IaScreen()),
+                        );
+                      },
                       icon: SvgPicture.asset(
                         "assets/images/ia.svg",
                         width: 30,

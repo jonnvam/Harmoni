@@ -19,7 +19,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: AppColors.fondo,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           // Texto superior

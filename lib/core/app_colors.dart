@@ -10,7 +10,6 @@ class AppColors {
   static const Color full = Color.fromRGBO(249, 250, 251, 1);
 
   //Container LoginSignUp
-  static const Color fondo = Color.fromRGBO(255,255,255,0.80);
   static const Color borde1 = Color.fromRGBO(224,231,255,1);
 
   

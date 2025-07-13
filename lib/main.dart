@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/screens/ajustes_screen.dart';
-import 'package:flutter_application_1/screens/principal_screen.dart';
-//import 'package:flutter_application_1/screens/principal_screen.dart';
-//import 'package:flutter_application_1/screens/sign_login.dart';
-//import 'package:flutter_application_1/screens/login_screen.dart';
-//  import 'package:flutter_application_1/screens/signup_screen.dart';
+import 'package:flutter_application_1/screens/ia_screen.dart';
+
 import 'package:logger/logger.dart';
 
 final logger = Logger();
@@ -21,6 +17,6 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: Scaffold(body: AjustesPerfil()));
+    return MaterialApp(home: Scaffold(body: IaScreen()));
   }
 }

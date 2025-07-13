@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:fab_circular_menu_plus/fab_circular_menu_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/screens/ajustes_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../core/text_styles.dart';
 import '../core/app_colors.dart';
@@ -77,6 +78,7 @@ class ContainerC1 extends StatelessWidget {
   final double height;
   final double width;
   final Widget child;
+  final Alignment alignment; // 👈 lo guardamos
 
   static const BoxDecoration _decoration = BoxDecoration(
     color: Color.fromRGBO(224, 231, 255, 0.85),
@@ -91,6 +93,7 @@ class ContainerC1 extends StatelessWidget {
     required this.child,
     required this.width,
     required this.height,
+    this.alignment = Alignment.center,
   });
 
   @override
@@ -98,6 +101,7 @@ class ContainerC1 extends StatelessWidget {
     return Container(
       width: width,
       height: height,
+      alignment: alignment,
       decoration: _decoration,
       child: child,
     );
@@ -385,7 +389,12 @@ class _DropMenuState extends State<DropMenu> {
       child: Row(
         children: [
           IconButtonWithPadding(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AjustesPerfil()),
+              );
+            },
             svgAssetPath: "assets/images/alarm.svg",
           ),
           const Spacer(),
@@ -478,33 +487,31 @@ class _CarouselState extends State<Carousel> {
 
 class CircularMenu extends StatelessWidget {
   final List<Widget> items;
+  final Widget fabIcon; 
 
-  const CircularMenu({super.key, required this.items});
+  const CircularMenu({
+    super.key,
+    required this.items,
+    required this.fabIcon, 
+  });
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: Positioned(
-        top: 200,
-        child: FabCircularMenuPlus(
-          alignment: Alignment.bottomCenter,
-          ringColor: const Color.fromARGB(190, 107, 4, 133),
-          ringDiameter: 240.0,
-          ringWidth: 60.0,
-          fabSize: 60.12,
-          fabElevation: 0,
-          fabMargin: const EdgeInsets.all(0),
-          ringWidthLimitFactor: 10,
-          animationDuration: const Duration(milliseconds: 500),
-          animationCurve: Curves.easeOut,
-          fabOpenIcon: SvgPicture.asset(
-            "assets/images/house.svg",
-            width: 30,
-            height: 30,
-          ),
-          fabColor: AppColors.fondoM,
-          children: items,
-        ),
+      child: FabCircularMenuPlus(
+        alignment: Alignment.bottomCenter,
+        ringColor: const Color.fromRGBO(99, 102, 241, 0.63),
+        ringDiameter: 240.0,
+        ringWidth: 60.0,
+        fabSize: 60.12,
+        fabElevation: 0,
+        fabMargin: const EdgeInsets.all(0),
+        ringWidthLimitFactor: 10,
+        animationDuration: const Duration(milliseconds: 500),
+        animationCurve: Curves.easeOut,
+        fabOpenIcon: fabIcon, // 👈 usamos el ícono que manden
+        fabColor: AppColors.fondoM,
+        children: items,
       ),
     );
   }
@@ -646,23 +653,17 @@ class FlowerProgress extends StatelessWidget {
 }
 
 class SettingButton extends StatelessWidget {
-
-  const SettingButton({
-    super.key,
-
-  });
+  const SettingButton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(onTap: (){
-
-    }, child:  
-      IconButtonWithPadding(
+    return GestureDetector(
+      onTap: () {},
+      child: IconButtonWithPadding(
         onPressed: () {},
         svgAssetPath: "assets/images/setting.svg",
-      )
-      
-      );
+      ),
+    );
   }
 }
 
@@ -691,10 +692,8 @@ class AvatarTop extends StatelessWidget {
                 height: 34,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [ Text("Editar", style: TextStyles.textEditar)],
-                  
+                  children: [Text("Editar", style: TextStyles.textEditar)],
                 ),
-                
               ),
             ],
           ),
@@ -703,6 +702,7 @@ class AvatarTop extends StatelessWidget {
     );
   }
 }
+
 class ContainerAjustes extends StatelessWidget {
   final double height;
   final double width;
@@ -711,7 +711,6 @@ class ContainerAjustes extends StatelessWidget {
   static const BoxDecoration _decoration = BoxDecoration(
     color: Color.fromRGBO(224, 231, 255, 0.85),
     borderRadius: BorderRadius.all(Radius.circular(15)),
-    
   );
 
   const ContainerAjustes({
@@ -730,4 +729,36 @@ class ContainerAjustes extends StatelessWidget {
     );
   }
 }
+class ContainerC2 extends StatelessWidget {
+  final double height;
+  final double width;
+  final Widget child;
+  final Alignment alignment; // 👈 lo guardamos
 
+  static const BoxDecoration _decoration = BoxDecoration(
+    color: Color.fromRGBO(224, 231, 255, 0.55),
+    borderRadius: BorderRadius.all(Radius.circular(17)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color.fromRGBO(255, 255, 255, 0.75), width: 1),
+    ),
+  );
+
+  const ContainerC2({
+    super.key,
+    required this.child,
+    required this.width,
+    required this.height,
+    this.alignment = Alignment.center,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      alignment: alignment,
+      decoration: _decoration,
+      child: child,
+    );
+  }
+}

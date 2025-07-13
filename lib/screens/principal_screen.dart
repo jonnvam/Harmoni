@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
+import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 //import 'package:carousel_slider/carousel_slider.dart';
@@ -17,13 +17,11 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   bool showStep3 = false;
   bool showStep4 = false;
 
-  
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      backgroundColor: AppColors.fondo,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -31,7 +29,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
               children: [
                 DropMenu(),
                 Padding(
-                  padding: const EdgeInsets.only(top: 20, left: 31),
+                  padding: const EdgeInsets.only(top: 20, left: 45),
                   child: Row(
                     children: [
                       //en alvarito seria $Name pero eso creo en el json o en la logica
@@ -55,6 +53,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                   child: ContainerC1(
                     width: 339,
                     height: 125,
+                    alignment: Alignment.centerLeft,
                     child: Row(
                       children: [
                         Padding(
@@ -100,6 +99,11 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
             child: Padding(
               padding: const EdgeInsets.only(bottom: 0),
               child: CircularMenu(
+                fabIcon: SvgPicture.asset(
+                  "assets/images/house.svg",
+                  width: 30,
+                  height: 30,
+                ),
                 items: [
                   IconButton(
                     onPressed: () {},
@@ -109,7 +113,6 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                       height: 30,
                     ),
                   ),
-                  SizedBox(width: 10),
                   IconButton(
                     onPressed: () {},
                     icon: SvgPicture.asset(
@@ -118,7 +121,6 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                       height: 30,
                     ),
                   ),
-                  SizedBox(width: 10),
                   IconButton(
                     onPressed: () {},
                     icon: SvgPicture.asset(
@@ -127,10 +129,13 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                       height: 30,
                     ),
                   ),
-                  SizedBox(width: 10),
-
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => IaScreen()),
+                      );
+                    },
                     icon: SvgPicture.asset(
                       "assets/images/ia.svg",
                       width: 30,
