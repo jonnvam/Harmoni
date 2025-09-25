@@ -191,57 +191,47 @@ class _DiarioScreenState extends State<DiarioScreen> {
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 0),
-              child: CircularMenu(
-                fabIcon: SvgPicture.asset(
-                  "assets/images/icon/diario.svg",
-                  width: 30,
-                  height: 30,
-                ),
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SemiCircularRadialMenu(
+                currentIconAsset: "assets/images/icon/diario.svg",
+                ringColor: Colors.transparent,
                 items: [
-                  IconButton(
-                    onPressed: () {},
-                    icon: SvgPicture.asset(
-                      "assets/images/icon/psicologos.svg",
-                      width: 30,
-                      height: 30,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
+                  // IA (left)
+                  RadialMenuItem(
+                    iconAsset: "assets/images/icon/ia.svg",
+                    onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => IaScreen()),
                       );
                     },
-                    icon: SvgPicture.asset(
-                      "assets/images/icon/ia.svg",
-                      width: 30,
-                      height: 30,
-                    ),
                   ),
-                  IconButton(
-                    onPressed: () {},
-                    icon: SvgPicture.asset(
-                      "assets/images/icon/metas.svg",
-                      width: 30,
-                      height: 30,
-                    ),
+                  // Metas
+                  RadialMenuItem(
+                    iconAsset: "assets/images/icon/metas.svg",
+                    onTap: () {},
                   ),
-                  IconButton(
-                    onPressed: () {
+                  // Home (center of ring)
+                  RadialMenuItem(
+                    iconAsset: "assets/images/icon/house.svg",
+                    onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => SecondPrincipalScreen(),
-                        ),
+                        MaterialPageRoute(builder: (context) => SecondPrincipalScreen()),
                       );
                     },
-                    icon: SvgPicture.asset(
-                      "assets/images/icon/house.svg",
-                      width: 30,
-                      height: 30,
-                    ),
+                  ),
+                  // Progreso
+                  RadialMenuItem(
+                    iconAsset: "assets/images/icon/progreso.svg",
+                    onTap: () {},
+                  ),
+                  // Psicólogos (right)
+                  RadialMenuItem(
+                    iconAsset: "assets/images/icon/psicologos.svg",
+                    onTap: () {
+                      // TODO: psicologos screen when available
+                    },
                   ),
                 ],
               ),

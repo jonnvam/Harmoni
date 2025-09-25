@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/screens/diario_screen.dart';
+import 'package:flutter_application_1/screens/sign_login.dart';
 import 'package:intl/date_symbol_data_local.dart'; // 👈 necesario para locales
 import 'package:logger/logger.dart';
 
@@ -19,6 +19,6 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: Scaffold(body: DiarioScreen()));
+    return MaterialApp(home: Scaffold(body: SignLoginScreen()));
   }
 }

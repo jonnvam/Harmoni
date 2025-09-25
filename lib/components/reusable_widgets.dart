@@ -6,6 +6,7 @@ import 'package:flutter_application_1/screens/ajustes_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../core/text_styles.dart';
 import '../core/app_colors.dart';
+import 'dart:math' as math;
 
 class CarouselAssets {
   static const List<String> images = [
@@ -514,6 +515,221 @@ class CircularMenu extends StatelessWidget {
         children: items,
       ),
     );
+  }
+}
+
+// --- Semi-circular radial menu (custom) ---
+
+class RadialMenuItem {
+  final String iconAsset;
+  final VoidCallback onTap;
+  final String? tooltip;
+
+  RadialMenuItem({required this.iconAsset, required this.onTap, this.tooltip});
+}
+
+class SemiCircularRadialMenu extends StatefulWidget {
+  final List<RadialMenuItem> items; // 5 items expected
+  final String currentIconAsset; // center icon when closed
+  final double radius;
+  final Color itemBackground;
+  final Color centerBackground;
+  final Color ringColor;
+  final double itemSize; // diameter of circular item
+  final Duration animationDuration;
+  final VoidCallback? onCenterDoubleTap; // optional action on center double-tap
+
+  const SemiCircularRadialMenu({
+    super.key,
+    required this.items,
+    required this.currentIconAsset,
+    this.radius = 120,
+    this.itemBackground = const Color(0xFFF3F4F6),
+    this.centerBackground = const Color(0xFFFFFFFF),
+    this.ringColor = const Color.fromRGBO(99, 102, 241, 0.20),
+    this.itemSize = 56,
+    this.animationDuration = const Duration(milliseconds: 350),
+    this.onCenterDoubleTap,
+  }) : assert(items.length >= 3 && items.length <= 6, 'Use 3-6 items for good spacing');
+
+  @override
+  State<SemiCircularRadialMenu> createState() => _SemiCircularRadialMenuState();
+}
+
+class _SemiCircularRadialMenuState extends State<SemiCircularRadialMenu> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _anim;
+
+  bool get _isOpen => _controller.status == AnimationStatus.forward ||
+      _controller.status == AnimationStatus.completed ||
+      _controller.value > 0.001;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.animationDuration);
+    _anim = CurvedAnimation(parent: _controller, curve: Curves.easeOut, reverseCurve: Curves.easeIn);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    if (_isOpen) {
+      _controller.reverse();
+    } else {
+      _controller.forward();
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.items;
+    final itemCount = items.length;
+
+    // Angles for semi-circle from left (-pi) to right (0), opening upwards
+    final double startAngle = -math.pi; // left
+    final double endAngle = 0; // right
+    final double step = itemCount == 1 ? 0 : (endAngle - startAngle) / (itemCount - 1);
+
+    return SizedBox(
+      height: widget.radius + widget.itemSize + 24,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          // Optional faint semi-ring background
+          AnimatedBuilder(
+            animation: _anim,
+            builder: (context, _) {
+              final opacity = _anim.value * 1.0;
+              return IgnorePointer(
+                ignoring: !_isOpen,
+                child: Opacity(
+                  opacity: opacity,
+                  child: CustomPaint(
+                    size: Size(widget.radius * 2, widget.radius),
+                    painter: _SemiRingPainter(color: widget.ringColor),
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // Radial items
+          ...List.generate(itemCount, (i) {
+            final angle = startAngle + step * i;
+            return AnimatedBuilder(
+              animation: _anim,
+              builder: (context, _) {
+                final r = widget.radius * _anim.value;
+                final dx = r * math.cos(angle);
+                final dy = r * math.sin(angle);
+                return Transform.translate(
+                  offset: Offset(dx, dy - 8), // nudge up a bit
+                  child: Opacity(
+                    opacity: _anim.value,
+                    child: _RadialCircleButton(
+                      size: widget.itemSize,
+                      background: widget.itemBackground,
+                      svgAsset: items[i].iconAsset,
+                      onTap: () {
+                        // Close then run action to feel snappy
+                        _controller.reverse();
+                        items[i].onTap();
+                      },
+                    ),
+                  ),
+                );
+              },
+            );
+          }),
+
+          // Center toggle button (keeps same icon always, no X)
+          _RadialCircleButton(
+            size: widget.itemSize + 6,
+            background: widget.centerBackground,
+            borderColor: const Color(0xFFE5E7EB),
+            svgAsset: widget.currentIconAsset,
+            onTap: _toggle,
+            onDoubleTap: widget.onCenterDoubleTap,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RadialCircleButton extends StatelessWidget {
+  final double size;
+  final Color background;
+  final Color? borderColor;
+  final String svgAsset;
+  final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
+
+  const _RadialCircleButton({
+    required this.size,
+    required this.background,
+    required this.svgAsset,
+    required this.onTap,
+    this.borderColor,
+    this.onDoubleTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final button = Material(
+      color: background,
+      shape: CircleBorder(side: BorderSide(color: borderColor ?? const Color(0xFFE5E7EB), width: 1)),
+      elevation: 0,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Center(
+            child: _safeSvg(svgAsset, width: size * 0.45, height: size * 0.45),
+          ),
+        ),
+      ),
+    );
+
+    if (onDoubleTap == null) return button;
+    return GestureDetector(onDoubleTap: onDoubleTap, child: button);
+  }
+}
+
+class _SemiRingPainter extends CustomPainter {
+  final Color color;
+  const _SemiRingPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round;
+
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height * 2);
+    // Draw upper half of the circle (semi-circle)
+    canvas.drawArc(rect, math.pi, math.pi, false, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+Widget _safeSvg(String path, {double? width, double? height}) {
+  try {
+    return SvgPicture.asset(path, width: width, height: height);
+  } catch (_) {
+    return const Icon(Icons.image_not_supported);
   }
 }
 

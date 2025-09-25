@@ -4,7 +4,6 @@ import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -192,56 +191,41 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
               ],
             ),
           ),
-          if (showStep4) //Menu Circular
+          if (showStep4) //Menu Semi-circular nuevo
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 0),
-                child: CircularMenu(
-                  fabIcon: SvgPicture.asset(
-                    "assets/images/icon/house.svg",
-                    width: 30,
-                    height: 30,
-                  ),
+                padding: const EdgeInsets.only(bottom: 16),
+                child: SemiCircularRadialMenu(
+                  currentIconAsset: "assets/images/icon/house.svg",
+                  ringColor: Colors.transparent,
                   items: [
-                    IconButton(
-                      onPressed: () {},
-                      icon: SvgPicture.asset(
-                        "assets/images/icon/psicologos.svg",
-                        width: 30,
-                        height: 30,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/diario.svg",
+                      onTap: () {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => DiarioScreen()));
                       },
-                      icon: SvgPicture.asset(
-                        "assets/images/icon/diario.svg",
-                        width: 30,
-                        height: 30,
-                      ),
                     ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: SvgPicture.asset(
-                        "assets/images/icon/metas.svg",
-                        width: 30,
-                        height: 30,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/ia.svg",
+                      onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => IaScreen()),
                         );
                       },
-                      icon: SvgPicture.asset(
-                        "assets/images/icon/ia.svg",
-                        width: 30,
-                        height: 30,
-                      ),
+                    ),
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/metas.svg",
+                      onTap: () {},
+                    ),
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/progreso.svg",
+                      onTap: () {},
+                    ),
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/psicologos.svg",
+                      onTap: () {},
                     ),
                   ],
                 ),
