@@ -3,6 +3,7 @@ import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
+import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 
 class EmergenciaScreen extends StatefulWidget {
@@ -61,14 +62,19 @@ class _EmergenciaScreenState extends State<EmergenciaScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(width: 290, height: 35,
-                          child: Text("Contactos de Emergencia", style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 22,
-                            fontFamily: 'Mandali',
-                            fontWeight: FontWeight.w400,
+                          SizedBox(
+                            width: 290,
+                            height: 35,
+                            child: Text(
+                              "Contactos de Emergencia",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 22,
+                                fontFamily: 'Mandali',
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
                           ),
-                        )),
                         ],
                       ),
                     ),
@@ -108,7 +114,12 @@ class _EmergenciaScreenState extends State<EmergenciaScreen> {
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MetasScreen()),
+                      );
+                    },
                   ),
 
                   // Home (center of ring)

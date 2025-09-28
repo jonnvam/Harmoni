@@ -3,6 +3,7 @@ import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
+import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 
 class AjustesPerfil extends StatefulWidget {
@@ -268,7 +269,9 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder:(context) => MetasScreen()));
+                    },
                   ),
                   // Home (center of ring)
                   

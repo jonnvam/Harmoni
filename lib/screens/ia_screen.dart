@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
+import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/svg.dart';
@@ -41,7 +42,8 @@ class _IaScreenState extends State<IaScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 20, left: 15),
                       child: InfoBubbleButton(
-                        message: "Aquí podrás acceder a recursos y tips personalizados sobre bienestar emocional.",
+                        message:
+                            "Aquí podrás acceder a recursos y tips personalizados sobre bienestar emocional.",
                         autoHideDuration: const Duration(seconds: 4),
                         iconSize: 26,
                       ),
@@ -98,7 +100,9 @@ class _IaScreenState extends State<IaScreen> {
                         padding: const EdgeInsets.only(top: 15, left: 45),
                         child: Column(
                           children: [
-                            SvgPicture.asset("assets/images/ia/lamp-charge.svg"),
+                            SvgPicture.asset(
+                              "assets/images/ia/lamp-charge.svg",
+                            ),
                           ],
                         ),
                       ),
@@ -106,10 +110,13 @@ class _IaScreenState extends State<IaScreen> {
                   ),
                 ),
                 Column(
-                  
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 35, left: 35, right: 20),
+                      padding: const EdgeInsets.only(
+                        top: 35,
+                        left: 35,
+                        right: 20,
+                      ),
                       child: Row(
                         children: [
                           Column(
@@ -190,13 +197,21 @@ class _IaScreenState extends State<IaScreen> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/diario.svg",
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => DiarioScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => DiarioScreen()),
+                      );
                     },
                   ),
                   // Metas
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MetasScreen()),
+                      );
+                    },
                   ),
                   // Home (center of ring)
                   RadialMenuItem(
@@ -204,7 +219,9 @@ class _IaScreenState extends State<IaScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => SecondPrincipalScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => SecondPrincipalScreen(),
+                        ),
                       );
                     },
                   ),

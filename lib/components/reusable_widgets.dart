@@ -1176,41 +1176,46 @@ class EmotionButton extends StatelessWidget {
 
 //Progreso de la Flor
 class FlowerProgress extends StatelessWidget {
-  final double progress;
+  final int stage; // 0..5
+  final int totalStages;
+  final double fraction; // 0..1
 
-  const FlowerProgress({super.key, required this.progress});
+  const FlowerProgress({
+    super.key,
+    required this.stage,
+    required this.totalStages,
+    required this.fraction,
+  });
 
-  static const Color _backgroundColor = Color.fromRGBO(240, 232, 241, 0.73);
-  static const Color _progressColor = Color.fromRGBO(217, 87, 230, 0.41);
+  static const Color _inactiveColor = Color.fromRGBO(240, 232, 241, 0.55);
+  static const Color _activeColor = Color.fromRGBO(217, 87, 230, 0.75);
 
-  String _getFlowerAsset(double progress) {
-    if (progress < 0.25) return "assets/images/flores/flor1.png";
-    if (progress < 0.5) return "assets/images/flores/flor2.png";
-    return "assets/images/flores/flor3.png";
-  }
+  String _assetForStage(int s) => 'assets/images/flores/flor$s.png';
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 200,
-      height: 200,
+      width: 210,
+      height: 210,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          SizedBox(
-            width: 200,
-            height: 200,
-            child: CircularProgressIndicator(
-              value: progress,
-              strokeWidth: 12,
-              backgroundColor: _backgroundColor,
-              valueColor: const AlwaysStoppedAnimation<Color>(_progressColor),
+          // Segmented ring
+          CustomPaint(
+            size: const Size(210, 210),
+            painter: _FlowerRingPainter(
+              completedSegments: stage,
+              totalSegments: totalStages,
+              activeColor: _activeColor,
+              inactiveColor: _inactiveColor,
+              fraction: fraction,
             ),
           ),
-          Positioned(
-            top: 25,
+          // Flor
+            Positioned(
+            top: 28,
             child: Image.asset(
-              _getFlowerAsset(progress),
+              _assetForStage(stage.clamp(0, totalStages)),
               width: 150,
               height: 150,
               fit: BoxFit.contain,
@@ -1219,6 +1224,94 @@ class FlowerProgress extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _FlowerRingPainter extends CustomPainter {
+  final int completedSegments;
+  final int totalSegments;
+  final Color activeColor;
+  final Color inactiveColor;
+  final double fraction; // progreso fino 0..1
+
+  _FlowerRingPainter({
+    required this.completedSegments,
+    required this.totalSegments,
+    required this.activeColor,
+    required this.inactiveColor,
+    required this.fraction,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double strokeWidth = 14;
+    final center = size.center(Offset.zero);
+    final radius = (size.width / 2) - (strokeWidth / 2) - 4;
+    final segmentAngle = (2 * math.pi) / totalSegments;
+    final startAngle = -math.pi / 2; // empieza arriba
+
+    final Paint inactivePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..color = inactiveColor;
+
+    final Paint activePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..color = activeColor;
+
+    // Fondo inactivo completo segmentado
+    for (int i = 0; i < totalSegments; i++) {
+      final double a1 = startAngle + i * segmentAngle + 0.12; // pequeño gap
+      final double a2 = a1 + segmentAngle - 0.24; // gap total ~0.24 rad
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        a1,
+        a2 - a1,
+        false,
+        inactivePaint,
+      );
+    }
+
+    // Segments completados
+    for (int i = 0; i < completedSegments; i++) {
+      final double a1 = startAngle + i * segmentAngle + 0.12;
+      final double a2 = a1 + segmentAngle - 0.24;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        a1,
+        a2 - a1,
+        false,
+        activePaint,
+      );
+    }
+
+    // Segmento en progreso (parcial del siguiente)
+    if (completedSegments < totalSegments && fraction > 0) {
+      final double partial = (fraction * totalSegments) - completedSegments; // 0..1 dentro del segment actual
+      if (partial > 0) {
+        final int segIndex = completedSegments;
+        final double a1 = startAngle + segIndex * segmentAngle + 0.12;
+        final double usableAngle = segmentAngle - 0.24;
+        final double sweep = usableAngle * partial.clamp(0.0, 1.0);
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius),
+          a1,
+          sweep,
+          false,
+          activePaint..color = activeColor.withOpacity(0.75),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FlowerRingPainter old) {
+    return old.completedSegments != completedSegments ||
+        old.fraction != fraction ||
+        old.totalSegments != totalSegments;
   }
 }
 

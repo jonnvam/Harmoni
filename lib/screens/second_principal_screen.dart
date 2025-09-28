@@ -4,6 +4,8 @@ import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
+import 'package:flutter_application_1/screens/metas_screen.dart';
+import 'package:flutter_application_1/data/goals_manager.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -22,9 +24,9 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     //tuve que haer esto para que las imagenes se precarguen
-    precacheImage(AssetImage("assets/images/flores/flor1.png"), context);
     precacheImage(AssetImage("assets/images/flores/flor2.png"), context);
     precacheImage(AssetImage("assets/images/flores/flor3.png"), context);
+    precacheImage(AssetImage("assets/images/flores/flor4.png"), context);
     precacheImage(AssetImage("assets/images/carousel/t1.jpg"), context);
     // Paso 2: mostrar parte media después de 300ms
     Future.delayed(Duration(milliseconds: 300), () {
@@ -42,6 +44,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final goalsManager = GoalsManager.instance;
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       backgroundColor: Colors.white,
@@ -126,7 +129,17 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                 ),
                 if (showStep3) //ProgressBar
                   SizedBox(height: 70),
-                FlowerProgress(progress: 0.5),
+                ValueListenableBuilder(
+                  valueListenable: GoalsManager.instance,
+                  builder: (_, __, ___) {
+                    final gm = GoalsManager.instance;
+                    return FlowerProgress(
+                      stage: gm.currentStage,
+                      totalStages: gm.totalStages,
+                      fraction: gm.progressFraction,
+                    );
+                  },
+                ),
                 SizedBox(height: 70),
                 ContainerC1(
                   width: 300,
@@ -187,6 +200,33 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 30),
+                // Metas en progreso
+                ValueListenableBuilder(
+                  valueListenable: goalsManager,
+                  builder: (_, __, ___) {
+                    final inProgress = goalsManager.inProgressGoals;
+                    if (inProgress.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Metas en progreso',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontFamily: 'Kantumruy Pro',
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...inProgress.map((g) => _InProgressGoalTile(goal: g)).toList(),
+                        const SizedBox(height: 20),
+                      ],
+                    );
+                  },
+                ),
                 SizedBox(height: 80),
               ],
             ),
@@ -203,7 +243,12 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/diario.svg",
                       onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => DiarioScreen()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DiarioScreen(),
+                          ),
+                        );
                       },
                     ),
                     RadialMenuItem(
@@ -217,7 +262,14 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/metas.svg",
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MetasScreen(),
+                          ),
+                        );
+                      },
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/progreso.svg",
@@ -232,6 +284,58 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _InProgressGoalTile extends StatelessWidget {
+  final Goal goal;
+  const _InProgressGoalTile({required this.goal});
+
+  @override
+  Widget build(BuildContext context) {
+    final manager = GoalsManager.instance;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: ListTile(
+          title: Text(
+            goal.titulo,
+            style: const TextStyle(
+              fontSize: 16,
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          subtitle: Text(
+            goal.descripcion,
+            style: const TextStyle(
+              fontSize: 13,
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w300,
+            ),
+          ),
+          trailing: IconButton(
+            tooltip: 'Marcar como completada',
+            icon: const Icon(Icons.check_circle, color: Colors.green),
+            onPressed: () {
+              manager.completeGoal(goal);
+            },
+          ),
+        ),
       ),
     );
   }
