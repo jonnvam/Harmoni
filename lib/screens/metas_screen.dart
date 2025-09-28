@@ -18,6 +18,8 @@ class _MetasScreenState extends State<MetasScreen> {
   final GoalsManager _manager = GoalsManager.instance;
   double _dragDx = 0.0; // para navegar lateral (explorar)
   double _dragDy = 0.0; // para detectar swipe vertical (iniciar)
+  bool _swipingHorizontally = false; // bloquea interacciones mientras animamos salida
+  bool _horizontalExitLeft = false; // dirección de salida
 
   @override
   void initState() {
@@ -55,39 +57,23 @@ class _MetasScreenState extends State<MetasScreen> {
     }
     // Para navegación lateral (solo "explorar" visual): si se movió suficiente, saltamos a la siguiente carta lógicamente rotando lista.
     else if (_dragDx.abs() > 140) {
-      _cycleGoals();
+      // Disparar animación de salida horizontal y luego mover meta al final
+      if (!_swipingHorizontally) {
+        _horizontalExitLeft = _dragDx < 0;
+        setState(() => _swipingHorizontally = true);
+        Future.delayed(const Duration(milliseconds: 180), () {
+          // Reordenar
+          _manager.moveActiveGoalToEnd(topGoal);
+          if (mounted) {
+            setState(() {
+              _swipingHorizontally = false;
+              _horizontalExitLeft = false;
+            });
+          }
+        });
+      }
     }
     setState(_resetDrag);
-  }
-
-  void _cycleGoals() {
-    final active = _manager.activeGoals;
-    if (active.length <= 1) return;
-    // Rotamos: primera al final (sin cambiar estado)
-    final firstId = active.first.id;
-    // Reordenamos la lista interna manteniendo estados
-    // (como el manager no expone setter público, manipulamos por índices)
-    // Simplificación: reconstruimos orden interno.
-    final all = [..._manager.activeGoals, ..._manager.inProgressGoals, ..._manager.completedGoals];
-    final firstGoal = all.firstWhere((g) => g.id == firstId);
-    // Quitamos y reinsertamos al final de los activos
-    all.remove(firstGoal);
-    // Insertamos al final de la sección de activos (antes de inProgress)
-    final newActive = [..._manager.activeGoals.where((g) => g.id != firstId), firstGoal];
-    final reordered = [
-      ...newActive,
-      ..._manager.inProgressGoals,
-      ..._manager.completedGoals,
-    ];
-    // Reemplazamos directamente (hack temporal)
-    _replaceAll(reordered);
-  }
-
-  void _replaceAll(List<Goal> ordered) {
-    // Accedemos al campo privado a través de método en el manager? -> no existe.
-    // Para no romper encapsulación real, haríamos manager refactor; por ahora simularemos con resetAllForDebug + estados.
-    // Simplificamos: no reordenamos realmente (para evitar tocar internals). Dejamos pendiente.
-    // -> Podríamos omitir rotación hasta tener persistencia.
   }
 
   void _startGoal(Goal goal) {
@@ -151,7 +137,7 @@ class _MetasScreenState extends State<MetasScreen> {
     }
 
     // Tomamos hasta las primeras 4 para mostrar en la pila (0 = top lógica)
-  final visible = active.take(4).toList();
+    final visible = active.take(4).toList();
 
     return SizedBox(
       height: 360,
@@ -192,12 +178,27 @@ class _MetasScreenState extends State<MetasScreen> {
           );
 
           if (isTop) {
-            card = GestureDetector(
+            Widget gestureWrapped = GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onPanUpdate: _onDragUpdate,
+              onPanUpdate: _swipingHorizontally ? null : _onDragUpdate,
               onPanEnd: (d) => _onDragEnd(d, goal),
               child: card,
             );
+            // Animación de salida horizontal
+            if (_swipingHorizontally) {
+              final exitOffset = _horizontalExitLeft ? -MediaQuery.of(context).size.width : MediaQuery.of(context).size.width;
+              gestureWrapped = AnimatedSlide(
+                duration: const Duration(milliseconds: 180),
+                offset: Offset(exitOffset / MediaQuery.of(context).size.width, 0),
+                curve: Curves.easeIn,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 160),
+                  opacity: 0,
+                  child: gestureWrapped,
+                ),
+              );
+            }
+            card = gestureWrapped;
           }
 
           return Positioned(

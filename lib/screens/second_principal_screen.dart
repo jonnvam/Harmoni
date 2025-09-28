@@ -6,6 +6,7 @@ import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/data/goals_manager.dart';
+import 'package:flutter_application_1/components/animated_flower.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -129,16 +130,11 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                 ),
                 if (showStep3) //ProgressBar
                   SizedBox(height: 70),
-                ValueListenableBuilder(
-                  valueListenable: GoalsManager.instance,
-                  builder: (_, __, ___) {
-                    final gm = GoalsManager.instance;
-                    return FlowerProgress(
-                      stage: gm.currentStage,
-                      totalStages: gm.totalStages,
-                      fraction: gm.progressFraction,
-                    );
-                  },
+                // Nueva animación Lottie de la flor (coloca tu JSON en assets/animations/flower.json)
+                const AnimatedFlower(
+                  assetPath: 'assets/animations/flower.json',
+                  showOverlayRing: true,
+                  segments: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
                 ),
                 SizedBox(height: 70),
                 ContainerC1(

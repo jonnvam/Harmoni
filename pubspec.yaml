@@ -14,6 +14,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_svg: ^2.0.7
+  lottie: ^3.1.0
 dependency_overrides:
   carousel_slider: 5.1.1
 
@@ -33,3 +34,6 @@ flutter:
     - assets/images/diario/
     - assets/images/ia/
     - assets/images/icon/
+    - assets/animations/
+    # Explicitly list the Lottie file to avoid any asset resolution issues
+    - assets/animations/flower.json

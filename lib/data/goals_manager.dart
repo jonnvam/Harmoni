@@ -52,6 +52,11 @@ class GoalsManager extends ValueNotifier<int> {
       titulo: 'Agradecimientos',
       descripcion: 'Escribir 3 cosas por las que estoy agradecid@',
     ),
+    Goal(
+      id: '6',
+      titulo: 'Respiración profunda',
+      descripcion: 'Respirar 5 minutos',
+    ),
   ];
 
   List<Goal> get activeGoals => _goals.where((g) => g.status == GoalStatus.active).toList();
@@ -88,6 +93,18 @@ class GoalsManager extends ValueNotifier<int> {
       g.iniciada = null;
       g.completada = null;
     }
+    value++;
+  }
+
+  /// Mueve una meta activa al final del orden de metas activas (antes de las que no son activas
+  /// en el orden filtrado). Por simplicidad, la enviamos al final de la lista global; como el
+  /// filtrado conserva orden relativo, aparecerá al final del subconjunto de activas.
+  void moveActiveGoalToEnd(Goal goal) {
+    if (goal.status != GoalStatus.active) return;
+    // Si ya está al final, nada.
+    if (_goals.isNotEmpty && _goals.last == goal) return;
+    _goals.remove(goal);
+    _goals.add(goal);
     value++;
   }
 }
