@@ -105,4 +105,10 @@ static const TextStyle textDiario3 = TextStyle(
     fontFamily: 'Kantumruy Pro',
     fontWeight: FontWeight.w100,
   );
+  static const TextStyle textDiario5 = TextStyle(
+    color: AppColors.primary,
+    fontSize: 22,
+    fontFamily: 'Kantumruy Pro',
+    fontWeight: FontWeight.w300,
+  );
 }

@@ -40,18 +40,18 @@ class _IaScreenState extends State<IaScreen> {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(top: 20, left: 15),
-                      child: Column(
-                        children: [
-                          SvgPicture.asset("assets/images/ia/info-circle.svg"),
-                        ],
+                      child: InfoBubbleButton(
+                        message: "Aquí podrás acceder a recursos y tips personalizados sobre bienestar emocional.",
+                        autoHideDuration: const Duration(seconds: 4),
+                        iconSize: 26,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 35),
                 ContainerC2(
-                  width: 320,
-                  alignment: Alignment.centerLeft,
+                  width: 350,
+                  alignment: Alignment.center,
                   height: 80,
                   child: Row(
                     children: [
@@ -78,7 +78,7 @@ class _IaScreenState extends State<IaScreen> {
                 const SizedBox(height: 35),
                 ContainerC1(
                   height: 145,
-                  width: 320,
+                  width: 350,
                   alignment: Alignment.center,
                   child: Row(
                     children: [
@@ -106,11 +106,11 @@ class _IaScreenState extends State<IaScreen> {
                   ),
                 ),
                 Column(
+                  
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 35, left: 20),
+                      padding: const EdgeInsets.only(top: 35, left: 35, right: 20),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Column(
                             children: [
@@ -125,7 +125,7 @@ class _IaScreenState extends State<IaScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(width: 40),
+                          const SizedBox(width: 60),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [

@@ -1,3 +1,6 @@
+import 'dart:ffi';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
@@ -46,6 +49,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           ),
                         ],
                       ),
+
                       SizedBox(height: 10),
                       SevenDayCalendar(currentDate: DateTime.now()),
 
@@ -81,13 +85,15 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 45),
+                      SizedBox(height: 35),
                       Column(
                         children: [
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
+                              //Como te sientes
                               ContainerC2(
-                                width: 275,
+                                width: 290,
                                 height: 95,
                                 child: Column(
                                   children: [
@@ -120,12 +126,13 @@ class _DiarioScreenState extends State<DiarioScreen> {
                                 ),
                               ),
                               SizedBox(width: 5),
+                              //Botones Laterales
                               ContainerC1(
                                 width: 45,
-                                height: 120,
+                                height: 130,
                                 child: SizedBox(
                                   width: 45,
-                                  height: 120,
+                                  height: 130,
                                   child: Column(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -136,7 +143,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                                         width: 30,
                                         height: 30,
                                       ),
-                                     safeSvg(
+                                      safeSvg(
                                         "assets/images/diario/microphone-2.svg",
                                         width: 30,
                                         height: 30,
@@ -153,32 +160,38 @@ class _DiarioScreenState extends State<DiarioScreen> {
                               ),
                             ],
                           ),
-                          ContainerC2(
-                            height: 100,
-                            width: 300,
+                          //Notas
+                          SizedBox(height: 40),
+                          ContainerC3(
+                            height: 250,
+                            width: 380,
                             alignment: Alignment.center,
                             child: Column(
                               children: [
-                                SizedBox(height: 5),
-                                safeSvg(
-                                  "assets/images/diario/edit.svg",
-                                  width: 30,
-                                  height: 30,
+                                SizedBox(height: 15),
+                                Row(
+                                  children: [
+                                    SizedBox(width: 35),
+                                    Text(
+                                      "Tus notas",
+                                      style: TextStyles.textDiario5,
+                                    ),
+                                    SizedBox(width: 180),
+                                    safeSvg(
+                                      "assets/images/diario/calendar.svg",
+                                      width: 30,
+                                      height: 30,
+                                    ),
+                                  ],
                                 ),
-                                safeSvg(
-                                  "assets/images/diario/microphone-2.svg",
-                                  width: 30,
-                                  height: 30,
-                                ),
-                                safeSvg(
-                                  "assets/images/diario/gallery.svg",
-                                  width: 30,
-                                  height: 30,
-                                ),
-                                SizedBox(height: 5),
+                                SizedBox(height: 15),
+                                Column(children: [ContenedorDiarioBuscar()]),
+                                SizedBox(height: 20),
+                                ContainerDiarioWhite(height: 108, width: 134),
                               ],
                             ),
                           ),
+
                           // Row(children: [Column()]),
                         ],
                       ),
@@ -217,7 +230,9 @@ class _DiarioScreenState extends State<DiarioScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => SecondPrincipalScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => SecondPrincipalScreen(),
+                        ),
                       );
                     },
                   ),
@@ -229,9 +244,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                   // Psicólogos (right)
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
-                    onTap: () {
-                      // TODO: psicologos screen when available
-                    },
+                    onTap: () {},
                   ),
                 ],
               ),
@@ -242,6 +255,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
     );
   }
 }
+
 Widget safeSvg(String path, {double? width, double? height}) {
   try {
     return SvgPicture.asset(path, width: width, height: height);

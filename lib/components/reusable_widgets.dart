@@ -3,10 +3,13 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:fab_circular_menu_plus/fab_circular_menu_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/ajustes_screen.dart';
+import 'package:flutter_application_1/screens/diario_screen.dart';
+import 'package:flutter_application_1/screens/emergencia.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../core/text_styles.dart';
 import '../core/app_colors.dart';
 import 'dart:math' as math;
+import 'dart:async';
 
 class CarouselAssets {
   static const List<String> images = [
@@ -21,17 +24,231 @@ class CarouselAssets {
 
 class TitleSection extends StatelessWidget {
   final String texto;
+  final EdgeInsets padding;
+  final double maxWidth;
+  final TextAlign textAlign;
+  final int maxLines;
 
-  const TitleSection({super.key, required this.texto});
+  const TitleSection({
+    super.key,
+    required this.texto,
+    this.padding = const EdgeInsets.only(top: 60, left: 32, right: 32),
+    this.maxWidth = 420,
+    this.textAlign = TextAlign.left,
+    this.maxLines = 2,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 60, left: 44),
-      child: SizedBox(
-        width: 315,
-        height: 65,
-        child: Text(texto, style: TextStyles.tituloMotivacional),
+      padding: padding,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double effectiveWidth = math.min(maxWidth, constraints.maxWidth);
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: effectiveWidth),
+            child: Text(
+              texto,
+              style: TextStyles.tituloMotivacional,
+              textAlign: textAlign,
+              maxLines: maxLines,
+              overflow: TextOverflow.visible,
+              softWrap: true,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// --- Info Bubble (overlay helper) ---
+
+/// Muestra un globo de información sobre la posición del botón que lo invoca.
+/// - Toca fuera para cerrar.
+/// - También se puede cerrar solo después de [autoHideDuration].
+OverlayEntry showInfoBubble({
+  required BuildContext context,
+  required GlobalKey anchorKey,
+  required String text,
+  Duration autoHideDuration = const Duration(seconds: 0),
+  EdgeInsets padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+  double maxWidth = 240,
+}) {
+  final overlay = Overlay.of(context);
+  final renderBox = anchorKey.currentContext!.findRenderObject() as RenderBox;
+  final size = renderBox.size;
+  final offset = renderBox.localToGlobal(Offset.zero);
+
+  late OverlayEntry entry;
+
+  entry = OverlayEntry(
+    builder: (ctx) {
+      return Stack(
+        children: [
+          // Scrim para capturar taps fuera
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => entry.remove(),
+              child: const SizedBox.shrink(),
+            ),
+          ),
+          // Globo
+          Positioned(
+            left: offset.dx + size.width / 2 - maxWidth / 2,
+            top: offset.dy - 10 - 0, // un poco sobre el botón
+            child: _InfoBubble(
+              text: text,
+              maxWidth: maxWidth,
+              padding: padding,
+              onClose: () => entry.remove(),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+
+  overlay.insert(entry);
+
+  if (autoHideDuration.inMilliseconds > 0) {
+    Timer(autoHideDuration, () {
+      if (entry.mounted) entry.remove();
+    });
+  }
+
+  return entry;
+}
+
+class _InfoBubble extends StatelessWidget {
+  final String text;
+  final EdgeInsets padding;
+  final double maxWidth;
+  final VoidCallback onClose;
+
+  const _InfoBubble({
+    required this.text,
+    required this.padding,
+    required this.maxWidth,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(224, 255, 255, 255),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26000000),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Padding(
+                padding: padding.copyWith(right: padding.right + 24),
+                child: Text(
+                  text,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'Kantumruy Pro',
+                    fontWeight: FontWeight.w300,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: GestureDetector(
+                  onTap: onClose,
+                  child: const Icon(Icons.close, size: 18),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Botón reutilizable que muestra un ícono de info y al pulsarlo despliega un globo.
+class InfoBubbleButton extends StatefulWidget {
+  final String message;
+  final Duration autoHideDuration;
+  final double iconSize;
+  final Color? backgroundColor;
+  final EdgeInsets bubblePadding;
+  final double bubbleMaxWidth;
+
+  const InfoBubbleButton({
+    super.key,
+    required this.message,
+    this.autoHideDuration = const Duration(seconds: 0),
+    this.iconSize = 28,
+    this.backgroundColor,
+    this.bubblePadding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    this.bubbleMaxWidth = 240,
+  });
+
+  @override
+  State<InfoBubbleButton> createState() => _InfoBubbleButtonState();
+}
+
+class _InfoBubbleButtonState extends State<InfoBubbleButton> {
+  final GlobalKey _anchorKey = GlobalKey();
+  OverlayEntry? _entry;
+
+  void _toggle() {
+    if (_entry != null && _entry!.mounted) {
+      _entry!.remove();
+      _entry = null;
+      return;
+    }
+    _entry = showInfoBubble(
+      context: context,
+      anchorKey: _anchorKey,
+      text: widget.message,
+      autoHideDuration: widget.autoHideDuration,
+      padding: widget.bubblePadding,
+      maxWidth: widget.bubbleMaxWidth,
+    );
+  }
+
+  @override
+  void dispose() {
+    _entry?.remove();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: _anchorKey,
+      onTap: _toggle,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: widget.backgroundColor ?? const Color(0xFFF3F4F6),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+        ),
+        child: SvgPicture.asset(
+          "assets/images/ia/info-circle.svg",
+          width: widget.iconSize,
+          height: widget.iconSize,
+        ),
       ),
     );
   }
@@ -49,7 +266,7 @@ class Bienvenida extends StatelessWidget {
         width: 175,
         height: 42,
         child: Text(
-          "Bienvenido/a",
+          "Bienvenid@",
           style: TextStyles.tituloBienvenida,
           textAlign: TextAlign.center,
         ),
@@ -71,6 +288,114 @@ class TextoDatos extends StatelessWidget {
       height: 22,
       child: Text(texto, style: TextStyles.textDatos),
     );
+  }
+}
+
+class ContenedorDiarioBuscar extends StatelessWidget {
+  final ValueChanged<String>? onChanged;
+  final String hint;
+
+  const ContenedorDiarioBuscar({
+    super.key,
+    this.onChanged,
+    this.hint = 'Buscar en tus notas...',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 330, minHeight: 44),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: ShapeDecoration(
+          color: Colors.white.withValues(alpha: 0.70),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color.fromRGBO(255,255,255,0.65), width: 1),
+          ),
+        ),
+        child: Row(
+          children: [
+            safeSvg(
+              "assets/images/diario/search.svg",
+              width: 20,
+              height: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                onChanged: onChanged,
+                style: TextStyles.textDiario3.copyWith(fontSize: 16),
+                cursorColor: Colors.black,
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  hintText: hint,
+                  hintStyle: TextStyles.textDiario3.copyWith(
+                    fontWeight: FontWeight.w200,
+                    color: Colors.black.withOpacity(0.35),
+                    fontSize: 16,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+//Contenedor seccion diario de las notas
+class ContainerDiarioWhite extends StatelessWidget {
+  final double? height;
+  final double? width;
+  final EdgeInsets padding;
+  final Widget? child;
+  final double minWidth;
+  final double minHeight;
+
+  const ContainerDiarioWhite({
+    super.key,
+    this.height,
+    this.width,
+    this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.minWidth = 160,
+    this.minHeight = 90,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Normalizamos: si se pasa un width menor al mínimo, respetamos el width sin forzar minWidth para evitar constraints inconsistentes.
+    final double? effectiveWidth = width;
+    final double? effectiveHeight = height;
+
+    Widget box = Container(
+      width: effectiveWidth,
+      height: effectiveHeight,
+      padding: padding,
+      decoration: ShapeDecoration(
+        color: Colors.white.withValues(alpha: 0.90),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+      ),
+      child: child,
+    );
+
+    // Si no se especifica tamaño, garantizamos mínimos envolviendo en ConstrainedBox.
+    if (effectiveWidth == null || effectiveHeight == null) {
+      box = ConstrainedBox(
+        constraints: BoxConstraints(
+          minWidth: effectiveWidth == null ? minWidth : 0,
+          minHeight: effectiveHeight == null ? minHeight : 0,
+        ),
+        child: box,
+      );
+    }
+    return box;
   }
 }
 
@@ -369,7 +694,18 @@ class _DropMenuState extends State<DropMenu> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
-        onTap: _closeMenu,
+        onTap: () {
+          // Cerrar primero el menú overlay
+          _closeMenu();
+          // Navegar a ajustes solo si es el icono de settings
+          if (svgAssetPath.contains('setting.svg')) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AjustesPerfil()),
+            );
+          }
+          // El icono de notificaciones por ahora solo cierra el menú (placeholder)
+        },
         customBorder: const CircleBorder(),
         child: Container(
           width: 60,
@@ -391,9 +727,12 @@ class _DropMenuState extends State<DropMenu> {
         children: [
           IconButtonWithPadding(
             onPressed: () {
+              // Navegar correctamente a la pantalla de emergencia
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AjustesPerfil()),
+                MaterialPageRoute(
+                  builder: (context) => const EmergenciaScreen(),
+                ),
               );
             },
             svgAssetPath: "assets/images/alarm.svg",
@@ -488,13 +827,9 @@ class _CarouselState extends State<Carousel> {
 
 class CircularMenu extends StatelessWidget {
   final List<Widget> items;
-  final Widget fabIcon; 
+  final Widget fabIcon;
 
-  const CircularMenu({
-    super.key,
-    required this.items,
-    required this.fabIcon, 
-  });
+  const CircularMenu({super.key, required this.items, required this.fabIcon});
 
   @override
   Widget build(BuildContext context) {
@@ -550,25 +885,37 @@ class SemiCircularRadialMenu extends StatefulWidget {
     this.itemSize = 56,
     this.animationDuration = const Duration(milliseconds: 350),
     this.onCenterDoubleTap,
-  }) : assert(items.length >= 3 && items.length <= 6, 'Use 3-6 items for good spacing');
+  }) : assert(
+         items.length >= 3 && items.length <= 6,
+         'Use 3-6 items for good spacing',
+       );
 
   @override
   State<SemiCircularRadialMenu> createState() => _SemiCircularRadialMenuState();
 }
 
-class _SemiCircularRadialMenuState extends State<SemiCircularRadialMenu> with SingleTickerProviderStateMixin {
+class _SemiCircularRadialMenuState extends State<SemiCircularRadialMenu>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _anim;
 
-  bool get _isOpen => _controller.status == AnimationStatus.forward ||
+  bool get _isOpen =>
+      _controller.status == AnimationStatus.forward ||
       _controller.status == AnimationStatus.completed ||
       _controller.value > 0.001;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: widget.animationDuration);
-    _anim = CurvedAnimation(parent: _controller, curve: Curves.easeOut, reverseCurve: Curves.easeIn);
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.animationDuration,
+    );
+    _anim = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+      reverseCurve: Curves.easeIn,
+    );
   }
 
   @override
@@ -594,7 +941,8 @@ class _SemiCircularRadialMenuState extends State<SemiCircularRadialMenu> with Si
     // Angles for semi-circle from left (-pi) to right (0), opening upwards
     final double startAngle = -math.pi; // left
     final double endAngle = 0; // right
-    final double step = itemCount == 1 ? 0 : (endAngle - startAngle) / (itemCount - 1);
+    final double step =
+        itemCount == 1 ? 0 : (endAngle - startAngle) / (itemCount - 1);
 
     return SizedBox(
       height: widget.radius + widget.itemSize + 24,
@@ -684,7 +1032,12 @@ class _RadialCircleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final button = Material(
       color: background,
-      shape: CircleBorder(side: BorderSide(color: borderColor ?? const Color(0xFFE5E7EB), width: 1)),
+      shape: CircleBorder(
+        side: BorderSide(
+          color: borderColor ?? const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
       elevation: 0,
       child: InkWell(
         onTap: onTap,
@@ -710,11 +1063,12 @@ class _SemiRingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
-      ..strokeCap = StrokeCap.round;
+    final paint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 12
+          ..strokeCap = StrokeCap.round;
 
     final rect = Rect.fromLTWH(0, 0, size.width, size.height * 2);
     // Draw upper half of the circle (semi-circle)
@@ -800,7 +1154,7 @@ class EmotionButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(15),
       child: Container(
-        width: 110,
+        width: 115, 
         height: 45,
         decoration: BoxDecoration(
           color: AppColors.fondo5,
@@ -945,6 +1299,7 @@ class ContainerAjustes extends StatelessWidget {
     );
   }
 }
+
 class ContainerC2 extends StatelessWidget {
   final double height;
   final double width;
@@ -977,8 +1332,39 @@ class ContainerC2 extends StatelessWidget {
       child: child,
     );
   }
-}
+}class ContainerC3 extends StatelessWidget {
+  final double height;
+  final double width;
+  final Widget child;
+  final Alignment alignment; // 👈 lo guardamos
 
+  static const BoxDecoration _decoration = BoxDecoration(
+    color: Color.fromRGBO(224, 231, 255, 0.55),
+    borderRadius: BorderRadius.all(Radius.circular(17)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color.fromRGBO(255, 255, 255, 0.75), width: 1),
+    ),
+  );
+
+  const ContainerC3({
+    super.key,
+    required this.child,
+    required this.width,
+    required this.height,
+    this.alignment = Alignment.center,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      alignment: alignment,
+      decoration: _decoration,
+      child: child,
+    );
+  }
+}
 //Fechas
 class SevenDayCalendar extends StatelessWidget {
   final DateTime currentDate;
@@ -992,50 +1378,58 @@ class SevenDayCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 35,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 7,
-        itemBuilder: (context, index) {
-          final date = currentDate.subtract(Duration(days: 3 - index));
-          final isToday = _isSameDate(date, currentDate);
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child:  Container(
-                width: 35,
-                decoration: BoxDecoration(
-                  color: isToday
-                      ? const Color(0xD8E0E7FF)
-                      : const Color.fromARGB(217, 255, 255, 255),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isToday
-                        ? Color.fromRGBO(255, 255, 255, 0.149)
-                        : const Color.fromARGB(105, 255, 255, 255),
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 4),
-                    Text(
-                      '${date.day}',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontFamily: 'Kantumruy Pro',
-                        fontWeight: FontWeight.w200,
-                        color: isToday ? const Color.fromARGB(255, 0, 0, 0) : Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
+    // Centramos los 7 días usando un Row con mainAxisSize.min y dentro de un Center.
+    final days = List.generate(7, (index) {
+      final date = currentDate.subtract(Duration(days: 3 - index));
+      final isToday = _isSameDate(date, currentDate);
+      final dayBox = Container(
+        width: 35,
+        decoration: BoxDecoration(
+          color:
+              isToday
+                  ? const Color(0xD8E0E7FF)
+                  : const Color.fromARGB(217, 255, 255, 255),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                isToday
+                    ? const Color.fromRGBO(255, 255, 255, 0.149)
+                    : const Color.fromARGB(105, 255, 255, 255),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              '${date.day}',
+              style: TextStyle(
+                fontSize: 20,
+                fontFamily: 'Kantumruy Pro',
+                fontWeight: FontWeight.w200,
+                color:
+                    isToday ? const Color.fromARGB(255, 0, 0, 0) : Colors.black,
               ),
-            
-          );
-        },
-      ),
+            ),
+          ],
+        ),
+      );
+
+      // Si se proporciona callback, permitir selección.
+      final wrapped = GestureDetector(
+        onTap: onDateSelected == null ? null : () => onDateSelected!(date),
+        child: dayBox,
+      );
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: wrapped,
+      );
+    });
+
+    return SizedBox(
+      height: 40,
+      child: Center(child: Row(mainAxisSize: MainAxisSize.min, children: days)),
     );
   }
 

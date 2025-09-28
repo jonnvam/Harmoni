@@ -29,8 +29,12 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             right: 0,
 
             child:
-                isSignUpScreen
-                    ? TitleSection(texto: "Cuidar de ti también es importante")
+        isSignUpScreen
+          ? const TitleSection(
+            texto: "Cuidar de ti también es importante",
+            maxLines: 3,
+            textAlign: TextAlign.left,
+            )
                     : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
@@ -38,7 +42,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                         Bienvenida(),
                         SizedBox(height: 4),
                         Padding(
-                          padding: EdgeInsets.only(left: 20),
+                          padding: EdgeInsets.only(left: 32),
                           child: Text(
                             "Aquí comienza tu espacio seguro",
                             style: TextStyle(
@@ -65,7 +69,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
               curve: Curves.easeInOut,
               width: screenWidth,
               height: isSignUpScreen ? 520 : 350,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: const BorderRadius.only(
@@ -237,10 +241,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.only(left: 70, top: 30),
+        // Mantener el mismo espacio vertical: antes había un top:30 en el padding del botón
+        const SizedBox(height: 30),
+        Align(
+          alignment: Alignment.center,
           child: AuthButton(
-            
             texto: 'Sign Up',
             isPressed: true,
             onPressed: () {},
@@ -294,50 +299,41 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
         const SizedBox(height: 3),
         Row(
           children: [
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Text(
-                    "Recordarme",
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontFamily: 'Kantumruy Pro',
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
+            // Mantiene el inicio (left:12) del primer texto
+            const Padding(
+              padding: EdgeInsets.only(left: 12),
+              child: Text(
+                "Recordarme",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontFamily: 'Kantumruy Pro',
+                  fontWeight: FontWeight.w400,
                 ),
-              ],
+              ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(left: 90),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: Text(
-                      "Olvide mi contraseña",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontFamily: 'Kantumruy Pro',
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                  ),
-                ],
+            const Spacer(),
+            // Simetría: alineamos el segundo texto al borde derecho con un padding similar
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: Text(
+                "Olvide mi contraseña",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontFamily: 'Kantumruy Pro',
+                  fontWeight: FontWeight.w300,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.only(left: 70, top: 30),
+        const SizedBox(height: 30),
+        Align(
+          alignment: Alignment.center,
           child: AuthButton(
-            
             texto: 'Login',
             isPressed: true,
             onPressed: () {
-              //Aqui debe ir lalogica de la conexion a la base de datos y validacion de datos y el navigator push
               Navigator.push(
                 context,
                 MaterialPageRoute(
