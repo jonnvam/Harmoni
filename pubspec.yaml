@@ -34,6 +34,7 @@ flutter:
     - assets/images/diario/
     - assets/images/ia/
     - assets/images/icon/
+    - assets/images/metas/
     - assets/animations/
     # Explicitly list the Lottie file to avoid any asset resolution issues
     - assets/animations/flower.json

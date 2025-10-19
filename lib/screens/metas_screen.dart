@@ -4,6 +4,7 @@ import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/data/goals_manager.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 // Ahora usamos el GoalsManager global; esta pantalla no define modelo propio.
 
@@ -116,7 +117,16 @@ class _MetasScreenState extends State<MetasScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.inbox_rounded, size: 54, color: Colors.black26),
+            // Reemplazado icono por SVG 'direct'
+            SizedBox(
+              height: 40,
+              width: 40, 
+              
+                child: SvgPicture.asset(
+                  'assets/images/metas/direct.svg',
+                  fit: BoxFit.contain,
+                ),
+            ),
             const SizedBox(height: 12),
             const Text(
               'No hay metas recomendadas ahora',
@@ -233,7 +243,7 @@ class _MetasScreenState extends State<MetasScreen> {
         const Padding(
           padding: EdgeInsets.only(left: 24, bottom: 8, top: 8),
           child: Text(
-            'Completados recientes',
+            'Completados',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
           ),
         ),
@@ -479,25 +489,63 @@ class _CompletedChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColorFiltered(
-      colorFilter: const ColorFilter.mode(Colors.transparent, BlendMode.srcOver),
-      child: Opacity(
-        opacity: 0.7,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+    // Círculo grande tipo canica que contiene el texto (título) reducido.
+    final title = goal.titulo.trim();
+    int length = title.length;
+    double fontSize;
+    if (length <= 10) {
+      fontSize = 14;
+    } else if (length <= 16) {
+      fontSize = 12;
+    } else if (length <= 24) {
+      fontSize = 11;
+    } else {
+      fontSize = 10; // muy largo
+    }
+
+    return Tooltip(
+      message: title,
+      triggerMode: TooltipTriggerMode.longPress,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        height: 92,
+        width: 92,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFFEEF2FF), Color(0xFFDCE4FF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          child: Text(
-            goal.titulo,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w300,
-              fontFamily: 'Kantumruy Pro',
-              color: Colors.black87,
+          border: Border.all(color: const Color(0xFFCBD5E1), width: 1.2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 10,
+              spreadRadius: 1,
+              offset: Offset(0, 4),
             ),
+            BoxShadow(
+              color: Colors.white,
+              blurRadius: 4,
+              offset: Offset(-2, -2),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          title,
+          textAlign: TextAlign.center,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.w500,
+            fontFamily: 'Kantumruy Pro',
+            height: 1.1,
+            color: const Color(0xFF1E293B),
           ),
         ),
       ),

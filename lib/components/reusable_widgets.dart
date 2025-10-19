@@ -1530,3 +1530,34 @@ class SevenDayCalendar extends StatelessWidget {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
+
+class ContainerC4 extends StatelessWidget {
+  final double height;
+  final double width;
+  final Widget child;
+
+  static const BoxDecoration _decoration = BoxDecoration(
+    color: Color.fromRGBO(224, 231, 255, 0.55),
+    borderRadius: BorderRadius.all(Radius.circular(17)),
+    border: Border.fromBorderSide(
+      BorderSide(color: Color.fromRGBO(255, 255, 255, 0.75), width: 1),
+    ),
+  );
+
+  const ContainerC4({
+    super.key,
+    required this.child,
+    required this.width,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: _decoration,
+      child: child,
+    );
+  }
+}

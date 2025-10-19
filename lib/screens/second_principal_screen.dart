@@ -7,6 +7,7 @@ import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/data/goals_manager.dart';
 import 'package:flutter_application_1/components/animated_flower.dart';
+import 'package:flutter_application_1/screens/psicologos.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -217,7 +218,9 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        ...inProgress.map((g) => _InProgressGoalTile(goal: g)).toList(),
+                        ...inProgress
+                            .map((g) => _InProgressGoalTile(goal: g))
+                            .toList(),
                         const SizedBox(height: 20),
                       ],
                     );
@@ -273,7 +276,12 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/psicologos.svg",
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => Psicologos()),
+                        );
+                      },
                     ),
                   ],
                 ),
