@@ -3,9 +3,13 @@ import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
+import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
+import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_application_1/data/diary_repo.dart';
 
 class IaScreen extends StatefulWidget {
   const IaScreen({super.key});
@@ -15,6 +19,50 @@ class IaScreen extends StatefulWidget {
 }
 
 class _IaScreenState extends State<IaScreen> {
+  final TextEditingController _chatCtrl = TextEditingController();
+  final List<_Message> _messages = [];
+
+  @override
+  void dispose() {
+    _chatCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _shareDiaryPages() async {
+    final notes = await DiaryRepo.instance.listNotes();
+    final buffer = StringBuffer();
+  for (final n in notes.take(20).toList().reversed) {
+      final date = n.date.toLocal().toString().split('.').first;
+      switch (n.type) {
+        case DiaryNoteType.text:
+          buffer.writeln('[$date] Texto: ${n.text ?? ''}');
+          break;
+        case DiaryNoteType.audio:
+          buffer.writeln('[$date] Audio: ${n.filePath ?? ''}');
+          break;
+        case DiaryNoteType.image:
+          buffer.writeln('[$date] Imagen: ${n.filePath ?? ''} ${n.text ?? ''}');
+          break;
+      }
+    }
+    final content = buffer.isEmpty ? 'No hay notas para compartir.' : buffer.toString();
+    await Clipboard.setData(ClipboardData(text: content));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Contenido copiado al portapapeles')),
+    );
+  }
+
+  void _sendMessage() {
+    final text = _chatCtrl.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _messages.add(_Message(sender: Sender.user, text: text));
+      // Placeholder bot echo (IA pendiente)
+      _messages.add(_Message(sender: Sender.bot, text: 'IA (pendiente): "$text"'));
+      _chatCtrl.clear();
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +91,7 @@ class _IaScreenState extends State<IaScreen> {
                       padding: const EdgeInsets.only(top: 20, left: 15),
                       child: InfoBubbleButton(
                         message:
-                            "Aquí podrás acceder a recursos y tips personalizados sobre bienestar emocional.",
+                            "Es una IA no te lo creas todo",
                         autoHideDuration: const Duration(seconds: 4),
                         iconSize: 26,
                       ),
@@ -69,7 +117,10 @@ class _IaScreenState extends State<IaScreen> {
                           const SizedBox(width: 15),
                           Row(
                             children: [
-                              SvgPicture.asset("assets/images/ia/copy.svg"),
+                              InkWell(
+                                onTap: _shareDiaryPages,
+                                child: SvgPicture.asset("assets/images/ia/copy.svg"),
+                              ),
                             ],
                           ),
                         ],
@@ -153,33 +204,70 @@ class _IaScreenState extends State<IaScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ContainerC2(
-                      width: 330,
-                      height: 70,
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 10),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText: 'Compartir alguna idea',
-                                  hintStyle: TextStyles.textDLogin,
+                // Chat-like area
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 260,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: _messages.length,
+                          itemBuilder: (_, i) {
+                            final m = _messages[i];
+                            final isUser = m.sender == Sender.user;
+                            return Align(
+                              alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isUser ? const Color(0xFFE0F2FE) : const Color(0xFFF3E8FF),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
+                                child: Text(m.text),
                               ),
-                            ),
-                            SvgPicture.asset("assets/images/ia/level.svg"),
-                            SizedBox(width: 15),
-                          ],
+                            );
+                          },
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      ContainerC2(
+                        width: 330,
+                        height: 70,
+                        alignment: Alignment.center,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _chatCtrl,
+                                  decoration: InputDecoration(
+                                    border: InputBorder.none,
+                                    hintText: 'Comparte una idea (chat IA)',
+                                    hintStyle: TextStyles.textDLogin,
+                                  ),
+                                  onSubmitted: (_) => _sendMessage(),
+                                ),
+                              ),
+                              InkWell(
+                                onTap: _sendMessage,
+                                child: SvgPicture.asset("assets/images/ia/level.svg"),
+                              ),
+                              SizedBox(width: 15),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 SizedBox(height: 80),
               ],
@@ -228,12 +316,14 @@ class _IaScreenState extends State<IaScreen> {
                   // Progreso
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => Progreso()));
+                    },
                   ),
                   // Psicólogos (right)
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
-                    onTap: () {},
+                    onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => Psicologos()));},
                   ),
                 ],
               ),
@@ -243,4 +333,12 @@ class _IaScreenState extends State<IaScreen> {
       ),
     );
   }
+}
+
+enum Sender { user, bot }
+
+class _Message {
+  final Sender sender;
+  final String text;
+  _Message({required this.sender, required this.text});
 }

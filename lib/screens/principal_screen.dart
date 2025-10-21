@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
+import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 //import 'package:carousel_slider/carousel_slider.dart';
@@ -136,7 +137,10 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
                     onTap: () {
-                      // TODO: navegar a Psicólogos
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const Psicologos()),
+                      );
                     },
                   ),
                 ],

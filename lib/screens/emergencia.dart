@@ -5,6 +5,7 @@ import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
+import 'package:flutter_application_1/screens/psicologos.dart';
 
 class EmergenciaScreen extends StatefulWidget {
   const EmergenciaScreen({super.key});
@@ -101,7 +102,12 @@ class _EmergenciaScreenState extends State<EmergenciaScreen> {
                 items: [
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const Psicologos()),
+                      );
+                    },
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/diario.svg",

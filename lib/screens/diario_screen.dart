@@ -4,7 +4,12 @@ import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
+import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_svg/svg.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+// Audio recording temporarily disabled until plugin mismatch is resolved.
+import 'package:flutter_application_1/data/diary_repo.dart';
 import 'package:intl/intl.dart';
 
 class DiarioScreen extends StatefulWidget {
@@ -15,6 +20,87 @@ class DiarioScreen extends StatefulWidget {
 }
 
 class _DiarioScreenState extends State<DiarioScreen> {
+  final TextEditingController _noteCtrl = TextEditingController();
+  // final _recorder = AudioRecorder();
+  bool _isRecording = false; // UI state only while audio is disabled
+  List<DiaryNote> _notes = [];
+  final FocusNode _textFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotes();
+  }
+
+  @override
+  void dispose() {
+    _noteCtrl.dispose();
+    _textFocus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadNotes() async {
+    final notes = await DiaryRepo.instance.listNotes();
+    if (!mounted) return;
+    setState(() => _notes = notes);
+  }
+
+  Future<void> _addTextNote() async {
+    final content = _noteCtrl.text.trim();
+    if (content.isEmpty) {
+      _textFocus.requestFocus();
+      return;
+    }
+    final id = await DiaryRepo.nextId();
+    final note = DiaryNote(
+      id: id,
+      date: DateTime.now(),
+      type: DiaryNoteType.text,
+      text: content,
+    );
+    await DiaryRepo.instance.addNote(note);
+    _noteCtrl.clear();
+    await _loadNotes();
+  }
+
+  Future<void> _toggleRecord() async {
+    // TODO: Re-enable using `record` plugin when dependency versions are aligned.
+    // For now, just toggle UI and create a placeholder audio note without file.
+    if (_isRecording) {
+      setState(() => _isRecording = false);
+      final id = await DiaryRepo.nextId();
+      final note = DiaryNote(
+        id: id,
+        date: DateTime.now(),
+        type: DiaryNoteType.audio,
+        filePath: null,
+        text: _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
+      );
+      await DiaryRepo.instance.addNote(note);
+      _noteCtrl.clear();
+      await _loadNotes();
+    } else {
+      setState(() => _isRecording = true);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      final id = await DiaryRepo.nextId();
+      final note = DiaryNote(
+        id: id,
+        date: DateTime.now(),
+        type: DiaryNoteType.image,
+        filePath: file.path,
+        text: _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
+      );
+      await DiaryRepo.instance.addNote(note);
+      _noteCtrl.clear();
+      await _loadNotes();
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -136,20 +222,29 @@ class _DiarioScreenState extends State<DiarioScreen> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       SizedBox(height: 5),
-                                      safeSvg(
-                                        "assets/images/diario/edit.svg",
-                                        width: 30,
-                                        height: 30,
+                                      InkWell(
+                                        onTap: _addTextNote,
+                                        child: safeSvg(
+                                          "assets/images/diario/edit.svg",
+                                          width: 30,
+                                          height: 30,
+                                        ),
                                       ),
-                                      safeSvg(
-                                        "assets/images/diario/microphone-2.svg",
-                                        width: 30,
-                                        height: 30,
+                                      InkWell(
+                                        onTap: _toggleRecord,
+                                        child: safeSvg(
+                                          "assets/images/diario/microphone-2.svg",
+                                          width: 30,
+                                          height: 30,
+                                        ),
                                       ),
-                                      safeSvg(
-                                        "assets/images/diario/gallery.svg",
-                                        width: 30,
-                                        height: 30,
+                                      InkWell(
+                                        onTap: _pickImage,
+                                        child: safeSvg(
+                                          "assets/images/diario/gallery.svg",
+                                          width: 30,
+                                          height: 30,
+                                        ),
                                       ),
                                       SizedBox(height: 5),
                                     ],
@@ -157,6 +252,23 @@ class _DiarioScreenState extends State<DiarioScreen> {
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Campo de texto para notas (sirve para texto y acompañar imagen)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: TextField(
+                              controller: _noteCtrl,
+                              maxLines: 3,
+                              focusNode: _textFocus,
+                              decoration: InputDecoration(
+                                hintText: 'Escribe una nota...',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                isDense: true,
+                              ),
+                            ),
                           ),
                           //Notas
                           SizedBox(height: 40),
@@ -184,8 +296,27 @@ class _DiarioScreenState extends State<DiarioScreen> {
                                 ),
                                 SizedBox(height: 15),
                                 Column(children: [ContenedorDiarioBuscar()]),
-                                SizedBox(height: 20),
-                                ContainerDiarioWhite(height: 108, width: 134),
+                                const SizedBox(height: 12),
+                                // Lista simple de notas
+                                SizedBox(
+                                  height: 120,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemBuilder: (ctx, i) {
+                                      final n = _notes[i];
+                                      return ContainerDiarioWhite(
+                                        height: 108,
+                                        width: 134,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: _NotePreview(note: n),
+                                        ),
+                                      );
+                                    },
+                                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                    itemCount: _notes.length,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -247,7 +378,12 @@ class _DiarioScreenState extends State<DiarioScreen> {
                   // Psicólogos (right)
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const Psicologos()),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -264,5 +400,51 @@ Widget safeSvg(String path, {double? width, double? height}) {
     return SvgPicture.asset(path, width: width, height: height);
   } catch (e) {
     return Icon(Icons.error, color: Colors.red);
+  }
+}
+
+class _NotePreview extends StatelessWidget {
+  final DiaryNote note;
+  const _NotePreview({required this.note});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (note.type) {
+      case DiaryNoteType.text:
+        return Text(
+          note.text ?? '',
+          maxLines: 5,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12),
+        );
+      case DiaryNoteType.image:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Image.file(
+                File(note.filePath ?? ''),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+              ),
+            ),
+            if (note.text != null && note.text!.isNotEmpty)
+              Text(
+                note.text!,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11),
+              ),
+          ],
+        );
+      case DiaryNoteType.audio:
+        return Row(
+          children: const [
+            Icon(Icons.mic, size: 18),
+            SizedBox(width: 6),
+            Expanded(child: Text('Nota de audio', style: TextStyle(fontSize: 12))),
+          ],
+        );
+    }
   }
 }

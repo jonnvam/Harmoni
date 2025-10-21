@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:fab_circular_menu_plus/fab_circular_menu_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/ajustes_screen.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
@@ -409,17 +408,14 @@ class ContainerC1 extends StatelessWidget {
   static const BoxDecoration _decoration = BoxDecoration(
     color: Color.fromRGBO(224, 231, 255, 0.85),
     borderRadius: BorderRadius.all(Radius.circular(15)),
-    border: Border.fromBorderSide(
-      BorderSide(color: Color.fromRGBO(165, 180, 252, 0.41), width: 1),
-    ),
   );
 
   const ContainerC1({
     super.key,
-    required this.child,
-    required this.width,
     required this.height,
-    this.alignment = Alignment.center,
+    required this.width,
+    required this.child,
+    this.alignment = Alignment.centerLeft,
   });
 
   @override
@@ -825,33 +821,7 @@ class _CarouselState extends State<Carousel> {
   }
 }
 
-class CircularMenu extends StatelessWidget {
-  final List<Widget> items;
-  final Widget fabIcon;
-
-  const CircularMenu({super.key, required this.items, required this.fabIcon});
-
-  @override
-  Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: FabCircularMenuPlus(
-        alignment: Alignment.bottomCenter,
-        ringColor: const Color.fromRGBO(99, 102, 241, 0.63),
-        ringDiameter: 240.0,
-        ringWidth: 60.0,
-        fabSize: 60.12,
-        fabElevation: 0,
-        fabMargin: const EdgeInsets.all(0),
-        ringWidthLimitFactor: 10,
-        animationDuration: const Duration(milliseconds: 500),
-        animationCurve: Curves.easeOut,
-        fabOpenIcon: fabIcon, // 👈 usamos el ícono que manden
-        fabColor: AppColors.fondoM,
-        children: items,
-      ),
-    );
-  }
-}
+// Removed old CircularMenu (FabCircularMenuPlus-based) in favor of custom SemiCircularRadialMenu
 
 // --- Semi-circular radial menu (custom) ---
 

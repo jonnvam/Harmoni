@@ -3,6 +3,7 @@ import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
+import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_application_1/data/goals_manager.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -375,7 +376,12 @@ class _MetasScreenState extends State<MetasScreen> {
                   // Psicólogos (right)
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const Psicologos()),
+                      );
+                    },
                   ),
                 ],
               ),

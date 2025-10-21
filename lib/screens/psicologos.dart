@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/data/psychologists_repo.dart';
 import 'package:flutter_application_1/models/psychologist.dart';
 import 'package:flutter_application_1/screens/psychologist_details.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
+import 'package:flutter_application_1/screens/diario_screen.dart';
+import 'package:flutter_application_1/screens/ia_screen.dart';
 
 class Psicologos extends StatefulWidget {
   const Psicologos({super.key});
@@ -220,20 +223,28 @@ class _PsicologosState extends State<Psicologos> {
                 items: [
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/diario.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => DiarioScreen()));
+                    },
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => MetasScreen()));
+                    },
                   ),
 
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/house.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder:(context)=>SecondPrincipalScreen()));
+                    },
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/ia.svg",
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => IaScreen()));
+                    },
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
