@@ -251,6 +251,24 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             onPressed: () {},
           ),
         ),
+        const SizedBox(height: 30),
+        Align(
+          alignment: Alignment.center,
+          child: Text(
+          "Registrarse con",
+          style: const TextStyle(
+                color: Colors.grey,
+                fontFamily: 'Kantumruy Pro',
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+              ),
+        ),
+        ),
+        const SizedBox(height: 20,),
+        GoogleAuthButton(
+          onPressed: (){
+            print('Sign Up con Google');
+          })
       ],
     );
   }
@@ -343,6 +361,24 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             },
           ),
         ),
+        const SizedBox(height: 20),
+        Align(
+          alignment: Alignment.center,
+          child: Text(
+          "Iniciar Sesión con",
+          style: const TextStyle(
+                color: Colors.grey,
+                fontFamily: 'Kantumruy Pro',
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+              ),
+        ),
+        ),        
+        const SizedBox(height: 20),
+        GoogleAuthButton(
+          onPressed: (){
+            print('Login con Google');
+          })
       ],
     );
   }

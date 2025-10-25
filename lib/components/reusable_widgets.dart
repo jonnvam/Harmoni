@@ -526,6 +526,51 @@ class AuthButton extends StatelessWidget {
   }
 }
 
+//Botón para acceder por medio de google
+class GoogleAuthButton extends StatelessWidget{
+  final VoidCallback onPressed;
+
+   const GoogleAuthButton({
+    super.key,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Center(
+        child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(color: Colors.grey.shade300),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              "assets/images/icon/google.svg",
+              width: 32,
+              height: 32,
+            ),
+          ],
+        ),
+      ),
+      )
+    );
+  }
+}
+
 class CircularElevatedButton extends StatelessWidget {
   final VoidCallback onPressed;
   final Widget child;
