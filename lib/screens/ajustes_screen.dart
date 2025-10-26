@@ -240,6 +240,30 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                     ),
                   ],
                 ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 55, right: 15),
+                      child: Container(
+                        width: 100,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Color.fromRGBO(224, 231, 255, 0.85),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                        child: Center(
+                          child: Text(
+                            "Guardar",
+                            style: TextStyles.textEditar,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 SizedBox(height: 200),
               ],
             ),
