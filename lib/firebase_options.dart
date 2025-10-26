@@ -67,4 +67,5 @@ class DefaultFirebaseOptions {
     iosClientId: '1098827157474-pjdd9si3j1at01ijhqn8vhhadtt554r6.apps.googleusercontent.com',
     iosBundleId: 'com.example.flutterApplication1',
   );
+
 }

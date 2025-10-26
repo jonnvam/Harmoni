@@ -526,13 +526,19 @@ class AuthButton extends StatelessWidget {
   }
 }
 
-//Botón para acceder por medio de google
-class GoogleAuthButton extends StatelessWidget{
+//Botón para acceder por autenticación por servicio ej. google
+class AuthIconButton extends StatelessWidget {
   final VoidCallback onPressed;
+  final String iconPath; 
+  final Color backgroundColor;
+  final double size;
 
-   const GoogleAuthButton({
+  const AuthIconButton({
     super.key,
     required this.onPressed,
+    required this.iconPath,
+    this.backgroundColor = Colors.white,
+    this.size = 50,
   });
 
   @override
@@ -541,32 +547,29 @@ class GoogleAuthButton extends StatelessWidget{
       onTap: onPressed,
       child: Center(
         child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(color: Colors.grey.shade300),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(0, 2),
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(size / 2),
+            border: Border.all(color: Colors.grey.shade300),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Center(
+            child: SvgPicture.asset(
+              iconPath,
+              width: size * 0.7,
+              height: size * 0.7,
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              "assets/images/icon/google.svg",
-              width: 32,
-              height: 32,
-            ),
-          ],
+          ),
         ),
       ),
-      )
     );
   }
 }

@@ -9,10 +9,8 @@ final logger = Logger();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   logger.d("Debug mensaje");
   logger.i("Info mensaje");
@@ -26,6 +24,9 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: Scaffold(body: SignLoginScreen()));
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(body: SignLoginScreen()),
+    );
   }
 }
