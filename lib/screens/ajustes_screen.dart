@@ -6,6 +6,8 @@ import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
+import 'package:flutter_application_1/services/auth_google.dart';
+import 'package:flutter_application_1/screens/sign_login.dart';
 
 class AjustesPerfil extends StatefulWidget {
   const AjustesPerfil({super.key});
@@ -265,6 +267,55 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                   ],
                 ),
                 SizedBox(height: 200),
+
+                const SizedBox(height: 40),
+
+                //Botón reutilizando AuthButton
+                Align(
+                  alignment: Alignment.center,
+                  child: AuthButton(
+                    texto: "Cerrar sesión",
+                    isPressed: true,
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder:
+                            (ctx) => AlertDialog(
+                              title: const Text("Confirmar salida"),
+                              content: const Text(
+                                "¿Deseas cerrar tu sesión en Harmoni?",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text("Cancelar"),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text("Cerrar sesión"),
+                                ),
+                              ],
+                            ),
+                      );
+
+                      if (confirm == true) {
+                        await AuthService().signOut();
+
+                        //Elimina todo el stack de pantallas y vuelve al login
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SignLoginScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 200),
+
               ],
             ),
           ),
@@ -278,7 +329,9 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                 onCenterDoubleTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SecondPrincipalScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => SecondPrincipalScreen(),
+                    ),
                   );
                 },
                 items: [
@@ -287,24 +340,32 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const Psicologos()),
+                        MaterialPageRoute(
+                          builder: (context) => const Psicologos(),
+                        ),
                       );
                     },
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/diario.svg",
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder:(context) => DiarioScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => DiarioScreen()),
+                      );
                     },
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder:(context) => MetasScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MetasScreen()),
+                      );
                     },
                   ),
+
                   // Home (center of ring)
-                  
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
                     onTap: () {},

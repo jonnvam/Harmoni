@@ -3,6 +3,7 @@ import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/principal_screen.dart';
+import 'package:flutter_application_1/services/auth_google.dart';
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -13,6 +14,7 @@ class SignLoginScreen extends StatefulWidget {
 
 class _SignLoginScreenState extends State<SignLoginScreen> {
   bool isSignUpScreen = true;
+  //final AuthGoogle _authGoogle = AuthGoogle();
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +31,12 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             right: 0,
 
             child:
-        isSignUpScreen
-          ? const TitleSection(
-            texto: "Cuidar de ti también es importante",
-            maxLines: 3,
-            textAlign: TextAlign.left,
-            )
+                isSignUpScreen
+                    ? const TitleSection(
+                      texto: "Cuidar de ti también es importante",
+                      maxLines: 3,
+                      textAlign: TextAlign.left,
+                    )
                     : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
@@ -251,6 +253,45 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             onPressed: () {},
           ),
         ),
+        const SizedBox(height: 30),
+        Align(
+          alignment: Alignment.center,
+          child: Text(
+            "Registrarse con",
+            style: const TextStyle(
+              color: Colors.grey,
+              fontFamily: 'Kantumruy Pro',
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AuthIconButton(
+              iconPath: "assets/images/icon/google.svg",
+              onPressed: () async {
+                final user = await AuthService().signInWithGoogle(context);
+                if (!mounted) return;
+                if (user != null) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                  );
+                }
+              },
+            ),
+            const SizedBox(width: 16),
+            AuthIconButton(
+              iconPath: "assets/images/icon/apple.svg",
+              onPressed: () {
+                // TODO: Implementar registro con Apple
+              },
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -336,16 +377,54 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => PrincipalScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => PrincipalScreen()),
               );
             },
           ),
+        ),
+        const SizedBox(height: 20),
+        Align(
+          alignment: Alignment.center,
+          child: Text(
+            "Iniciar Sesión con",
+            style: const TextStyle(
+              color: Colors.grey,
+              fontFamily: 'Kantumruy Pro',
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AuthIconButton(
+              iconPath: "assets/images/icon/google.svg",
+              onPressed: () async {
+                final user = await AuthService().signUpWithGoogle(context);
+                if (!mounted) return;
+                if (user != null) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                  );
+                }
+              },
+            ),
+
+            const SizedBox(width: 16),
+            AuthIconButton(
+              iconPath: "assets/images/icon/apple.svg",
+              onPressed: () {
+                // TODO: Implementar inicio de sesión con Apple
+              },
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-const double fifty = 50;//Tamaño del boton
+const double fifty = 50; //Tamaño del boton

@@ -526,6 +526,54 @@ class AuthButton extends StatelessWidget {
   }
 }
 
+//Botón para acceder por autenticación por servicio ej. google
+class AuthIconButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final String iconPath; 
+  final Color backgroundColor;
+  final double size;
+
+  const AuthIconButton({
+    super.key,
+    required this.onPressed,
+    required this.iconPath,
+    this.backgroundColor = Colors.white,
+    this.size = 50,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Center(
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(size / 2),
+            border: Border.all(color: Colors.grey.shade300),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Center(
+            child: SvgPicture.asset(
+              iconPath,
+              width: size * 0.7,
+              height: size * 0.7,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CircularElevatedButton extends StatelessWidget {
   final VoidCallback onPressed;
   final Widget child;
