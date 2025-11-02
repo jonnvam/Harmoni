@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/sign_login.dart';
+import 'package:flutter_svg/svg.dart';
 
 class VerificacionScreen extends StatefulWidget {
   final String email;
@@ -43,9 +44,9 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
   }
 
   OutlineInputBorder _otpBorder(Color color) => OutlineInputBorder(
-        borderSide: BorderSide(color: color, width: 1.2),
-        borderRadius: BorderRadius.circular(24),
-      );
+    borderSide: BorderSide(color: color, width: 1.2),
+    borderRadius: BorderRadius.circular(24),
+  );
 
   Widget _buildOtpBox(int index) {
     return SizedBox(
@@ -56,10 +57,15 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
         textAlign: TextAlign.center,
         style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
         keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(1)],
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(1),
+        ],
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
-          enabledBorder: _otpBorder(const Color.fromRGBO(165, 180, 252, 1)), // AppColors.borde2 tone
+          enabledBorder: _otpBorder(
+            const Color.fromRGBO(165, 180, 252, 1),
+          ), // AppColors.borde2 tone
           focusedBorder: _otpBorder(AppColors.fondo3),
           filled: true,
           fillColor: Colors.white,
@@ -87,7 +93,8 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Back button inside a circle
-              InkWell(
+              Padding(padding: EdgeInsets.only(left:10,top: 31 ),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(24),
                 onTap: () {
                   // Ir explícitamente a SignLoginScreen
@@ -104,10 +111,10 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.borde2, width: 1),
                   ),
-                  child: const Icon(Icons.arrow_back, color: Colors.black87),
+                  child: Icon(Icons.arrow_back, color: Colors.black87),
                 ),
-              ),
-              const SizedBox(height: 16),
+              ),),
+              const SizedBox(height: 0),
 
               // Outer bordered theme container for the main content
               Expanded(
@@ -119,56 +126,90 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                     // Se quita el borde morado/lavanda
                   ),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         // Title
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: Alignment.topCenter,
                           child: Text(
                             'Verificación',
-                            style: TextStyles.tituloBienvenida.copyWith(fontSize: 28, fontWeight: FontWeight.w700),
+                            style: TextStyles.tituloBienvenida.copyWith(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),
 
                         // Central illustration: circle with friendly icon
-                        Container(
-                          width: 140,
-                          height: 140,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color.fromRGBO(224, 231, 255, 1),
-                                Color.fromRGBO(199, 210, 254, 1),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                        Align(
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 185,
+                            height: 185,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color.fromRGBO(175, 189, 250, 1),
+                                width: 1,
+                              ),
                             ),
-                            border: Border.all(color: const Color.fromRGBO(165, 180, 252, 1), width: 1),
+                            child: Center(
+                              child: Container(
+                                width: 145,
+                                height: 145,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color.fromRGBO(224, 231, 255, 1),
+                                      Color.fromRGBO(224, 231, 255, 1),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
+
+                                child: Center(
+                                  child: SvgPicture.asset(
+                                    'assets/images/verificacion/security.svg',
+                                    width: 64,
+                                    height: 64,
+                                  ),
+                                ),
+                                ),
+                              ),
+                            ),
                           ),
-                          child: const Center(
-                            child: Icon(Icons.verified_user_outlined, size: 64, color: Color.fromRGBO(99, 102, 241, 1)),
-                          ),
-                        ),
+                        
+
                         const SizedBox(height: 24),
 
                         // Subtitle and helper
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: Alignment.topCenter,
                           child: Text(
                             'Código de verificación',
-                            style: TextStyles.textBlackLogin.copyWith(fontWeight: FontWeight.w700),
+                            style: TextStyles.textBlackLogin.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Align(
-                          alignment: Alignment.centerLeft,
+                          alignment: Alignment.topCenter,
                           child: Text(
                             'Escribe el código que enviamos a ${widget.email}',
-                            style: TextStyles.textDicho.copyWith(fontSize: 14, fontWeight: FontWeight.w300),
+                            style: TextStyles.textDicho.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w300,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -182,16 +223,26 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
 
                         // Confirm button
                         SizedBox(
-                          width: double.infinity,
+                          width: 170,
                           height: 52,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.fondo3,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                               elevation: 0,
                             ),
                             onPressed: _onConfirm,
-                            child: const Text('Confirmar', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                            child: const Text(
+                              'Confirmar',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontFamily: 'Kantumruy Pro',
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
                           ),
                         ),
 
@@ -199,7 +250,10 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                         // Secondary help text
                         Text(
                           '¿No recibiste el código?',
-                          style: TextStyles.textDicho.copyWith(fontSize: 13, color: Colors.black54),
+                          style: TextStyles.textDicho.copyWith(
+                            fontSize: 13,
+                            color: Colors.black54,
+                          ),
                         ),
                       ],
                     ),

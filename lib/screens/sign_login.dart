@@ -4,6 +4,7 @@ import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/principal_screen.dart';
 import 'package:flutter_application_1/services/auth_google.dart';
+import 'package:flutter_application_1/screens/restCodigo.dart';
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -148,7 +149,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 10),
 
                   // Formulario dinámico
                   Expanded(
@@ -179,7 +180,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           padding: const EdgeInsets.only(left: 12),
           child: TextoDatos(texto: 'Nombre'),
         ),
-        const SizedBox(height: 0),
         ContainerLogin(
           width: double.infinity,
           height: 53,
@@ -195,7 +195,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           padding: const EdgeInsets.only(left: 12),
           child: TextoDatos(texto: 'Apellido'),
         ),
-        const SizedBox(height: 0),
         ContainerLogin(
           width: double.infinity,
           height: 53,
@@ -211,7 +210,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           padding: const EdgeInsets.only(left: 12),
           child: TextoDatos(texto: 'Email'),
         ),
-        const SizedBox(height: 0),
         ContainerLogin(
           width: double.infinity,
           height: 53,
@@ -227,7 +225,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           padding: const EdgeInsets.only(left: 12),
           child: TextoDatos(texto: 'Contraseña'),
         ),
-        const SizedBox(height: 0),
         ContainerLogin(
           width: double.infinity,
           height: 53,
@@ -242,9 +239,9 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 10),
         // Mantener el mismo espacio vertical: antes había un top:30 en el padding del botón
-        const SizedBox(height: 30),
+        const SizedBox(height: 10),
         Align(
           alignment: Alignment.center,
           child: AuthButton(
@@ -354,14 +351,22 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
             const Spacer(),
             // Simetría: alineamos el segundo texto al borde derecho con un padding similar
-            const Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: Text(
-                "Olvide mi contraseña",
-                style: TextStyle(
-                  fontSize: 13,
-                  fontFamily: 'Kantumruy Pro',
-                  fontWeight: FontWeight.w300,
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RestCodigoScreen()),
+                  );
+                },
+                child: const Text(
+                  "Olvide mi contraseña",
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontFamily: 'Kantumruy Pro',
+                    fontWeight: FontWeight.w300,
+                  ),
                 ),
               ),
             ),

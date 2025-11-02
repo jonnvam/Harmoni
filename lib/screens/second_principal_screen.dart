@@ -271,7 +271,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                                 ),
                               ),
                               child: Image.asset(
-                                "assets/images/carousel/156.png",
+                                "assets/images/carousel/psicologo.jpg",
                                 fit: BoxFit.cover,
                               ),
                             ),

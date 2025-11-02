@@ -5,6 +5,8 @@ import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:flutter_application_1/state/app_state.dart';
+import 'package:flutter_application_1/screens/assessment/phq_gad_test_screen.dart';
 //import 'package:carousel_slider/carousel_slider.dart';
 
 class PrincipalScreen extends StatefulWidget {
@@ -18,6 +20,30 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   bool showStep2 = false;
   bool showStep3 = false;
   bool showStep4 = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Enforce initial test completion: send user to the test if not completed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!AppState.instance.isTestCompleted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const PhqGadTestScreen()),
+        );
+      }
+    });
+  }
+
+  void _guardedNavigate(Widget screen) {
+    if (!AppState.instance.isTestCompleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+      );
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +105,12 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                             SizedBox(
                               height: 35,
                               child: CircularElevatedButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const PhqGadTestScreen()),
+                                  );
+                                },
                                 child: SvgPicture.asset(
                                   "assets/images/export.svg",
                                 ),
@@ -106,42 +137,23 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                 items: [
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/diario.svg",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => DiarioScreen()),
-                      );
-                    },
+                    onTap: () => _guardedNavigate(DiarioScreen()),
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/ia.svg",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => IaScreen()),
-                      );
-                    },
+                    onTap: () => _guardedNavigate(IaScreen()),
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
-                    onTap: () {
-                      // TODO: navegar a Metas
-                    },
+                    onTap: () => _guardedNavigate(Container()),
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
-                    onTap: () {
-                      // TODO: navegar a Progreso
-                    },
+                    onTap: () => _guardedNavigate(Container()),
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const Psicologos()),
-                      );
-                    },
+                    onTap: () => _guardedNavigate(const Psicologos()),
                   ),
                 ],
               ),
