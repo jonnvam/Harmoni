@@ -1635,7 +1635,7 @@ class ContainerC2 extends StatelessWidget {
 }
 
 class ContainerC3 extends StatelessWidget {
-  final double height;
+  final double? height; // allow dynamic height when null
   final double width;
   final Widget child;
   final Alignment alignment; // 👈 lo guardamos
@@ -1652,7 +1652,7 @@ class ContainerC3 extends StatelessWidget {
     super.key,
     required this.child,
     required this.width,
-    required this.height,
+    this.height,
     this.alignment = Alignment.center,
   });
 
@@ -1660,7 +1660,7 @@ class ContainerC3 extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      height: height,
+      height: height, // when null, wraps content vertically
       alignment: alignment,
       decoration: _decoration,
       child: child,

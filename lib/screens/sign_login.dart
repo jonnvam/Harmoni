@@ -4,13 +4,10 @@ import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/principal_screen.dart';
 import 'package:flutter_application_1/services/auth_google.dart';
-<<<<<<< HEAD
 import 'package:flutter_application_1/screens/restCodigo.dart';
-=======
 import 'package:flutter_application_1/services/auth_email.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/screens/verificacion_signup.dart';
->>>>>>> origin/cambiosJacque
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -297,9 +294,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
-<<<<<<< HEAD
         const SizedBox(height: 10),
-=======
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.only(left: 12),
@@ -325,7 +320,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           ),
         ),
         const SizedBox(height: 24),
->>>>>>> origin/cambiosJacque
         // Mantener el mismo espacio vertical: antes había un top:30 en el padding del botón
         const SizedBox(height: 10),
         Align(

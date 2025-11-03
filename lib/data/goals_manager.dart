@@ -66,8 +66,10 @@ class GoalsManager extends ValueNotifier<int> {
   // Número total de etapas (5) basado en metas completadas (simple: proporción completadas / 5).
   int get totalStages => 5;
   int get completedCount => completedGoals.length;
-  // Valor 0..1 para la flor.
-  double get progressFraction => (completedCount / totalStages).clamp(0, 1);
+  // Ticks manuales para reflejar progresos desde Firestore/app sin acoplar a la lista interna
+  int _manualProgress = 0;
+  // Valor 0..1 para la flor (combinando completadas internas + ticks manuales)
+  double get progressFraction => ((completedCount + _manualProgress) / totalStages).clamp(0, 1);
   // Etapa visual 0..5
   int get currentStage => (progressFraction * totalStages).floor().clamp(0, totalStages);
 
@@ -93,6 +95,7 @@ class GoalsManager extends ValueNotifier<int> {
       g.iniciada = null;
       g.completada = null;
     }
+    _manualProgress = 0;
     value++;
   }
 
@@ -106,5 +109,13 @@ class GoalsManager extends ValueNotifier<int> {
     _goals.remove(goal);
     _goals.add(goal);
     value++;
+  }
+
+  // Incrementa el progreso manual (máximo totalStages)
+  void incrementProgressTick() {
+    if (completedCount + _manualProgress < totalStages) {
+      _manualProgress++;
+      value++;
+    }
   }
 }

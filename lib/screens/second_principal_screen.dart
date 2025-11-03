@@ -12,6 +12,8 @@ import 'package:flutter_application_1/data/emotion_journal.dart';
 import 'package:flutter_application_1/data/diary_repo.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_application_1/state/app_state.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -24,6 +26,148 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
   bool showStep2 = false;
   bool showStep3 = false;
   bool showStep4 = false;
+
+  void _guardedNavigate(Widget screen) {
+    if (!AppState.instance.isTestCompleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+      );
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  Future<void> _openMoodModal(
+    BuildContext parentContext,
+    String emotionLabel,
+    String emotionIconAsset,
+  ) async {
+    final controller = TextEditingController();
+    final titleCtrl = TextEditingController(text: 'Estado de ánimo');
+    await showModalBottomSheet(
+      context: parentContext,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Título',
+                  hintText: 'Ponle un nombre a tu nota',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    emotionIconAsset,
+                    width: 36,
+                    height: 36,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '¿Qué te hizo sentir $emotionLabel?',
+                    style: const TextStyle(
+                      fontFamily: 'Kantumruy Pro',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Escribe aquí (opcional)...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () async {
+                      // Save to EmotionJournal
+                      final lower = emotionLabel.toLowerCase();
+                      EmotionType? t;
+                      if (lower.contains('feliz')) t = EmotionType.happy;
+                      else if (lower.contains('triste')) t = EmotionType.sad;
+                      else if (lower.contains('enojad')) t = EmotionType.angry; // enojado/enojada
+                      else if (lower.contains('sorpres') || lower.contains('sorprendid')) t = EmotionType.surprised;
+                      else if (lower.contains('miedo')) t = EmotionType.fear;
+                      if (t != null) {
+                        await EmotionJournal.instance.saveEmotion(t);
+                      }
+
+                      // Save diary note
+                      final id = await DiaryRepo.nextId();
+                      final baseText = 'Hoy me sentí $emotionLabel';
+                      final extra = controller.text.trim();
+                      final fullText = extra.isEmpty ? '$baseText.' : '$baseText: $extra';
+                      final note = DiaryNote(
+                        id: id,
+                        date: DateTime.now(),
+                        type: DiaryNoteType.text,
+                        title: titleCtrl.text.trim().isEmpty ? 'Estado de ánimo' : titleCtrl.text.trim(),
+                        text: fullText,
+                        emotionAsset: emotionIconAsset,
+                      );
+                      await DiaryRepo.instance.addNote(note);
+
+                      if (!mounted) return;
+                      Navigator.of(ctx).pop();
+                      ScaffoldMessenger.of(parentContext).showSnackBar(
+                        const SnackBar(content: Text('Estado de ánimo guardado en tu diario.')),
+                      );
+                      // Navega al diario para ver/editar si el usuario desea
+                      await Navigator.push(
+                        parentContext,
+                        MaterialPageRoute(builder: (_) => const DiarioScreen()),
+                      );
+                    },
+                    child: const Text('Guardar'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -71,27 +215,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Feliz",
                           icon: "assets/images/emotions/Feliz.svg",
-                          onTap: () async {
-                            await EmotionJournal.instance
-                                .saveEmotion(EmotionType.happy);
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Guardado: Feliz')),
-                            );
-                            final id = await DiaryRepo.nextId();
-                            final note = DiaryNote(
-                              id: id,
-                              date: DateTime.now(),
-                              type: DiaryNoteType.text,
-                              text: 'Hoy me sentí Feliz: ',
-                            );
-                            await DiaryRepo.instance.addNote(note);
-                            if (!mounted) return;
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const DiarioScreen()));
-                          },
+                          onTap: () => _openMoodModal(context, 'Feliz', 'assets/images/emotions/Feliz.svg'),
                         ),
                       ],
                     ),
@@ -101,27 +225,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Triste",
                           icon: "assets/images/emotions/Triste.svg",
-                          onTap: () async {
-                            await EmotionJournal.instance
-                                .saveEmotion(EmotionType.sad);
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Guardado: Triste')),
-                            );
-                            final id = await DiaryRepo.nextId();
-                            final note = DiaryNote(
-                              id: id,
-                              date: DateTime.now(),
-                              type: DiaryNoteType.text,
-                              text: 'Hoy me sentí Triste: ',
-                            );
-                            await DiaryRepo.instance.addNote(note);
-                            if (!mounted) return;
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const DiarioScreen()));
-                          },
+                          onTap: () => _openMoodModal(context, 'Triste', 'assets/images/emotions/Triste.svg'),
                         ),
                       ],
                     ),
@@ -130,27 +234,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Enojado",
                           icon: "assets/images/emotions/Enojado.svg",
-                          onTap: () async {
-                            await EmotionJournal.instance
-                                .saveEmotion(EmotionType.angry);
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Guardado: Enojado')),
-                            );
-                            final id = await DiaryRepo.nextId();
-                            final note = DiaryNote(
-                              id: id,
-                              date: DateTime.now(),
-                              type: DiaryNoteType.text,
-                              text: 'Hoy me sentí Enojado: ',
-                            );
-                            await DiaryRepo.instance.addNote(note);
-                            if (!mounted) return;
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const DiarioScreen()));
-                          },
+                          onTap: () => _openMoodModal(context, 'Enojado', 'assets/images/emotions/Enojado.svg'),
                         ),
                       ],
                     ),
@@ -165,27 +249,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Sorpresa",
                           icon: "assets/images/emotions/Sorpresa.svg",
-                          onTap: () async {
-                            await EmotionJournal.instance
-                                .saveEmotion(EmotionType.surprised);
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Guardado: Sorpresa')),
-                            );
-                            final id = await DiaryRepo.nextId();
-                            final note = DiaryNote(
-                              id: id,
-                              date: DateTime.now(),
-                              type: DiaryNoteType.text,
-                              text: 'Hoy me sentí Sorprendido: ',
-                            );
-                            await DiaryRepo.instance.addNote(note);
-                            if (!mounted) return;
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const DiarioScreen()));
-                          },
+                          onTap: () => _openMoodModal(context, 'Sorprendido', 'assets/images/emotions/Sorpresa.svg'),
                         ),
                       ],
                     ),
@@ -195,27 +259,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Miedo",
                           icon: "assets/images/emotions/Miedo.svg",
-                          onTap: () async {
-                            await EmotionJournal.instance
-                                .saveEmotion(EmotionType.fear);
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Guardado: Miedo')),
-                            );
-                            final id = await DiaryRepo.nextId();
-                            final note = DiaryNote(
-                              id: id,
-                              date: DateTime.now(),
-                              type: DiaryNoteType.text,
-                              text: 'Hoy me sentí con Miedo: ',
-                            );
-                            await DiaryRepo.instance.addNote(note);
-                            if (!mounted) return;
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const DiarioScreen()));
-                          },
+                          onTap: () => _openMoodModal(context, 'Miedo', 'assets/images/emotions/Miedo.svg'),
                         ),
                       ],
                     ),
@@ -311,50 +355,23 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                   items: [
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/diario.svg",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const DiarioScreen(),
-                          ),
-                        );
-                      },
+                      onTap: () => _guardedNavigate(const DiarioScreen()),
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/ia.svg",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => IaScreen()),
-                        );
-                      },
+                      onTap: () => _guardedNavigate(IaScreen()),
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/metas.svg",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const MetasScreen()),
-                        );
-                      },
+                      onTap: () => _guardedNavigate(const MetasScreen()),
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/progreso.svg",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const Progreso()),
-                        );
-                      },
+                      onTap: () => _guardedNavigate(const Progreso()),
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/psicologos.svg",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const Psicologos()),
-                        );
-                      },
+                      onTap: () => _guardedNavigate(const Psicologos()),
                     ),
                   ],
                 ),

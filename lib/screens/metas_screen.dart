@@ -8,6 +8,7 @@ import 'package:flutter_application_1/data/goals_manager.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_1/state/app_state.dart';
 
 class MetasScreen extends StatefulWidget {
   const MetasScreen({super.key});
@@ -52,7 +53,7 @@ class _MetasScreenState extends State<MetasScreen> {
   }
 
   Future<void> _startGoal(Goal goal) async {
-    final ok = _manager.startGoal(goal);
+    _manager.startGoal(goal);
     if (!mounted) return;
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -271,7 +272,7 @@ class _MetasScreenState extends State<MetasScreen> {
           );
         }
 
-        return ListView.separated(
+                return ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: docs.length,
@@ -295,43 +296,63 @@ class _MetasScreenState extends State<MetasScreen> {
                   ),
                 ],
               ),
-              child: ListTile(
-                title: Text(
-                  titulo,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Kantumruy Pro',
-                  ),
-                ),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    descripcion,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w300,
-                      fontFamily: 'Kantumruy Pro',
-                    ),
-                  ),
-                ),
-                // 👉 BOTÓN DE COMPLETAR (palomita verde al confirmar)
-                trailing: IconButton(
-                  tooltip: 'Marcar como completada',
-                  icon: const Icon(Icons.check_circle, color: Colors.green),
-                  onPressed: () async {
-                    await docs[i].reference.update({'estado': 'completada'});
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Meta marcada como completada'),
-                        duration: Duration(seconds: 1),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    titulo,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: 'Kantumruy Pro',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    descripcion,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w300,
+                                      fontFamily: 'Kantumruy Pro',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            SizedBox(
+                              width: 130,
+                              child: FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF22C55E),
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () async {
+                                  await docs[i].reference.update({'estado': 'completada'});
+                                  // Avanza flor: tick manual
+                                  GoalsManager.instance.incrementProgressTick();
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Meta marcada como completada'),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.check, color: Colors.white, size: 18),
+                                label: const Text('Completar', style: TextStyle(color: Colors.white)),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    );
-                  },
-                ),
-                dense: true,
-              ),
             );
           },
         );
@@ -565,6 +586,12 @@ class _MetasScreenState extends State<MetasScreen> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/ia.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => IaScreen()),
@@ -574,6 +601,12 @@ class _MetasScreenState extends State<MetasScreen> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/diario.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => DiarioScreen()),
@@ -593,11 +626,24 @@ class _MetasScreenState extends State<MetasScreen> {
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
-                    onTap: () {},
+                    onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
+                    },
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const Psicologos()),

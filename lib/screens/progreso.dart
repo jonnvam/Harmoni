@@ -8,6 +8,7 @@ import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_application_1/data/emotion_journal.dart';
+import 'package:flutter_application_1/state/app_state.dart';
 
 class Progreso extends StatefulWidget {
   const Progreso({super.key});
@@ -120,6 +121,12 @@ class _ProgresoState extends State<Progreso> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/diario.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => DiarioScreen()),
@@ -130,6 +137,12 @@ class _ProgresoState extends State<Progreso> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => MetasScreen()),
@@ -152,6 +165,12 @@ class _ProgresoState extends State<Progreso> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/ia.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => IaScreen()),
@@ -162,6 +181,12 @@ class _ProgresoState extends State<Progreso> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => Psicologos()),

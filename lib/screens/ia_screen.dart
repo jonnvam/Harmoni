@@ -10,6 +10,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_1/data/diary_repo.dart';
 import 'package:flutter_application_1/data/api_service.dart'; // 👈 (ya estaba correcto)
+import 'package:flutter_application_1/state/app_state.dart';
 
 class IaScreen extends StatefulWidget {
   const IaScreen({super.key});
@@ -35,29 +36,143 @@ class _IaScreenState extends State<IaScreen> {
     super.dispose();
   }
 
-  Future<void> _shareDiaryPages() async {
+  Future<void> _openDiarySelectionModal() async {
     final notes = await DiaryRepo.instance.listNotes();
-    final buffer = StringBuffer();
-    for (final n in notes.take(20).toList().reversed) {
-      final date = n.date.toLocal().toString().split('.').first;
-      switch (n.type) {
-        case DiaryNoteType.text:
-          buffer.writeln('[$date] Texto: ${n.text ?? ''}');
-          break;
-        case DiaryNoteType.audio:
-          buffer.writeln('[$date] Audio: ${n.filePath ?? ''}');
-          break;
-        case DiaryNoteType.image:
-          buffer.writeln('[$date] Imagen: ${n.filePath ?? ''} ${n.text ?? ''}');
-          break;
-      }
-    }
-    final content =
-        buffer.isEmpty ? 'No hay notas para compartir.' : buffer.toString();
-    await Clipboard.setData(ClipboardData(text: content));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Contenido copiado al portapapeles')),
+    if (notes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay notas para seleccionar.')),
+      );
+      return;
+    }
+
+  // No preseleccionar por defecto; el usuario elige manualmente
+  Set<String> selected = <String>{};
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setModal) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 12,
+              right: 12,
+              top: 12,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 12,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Selecciona páginas del diario',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        setModal(() {
+                          if (selected.length == notes.length) {
+                            selected.clear();
+                          } else {
+                            selected = notes.map((e) => e.id).toSet();
+                          }
+                        });
+                      },
+                      child: Text(
+                        selected.length == notes.length ? 'Deseleccionar todo' : 'Seleccionar todo',
+                      ),
+                    ),
+                    const Spacer(),
+                    Text('${selected.length}/${notes.length}')
+                  ],
+                ),
+                const SizedBox(height: 4),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 360),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: notes.length,
+                    itemBuilder: (_, i) {
+                      final n = notes[i];
+                      final date = n.date.toLocal();
+                      final dateStr = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+                      final preview = (n.text ?? n.filePath ?? '').trim();
+                      final firstLine = preview.split('\n').first;
+                      final title = (n.title ?? '').trim().isEmpty ? n.type.name.toUpperCase() : n.title!.trim();
+                      return CheckboxListTile(
+                        value: selected.contains(n.id),
+                        onChanged: (v) {
+                          setModal(() {
+                            if (v == true) {
+                              selected.add(n.id);
+                            } else {
+                              selected.remove(n.id);
+                            }
+                          });
+                        },
+                        title: Text(title),
+                        subtitle: Text('[${dateStr}] ${firstLine}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Cancelar'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: () async {
+                        if (selected.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Selecciona al menos una nota.')),
+                          );
+                          return;
+                        }
+                        // Build concatenated content in chronological order (oldest first among selected)
+                        final selectedNotes = notes.where((n) => selected.contains(n.id)).toList()
+                          ..sort((a, b) => a.date.compareTo(b.date));
+                        final buffer = StringBuffer();
+                        for (final n in selectedNotes) {
+                          final date = n.date.toLocal().toString().split('.').first;
+                          final title = (n.title ?? '').trim().isEmpty ? n.type.name.toUpperCase() : n.title!.trim();
+                          switch (n.type) {
+                            case DiaryNoteType.text:
+                              buffer.writeln('[$date] ${title}: ${n.text ?? ''}');
+                              break;
+                            case DiaryNoteType.audio:
+                              buffer.writeln('[$date] ${title}: (Audio) ${n.filePath ?? ''}');
+                              break;
+                            case DiaryNoteType.image:
+                              buffer.writeln('[$date] ${title}: (Imagen) ${n.filePath ?? ''} ${n.text ?? ''}');
+                              break;
+                          }
+                        }
+                        Navigator.of(ctx).pop();
+                        if (!mounted) return;
+                        _chatCtrl.text = 'Estas son mis notas seleccionadas para contexto, ayúdame a analizarlas y a darme orientación:\n\n${buffer.toString()}';
+                        await _sendMessage();
+                      },
+                      child: const Text('Enviar al chat'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        });
+      },
     );
   }
 
@@ -184,7 +299,7 @@ class _IaScreenState extends State<IaScreen> {
                         children: [
                           HolaNombre(
                             style: TextStyles.textInicioName,
-                            prefix:"hola",
+                            prefix:"Hola",
                           ),
                         ],
                       ),
@@ -212,7 +327,7 @@ class _IaScreenState extends State<IaScreen> {
                           Padding(
                             padding: const EdgeInsets.only(left: 10),
                             child: Text(
-                              "Compartir Paginas del Diario",
+                              "Compartir páginas del diario",
                               style: TextStyles.textDLogin,
                             ),
                           ),
@@ -220,7 +335,7 @@ class _IaScreenState extends State<IaScreen> {
                           Row(
                             children: [
                               InkWell(
-                                onTap: _shareDiaryPages,
+                                onTap: _openDiarySelectionModal,
                                 child: SvgPicture.asset("assets/images/ia/copy.svg"),
                               ),
                             ],
@@ -387,6 +502,12 @@ class _IaScreenState extends State<IaScreen> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/diario.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => DiarioScreen()),
@@ -397,6 +518,12 @@ class _IaScreenState extends State<IaScreen> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => MetasScreen()),
@@ -419,13 +546,27 @@ class _IaScreenState extends State<IaScreen> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
                     onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
                       Navigator.push(context, MaterialPageRoute(builder: (context) => Progreso()));
                     },
                   ),
                   // Psicólogos (right)
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
-                    onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) => Psicologos()));},
+                    onTap: () {
+                      if (!AppState.instance.isTestCompleted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        );
+                        return;
+                      }
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => Psicologos()));
+                    },
                   ),
                 ],
               ),

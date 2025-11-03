@@ -3,6 +3,8 @@ import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
+import 'package:flutter_application_1/screens/metas_screen.dart';
+import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/state/app_state.dart';
@@ -20,20 +22,6 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   bool showStep2 = false;
   bool showStep3 = false;
   bool showStep4 = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Enforce initial test completion: send user to the test if not completed
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!AppState.instance.isTestCompleted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const PhqGadTestScreen()),
-        );
-      }
-    });
-  }
 
   void _guardedNavigate(Widget screen) {
     if (!AppState.instance.isTestCompleted) {
@@ -144,11 +132,11 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
-                    onTap: () => _guardedNavigate(Container()),
+                    onTap: () => _guardedNavigate(const MetasScreen()),
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
-                    onTap: () => _guardedNavigate(Container()),
+                    onTap: () => _guardedNavigate(const Progreso()),
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",

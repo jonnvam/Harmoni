@@ -4,11 +4,8 @@ import 'package:intl/date_symbol_data_local.dart'; // 👈 necesario para locale
 import 'package:logger/logger.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; // este archivo se genera con flutterfire configure
-<<<<<<< HEAD
 import 'package:flutter_application_1/state/app_state.dart';
-=======
 import 'package:flutter_dotenv/flutter_dotenv.dart';
->>>>>>> origin/cambiosJacque
 
 final logger = Logger();
 
@@ -16,11 +13,12 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-<<<<<<< HEAD
   await AppState.instance.init();
-=======
-  await dotenv.load(fileName: 'assets/env/.env'); // cargar .env
->>>>>>> origin/cambiosJacque
+  try {
+    await dotenv.load(fileName: 'assets/env/.env'); // cargar .env (opcional)
+  } catch (e) {
+    logger.w('No se pudo cargar .env: $e');
+  }
 
   logger.d("Debug mensaje");
   logger.i("Info mensaje");
