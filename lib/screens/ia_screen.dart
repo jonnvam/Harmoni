@@ -7,9 +7,9 @@ import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_1/data/diary_repo.dart';
+import 'package:flutter_application_1/data/api_service.dart'; // 👈 (ya estaba correcto)
 
 class IaScreen extends StatefulWidget {
   const IaScreen({super.key});
@@ -22,6 +22,13 @@ class _IaScreenState extends State<IaScreen> {
   final TextEditingController _chatCtrl = TextEditingController();
   final List<_Message> _messages = [];
 
+  // 🧠 Variables nuevas para IA (cache + control)
+  final Map<String, String> _cacheRespuestas = {};
+  bool _isSending = false;
+
+  // 🧠 Historial de conversación (para contexto) — cambie esto
+  final List<Map<String, String>> _historial = [];
+
   @override
   void dispose() {
     _chatCtrl.dispose();
@@ -31,7 +38,7 @@ class _IaScreenState extends State<IaScreen> {
   Future<void> _shareDiaryPages() async {
     final notes = await DiaryRepo.instance.listNotes();
     final buffer = StringBuffer();
-  for (final n in notes.take(20).toList().reversed) {
+    for (final n in notes.take(20).toList().reversed) {
       final date = n.date.toLocal().toString().split('.').first;
       switch (n.type) {
         case DiaryNoteType.text:
@@ -45,7 +52,8 @@ class _IaScreenState extends State<IaScreen> {
           break;
       }
     }
-    final content = buffer.isEmpty ? 'No hay notas para compartir.' : buffer.toString();
+    final content =
+        buffer.isEmpty ? 'No hay notas para compartir.' : buffer.toString();
     await Clipboard.setData(ClipboardData(text: content));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -53,16 +61,110 @@ class _IaScreenState extends State<IaScreen> {
     );
   }
 
-  void _sendMessage() {
+  // ===============================================================
+  // 💬 FUNCIÓN MODIFICADA _sendMessage() — cambie esto
+  // ===============================================================
+  Future<void> _sendMessage() async {
     final text = _chatCtrl.text.trim();
     if (text.isEmpty) return;
+
+    final textoMinus = text.toLowerCase();
+
+    // 🚨 Palabras clave de riesgo
+    final palabrasRiesgo = [
+      "suicidio",
+      "matarme",
+      "no quiero vivir",
+      "depresion",
+      "depresión",
+      "ansiedad fuerte",
+      "me odio",
+      "autolesión",
+      "autolesion",
+      "sin sentido",
+    ];
+
+    final esRiesgo = palabrasRiesgo.any((p) => textoMinus.contains(p));
+
+    if (esRiesgo) {
+      setState(() {
+        _messages.add(_Message(sender: Sender.user, text: text));
+        _messages.add(_Message(
+          sender: Sender.bot,
+          text:
+              "💜 Parece que estás pasando por un momento difícil. Te recomiendo hablar con un psicólogo o alguien de confianza. No estás solo 💙",
+        ));
+      });
+      _chatCtrl.clear();
+      return;
+    }
+
+    // 💬 Limitar texto muy largo
+    if (text.length > 200) {
+      setState(() {
+        _messages.add(_Message(
+          sender: Sender.bot,
+          text: "⚠️ El mensaje es demasiado largo, intenta resumirlo un poco.",
+        ));
+      });
+      return;
+    }
+
+    // 🚫 Evitar mensajes simultáneos
+    if (_isSending) return;
+    _isSending = true;
+
     setState(() {
       _messages.add(_Message(sender: Sender.user, text: text));
-      // Placeholder bot echo (IA pendiente)
-      _messages.add(_Message(sender: Sender.bot, text: 'IA (pendiente): "$text"'));
-      _chatCtrl.clear();
     });
+    _chatCtrl.clear();
+
+    setState(() {
+      _messages.add(
+          _Message(sender: Sender.bot, text: "💭 Haru está pensando..."));
+    });
+
+    // ⚡ Cache: si ya respondió antes, no gasta tokens
+    if (_cacheRespuestas.containsKey(text)) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      final cached = _cacheRespuestas[text]!;
+      setState(() {
+        _messages.removeLast();
+        _messages.add(_Message(sender: Sender.bot, text: cached));
+      });
+      _isSending = false;
+      return;
+    }
+
+    // 🧠 Agregar mensaje del usuario al historial — cambie esto
+    _historial.add({"role": "user", "content": text});
+
+    try {
+      // 🧠 Enviar mensaje con historial (contexto completo) — cambie esto
+      final respuesta = await ApiService.enviarMensaje(text, _historial);
+
+      // Guardar la respuesta en cache y también en el historial
+      _cacheRespuestas[text] = respuesta;
+      _historial.add({"role": "assistant", "content": respuesta});
+
+      setState(() {
+        _messages.removeLast();
+        _messages.add(_Message(sender: Sender.bot, text: respuesta));
+      });
+    } catch (e) {
+      setState(() {
+        _messages.removeLast();
+        _messages.add(_Message(
+            sender: Sender.bot,
+            text:
+                "⚠️ Error al conectar con Haru. Revisa tu conexión o tu API key."));
+      });
+    }
+
+    _isSending = false;
   }
+  // ===============================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,13 +179,13 @@ class _IaScreenState extends State<IaScreen> {
                 Row(
                   children: [
                     Padding(
-                      padding: EdgeInsets.only(top: 20, left: 45),
+                      padding: const EdgeInsets.only(top: 20, left: 45),
                       child: Column(
                         children: [
                           HolaNombre(
                             style: TextStyles.textInicioName,
-                            prefix: "Hola",
-                          )
+                            prefix:"hola",
+                          ),
                         ],
                       ),
                     ),
