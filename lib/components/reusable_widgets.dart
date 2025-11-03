@@ -9,6 +9,29 @@ import '../core/text_styles.dart';
 import '../core/app_colors.dart';
 import 'dart:math' as math;
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+String _initialsFrom({
+  String? displayName,
+  String? nombre,
+  String? apellido,
+  String? email,
+}) {
+  String base = '';
+  if ((nombre?.isNotEmpty ?? false) || (apellido?.isNotEmpty ?? false)) {
+    base = '${nombre ?? ''} ${apellido ?? ''}'.trim();
+  } else if ((displayName?.isNotEmpty ?? false)) {
+    base = displayName!.trim();
+  } else if ((email?.isNotEmpty ?? false)) {
+    base = email!.split('@').first;
+  }
+  final parts = base.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.isEmpty) return 'U';
+  if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+  return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+      .toUpperCase();
+}
 
 class CarouselAssets {
   static const List<String> images = [
@@ -43,7 +66,10 @@ class TitleSection extends StatelessWidget {
       padding: padding,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final double effectiveWidth = math.min(maxWidth, constraints.maxWidth);
+          final double effectiveWidth = math.min(
+            maxWidth,
+            constraints.maxWidth,
+          );
           return ConstrainedBox(
             constraints: BoxConstraints(maxWidth: effectiveWidth),
             child: Text(
@@ -197,7 +223,10 @@ class InfoBubbleButton extends StatefulWidget {
     this.autoHideDuration = const Duration(seconds: 0),
     this.iconSize = 28,
     this.backgroundColor,
-    this.bubblePadding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    this.bubblePadding = const EdgeInsets.symmetric(
+      horizontal: 14,
+      vertical: 10,
+    ),
     this.bubbleMaxWidth = 240,
   });
 
@@ -310,16 +339,15 @@ class ContenedorDiarioBuscar extends StatelessWidget {
           color: Colors.white.withValues(alpha: 0.70),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color.fromRGBO(255,255,255,0.65), width: 1),
+            side: const BorderSide(
+              color: Color.fromRGBO(255, 255, 255, 0.65),
+              width: 1,
+            ),
           ),
         ),
         child: Row(
           children: [
-            safeSvg(
-              "assets/images/diario/search.svg",
-              width: 20,
-              height: 20,
-            ),
+            safeSvg("assets/images/diario/search.svg", width: 20, height: 20),
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
@@ -377,9 +405,7 @@ class ContainerDiarioWhite extends StatelessWidget {
       padding: padding,
       decoration: ShapeDecoration(
         color: Colors.white.withValues(alpha: 0.90),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
       child: child,
     );
@@ -529,7 +555,7 @@ class AuthButton extends StatelessWidget {
 //Botón para acceder por autenticación por servicio ej. google
 class AuthIconButton extends StatelessWidget {
   final VoidCallback onPressed;
-  final String iconPath; 
+  final String iconPath;
   final Color backgroundColor;
   final double size;
 
@@ -570,6 +596,64 @@ class AuthIconButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+//Widget para mostrar el nombre del usuario
+
+class HolaNombre extends StatelessWidget {
+  final TextStyle? style;
+  final String prefix;
+
+  const HolaNombre({super.key, this.style, this.prefix = "Hola"});
+
+  String _firstName(String? full) {
+    if (full == null || full.trim().isEmpty) return "";
+    final parts = full.trim().split(RegExp(r"\s+"));
+    return parts.first;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (ctx, snapUser) {
+        final user = snapUser.data;
+        if (user == null) {
+          // No autenticado
+          return Text("$prefix 👋", style: style);
+        }
+
+        // Escucha el doc del usuario en Firestore
+        final docRef = FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(user.uid);
+
+        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: docRef.snapshots(),
+          builder: (ctx, snapDoc) {
+            String? nombreFirestore;
+            if (snapDoc.hasData && snapDoc.data!.data() != null) {
+              nombreFirestore = snapDoc.data!.data()!['nombre'] as String?;
+            }
+
+            // Fallback a displayName de Auth si no hay nombre en Firestore
+            final display =
+                nombreFirestore?.trim().isNotEmpty == true
+                    ? nombreFirestore
+                    : user.displayName;
+
+            final first = _firstName(display);
+            final saludo = first.isEmpty ? "$prefix 👋" : "$prefix $first";
+
+            return Text(
+              saludo,
+              style: style, // o TextStyles.textInicioName si usas tus estilos
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -639,6 +723,111 @@ class IconButtonWithPadding extends StatelessWidget {
         borderWidth: borderWidth,
         padding: buttonPadding,
         child: SvgPicture.asset(svgAssetPath, width: 24, height: 24),
+      ),
+    );
+  }
+}
+
+//Para mostrar foto de usuario en Drop Menu
+class _UserAvatar extends StatelessWidget {
+  final double radius;
+  final VoidCallback onTap;
+  const _UserAvatar({required this.radius, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = FirebaseAuth.instance;
+    final user = auth.currentUser;
+
+    // Si no hay sesión aún, mostramos un placeholder con inicial “U”
+    if (user == null) {
+      return _AvatarShell(
+        radius: radius,
+        onTap: onTap,
+        child: const Text(
+          'U',
+          style: TextStyle(
+            fontSize: 20,
+            color: Color.fromARGB(255, 27, 25, 25),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    // Escuchamos Firestore para nombre/apellido/foto
+    final docRef = FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(user.uid);
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: docRef.snapshots(),
+      builder: (context, snap) {
+        final data = snap.data?.data();
+        final nombre = data?['nombre'] as String?;
+        final apellido = data?['apellido'] as String?;
+        // Si en Firestore en algún momento guardas foto, respétala:
+        final fotoFs = (data?['fotoUrl'] ?? data?['fotoURL']) as String?;
+        // FirebaseAuth photoURL (si se registró con Google)
+        final fotoAuth = user.photoURL;
+
+        final fotoUrl =
+            (fotoFs != null && fotoFs.isNotEmpty) ? fotoFs : (fotoAuth ?? '');
+
+        if (fotoUrl.isNotEmpty) {
+          return GestureDetector(
+            onTap: onTap,
+            child: CircleAvatar(
+              radius: radius,
+              backgroundColor: const Color.fromARGB(255, 224, 224, 224),
+              backgroundImage: NetworkImage(fotoUrl),
+              onBackgroundImageError: (_, __) {}, // evita crash si la URL falla
+            ),
+          );
+        }
+
+        final initials = _initialsFrom(
+          displayName: user.displayName,
+          nombre: nombre,
+          apellido: apellido,
+          email: user.email,
+        );
+
+        return _AvatarShell(
+          radius: radius,
+          onTap: onTap,
+          child: Text(
+            initials,
+            style: const TextStyle(
+              fontSize: 20,
+              color: Color.fromARGB(255, 27, 25, 25),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AvatarShell extends StatelessWidget {
+  final double radius;
+  final Widget child;
+  final VoidCallback onTap;
+  const _AvatarShell({
+    required this.radius,
+    required this.child,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: CircleAvatar(
+        radius: radius,
+        backgroundColor: const Color.fromARGB(255, 224, 224, 224),
+        child: child,
       ),
     );
   }
@@ -788,11 +977,7 @@ class _DropMenuState extends State<DropMenu> {
               child: InkWell(
                 onTap: _toggleMenu,
                 customBorder: const CircleBorder(),
-                child: const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Color.fromARGB(255, 44, 42, 42),
-                  backgroundImage: AssetImage("assets/images/ass.jpg"),
-                ),
+                child: _UserAvatar(radius: 30, onTap: _toggleMenu),
               ),
             ),
           ),
@@ -1172,7 +1357,7 @@ class EmotionButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(15),
       child: Container(
-        width: 115, 
+        width: 115,
         height: 45,
         decoration: BoxDecoration(
           color: AppColors.fondo5,
@@ -1230,7 +1415,7 @@ class FlowerProgress extends StatelessWidget {
             ),
           ),
           // Flor
-            Positioned(
+          Positioned(
             top: 28,
             child: Image.asset(
               _assetForStage(stage.clamp(0, totalStages)),
@@ -1268,17 +1453,19 @@ class _FlowerRingPainter extends CustomPainter {
     final segmentAngle = (2 * math.pi) / totalSegments;
     final startAngle = -math.pi / 2; // empieza arriba
 
-    final Paint inactivePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..color = inactiveColor;
+    final Paint inactivePaint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round
+          ..color = inactiveColor;
 
-    final Paint activePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round
-      ..color = activeColor;
+    final Paint activePaint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round
+          ..color = activeColor;
 
     // Fondo inactivo completo segmentado
     for (int i = 0; i < totalSegments; i++) {
@@ -1308,7 +1495,9 @@ class _FlowerRingPainter extends CustomPainter {
 
     // Segmento en progreso (parcial del siguiente)
     if (completedSegments < totalSegments && fraction > 0) {
-      final double partial = (fraction * totalSegments) - completedSegments; // 0..1 dentro del segment actual
+      final double partial =
+          (fraction * totalSegments) -
+          completedSegments; // 0..1 dentro del segment actual
       if (partial > 0) {
         final int segIndex = completedSegments;
         final double a1 = startAngle + segIndex * segmentAngle + 0.12;
@@ -1443,7 +1632,9 @@ class ContainerC2 extends StatelessWidget {
       child: child,
     );
   }
-}class ContainerC3 extends StatelessWidget {
+}
+
+class ContainerC3 extends StatelessWidget {
   final double height;
   final double width;
   final Widget child;
@@ -1476,6 +1667,7 @@ class ContainerC2 extends StatelessWidget {
     );
   }
 }
+
 //Fechas
 class SevenDayCalendar extends StatelessWidget {
   final DateTime currentDate;

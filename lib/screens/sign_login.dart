@@ -4,6 +4,9 @@ import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/principal_screen.dart';
 import 'package:flutter_application_1/services/auth_google.dart';
+import 'package:flutter_application_1/services/auth_email.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_1/screens/verificacion_signup.dart';
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -14,9 +17,48 @@ class SignLoginScreen extends StatefulWidget {
 
 class _SignLoginScreenState extends State<SignLoginScreen> {
   bool isSignUpScreen = true;
-  //final AuthGoogle _authGoogle = AuthGoogle();
+
+  final _nombreCtrl = TextEditingController();
+  final _apellidoCtrl = TextEditingController();
+  final _emailUpCtrl = TextEditingController();
+  final _passUpCtrl = TextEditingController();
+  DateTime? _fechaNacimiento;
+  final _fechaCtrl = TextEditingController();
+
+  final _emailInCtrl = TextEditingController();
+  final _passInCtrl = TextEditingController();
 
   @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _apellidoCtrl.dispose();
+    _emailUpCtrl.dispose();
+    _passUpCtrl.dispose();
+    _fechaCtrl.dispose();
+    _emailInCtrl.dispose();
+    _passInCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFechaNacimiento(BuildContext context) async {
+    final now = DateTime.now();
+    final initial = DateTime(now.year - 18, now.month, now.day); // sugerir 18+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _fechaNacimiento ?? initial,
+      firstDate: DateTime(1900),
+      lastDate: now,
+      helpText: 'Selecciona tu fecha de nacimiento',
+    );
+    if (picked != null) {
+      setState(() {
+        _fechaNacimiento = picked;
+        _fechaCtrl.text =
+            "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      });
+    }
+  }
+
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -170,6 +212,14 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
     );
   }
 
+  int _calcularEdad(DateTime dob) {
+    final hoy = DateTime.now();
+    int edad = hoy.year - dob.year;
+    final cumpleEsteAnio = DateTime(hoy.year, dob.month, dob.day);
+    if (hoy.isBefore(cumpleEsteAnio)) edad--;
+    return edad;
+  }
+
   //Este es el signUpForm que se muestra cuando se toca el signUpButton es todo lo que se engloba
   Widget _buildSignUpForm() {
     return Column(
@@ -183,9 +233,10 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
         ContainerLogin(
           width: double.infinity,
           height: 53,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.only(left: 8),
             child: TextField(
+              controller: _nombreCtrl,
               decoration: InputDecoration(border: InputBorder.none),
             ),
           ),
@@ -199,9 +250,10 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
         ContainerLogin(
           width: double.infinity,
           height: 53,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.only(left: 8),
             child: TextField(
+              controller: _apellidoCtrl,
               decoration: InputDecoration(border: InputBorder.none),
             ),
           ),
@@ -215,9 +267,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
         ContainerLogin(
           width: double.infinity,
           height: 53,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.only(left: 8),
             child: TextField(
+              controller: _emailUpCtrl,
+              keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(border: InputBorder.none),
             ),
           ),
@@ -231,13 +285,38 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
         ContainerLogin(
           width: double.infinity,
           height: 53,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.only(left: 8),
             child: TextField(
+              controller: _passUpCtrl,
               obscureText: true,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 border: InputBorder.none,
                 hintText: '••••••••',
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: TextoDatos(texto: 'Fecha de nacimiento'),
+        ),
+        GestureDetector(
+          onTap: () => _pickFechaNacimiento(context),
+          child: AbsorbPointer(
+            child: ContainerLogin(
+              width: double.infinity,
+              height: 53,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8, right: 8),
+                child: TextField(
+                  controller: _fechaCtrl,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'DD/MM/AAAA',
+                  ),
+                ),
               ),
             ),
           ),
@@ -250,7 +329,67 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           child: AuthButton(
             texto: 'Sign Up',
             isPressed: true,
-            onPressed: () {},
+            onPressed: () async {
+              final nombre = _nombreCtrl.text.trim();
+              final apellido = _apellidoCtrl.text.trim();
+              final email = _emailUpCtrl.text.trim();
+              final pass = _passUpCtrl.text;
+              final dob = _fechaNacimiento;
+
+              if (nombre.isEmpty ||
+                  apellido.isEmpty ||
+                  email.isEmpty ||
+                  pass.length < 6 ||
+                  dob == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Completa todos los campos (contraseña ≥ 6 y fecha).',
+                    ),
+                  ),
+                );
+                return;
+              }
+              final edad = _calcularEdad(dob);
+              if (edad < 18) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Debes ser mayor de 18 años para registrarte.',
+                    ),
+                  ),
+                );
+                return;
+              }
+              try {
+                await EmailAuthService().signUp(
+                  nombre: nombre,
+                  apellido: apellido,
+                  email: email,
+                  password: pass,
+                  fechaNacimiento: dob,
+                );
+
+                if (!mounted) return;
+                // Lleva a una pantalla que explique “te enviamos un correo”
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VerificacionScreen(email: email),
+                  ),
+                );
+              } on FirebaseAuthException catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(e.message ?? 'Error al registrarte')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Error inesperado al registrarte.'),
+                  ),
+                );
+              }
+            },
           ),
         ),
         const SizedBox(height: 30),
@@ -309,9 +448,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
         ContainerLogin(
           width: double.infinity,
           height: 53,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.only(left: 8),
             child: TextField(
+              controller: _emailInCtrl,
+              keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(border: InputBorder.none),
             ),
           ),
@@ -325,9 +466,10 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
         ContainerLogin(
           width: double.infinity,
           height: 53,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.only(left: 8),
             child: TextField(
+              controller: _passInCtrl,
               obscureText: true,
               decoration: InputDecoration(
                 border: InputBorder.none,
@@ -373,11 +515,51 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           child: AuthButton(
             texto: 'Login',
             isPressed: true,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PrincipalScreen()),
-              );
+            onPressed: () async {
+              final email = _emailInCtrl.text.trim();
+              final pass = _passInCtrl.text;
+              if (email.isEmpty || pass.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ingresa email y contraseña.')),
+                );
+                return;
+              }
+
+              try {
+                final user = await EmailAuthService().login(
+                  email: email,
+                  password: pass,
+                );
+                if (!mounted) return;
+                if (user != null) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                  );
+                }
+              } on FirebaseAuthException catch (e) {
+                if (e.code == 'email-not-verified') {
+                  if (!mounted) return;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => VerificacionScreen(email: email),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(e.message ?? 'No se pudo iniciar sesión'),
+                    ),
+                  );
+                }
+              } catch (_) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Error inesperado al iniciar sesión.'),
+                  ),
+                );
+              }
             },
           ),
         ),

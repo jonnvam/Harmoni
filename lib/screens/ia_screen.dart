@@ -77,13 +77,13 @@ class _IaScreenState extends State<IaScreen> {
                 Row(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 20, left: 45),
+                      padding: EdgeInsets.only(top: 20, left: 45),
                       child: Column(
                         children: [
-                          Text(
-                            "Hola Alvarito",
+                          HolaNombre(
                             style: TextStyles.textInicioName,
-                          ),
+                            prefix: "Hola",
+                          )
                         ],
                       ),
                     ),

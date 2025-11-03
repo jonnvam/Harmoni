@@ -31,11 +31,10 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
               children: [
                 DropMenu(),
                 Padding(
-                  padding: const EdgeInsets.only(top: 20, left: 45),
+                  padding: EdgeInsets.only(top: 20, left: 45),
                   child: Row(
                     children: [
-                      //en alvarito seria $Name pero eso creo en el json o en la logica
-                      Text("Hola Alvarito", style: TextStyles.textInicioName),
+                      HolaNombre(style: TextStyles.textInicioName, prefix: "Hola",),
                     ],
                   ),
                 ),
