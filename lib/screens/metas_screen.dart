@@ -157,8 +157,12 @@ class _MetasScreenState extends State<MetasScreen> {
 
     final visible = active.take(4).toList();
 
+    final screenH = MediaQuery.of(context).size.height;
+    final deckHeight = screenH.clamp(640, 900) == screenH
+        ? 360.0
+        : (screenH * 0.48).clamp(340.0, 360.0);
     return SizedBox(
-      height: 360,
+      height: deckHeight,
       child: Stack(
         alignment: Alignment.center,
         children: List.generate(visible.length, (paintIndex) {
@@ -335,11 +339,11 @@ class _MetasScreenState extends State<MetasScreen> {
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                                 onPressed: () async {
+                                  final messenger = ScaffoldMessenger.of(context);
                                   await docs[i].reference.update({'estado': 'completada'});
                                   // Avanza flor: tick manual
                                   GoalsManager.instance.incrementProgressTick();
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  messenger.showSnackBar(
                                     const SnackBar(
                                       content: Text('Meta marcada como completada'),
                                       duration: Duration(seconds: 1),
@@ -418,8 +422,10 @@ class _MetasScreenState extends State<MetasScreen> {
       return;
     }
 
-    final tituloCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
+  final tituloCtrl = TextEditingController();
+  final descCtrl = TextEditingController();
+  DateTime? fechaLimite;
+  String prioridad = 'media';
 
     showModalBottomSheet(
       context: context,
@@ -429,94 +435,136 @@ class _MetasScreenState extends State<MetasScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-            top: 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('+',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Kantumruy Pro')),
-              const SizedBox(height: 12),
-              ContainerLogin(
-                width: double.infinity,
-                height: 53,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: TextField(
-                    controller: tituloCtrl,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Título (ej. Agradecimientos)',
+        final messenger = ScaffoldMessenger.of(context);
+        return StatefulBuilder(
+          builder: (ctx, setModal) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+                top: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Nueva meta',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Kantumruy Pro')),
+                    const SizedBox(height: 12),
+                    ContainerLogin(
+                      width: double.infinity,
+                      height: 53,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: TextField(
+                          controller: tituloCtrl,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Título (ej. Agradecimientos)',
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 10),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: TextField(
+                        controller: descCtrl,
+                        maxLines: 5,
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.all(12),
+                          border: InputBorder.none,
+                          hintText:
+                              'Descripción (ej. Escribir 3 cosas por las que estoy agradecido)',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final now = DateTime.now();
+                              final picked = await showDatePicker(
+                                context: ctx,
+                                initialDate: now,
+                                firstDate: now.subtract(const Duration(days: 0)),
+                                lastDate: now.add(const Duration(days: 365)),
+                              );
+                              if (picked != null) setModal(() => fechaLimite = picked);
+                            },
+                            icon: const Icon(Icons.calendar_today, size: 18),
+                            label: Text(
+                              fechaLimite == null
+                                  ? 'Fecha límite (opcional)'
+                                  : '${fechaLimite!.day.toString().padLeft(2, '0')}/${fechaLimite!.month.toString().padLeft(2, '0')}/${fechaLimite!.year}',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Prioridad', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 10,
+                      children: [
+                        for (final p in ['baja', 'media', 'alta'])
+                          ChoiceChip(
+                            label: Text(p[0].toUpperCase() + p.substring(1)),
+                            selected: prioridad == p,
+                            onSelected: (_) => setModal(() => prioridad = p),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton.icon(
+                        onPressed: () async {
+                          final titulo = tituloCtrl.text.trim();
+                          final descripcion = descCtrl.text.trim();
+                          if (titulo.isEmpty || descripcion.isEmpty) {
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('Completa título y descripción.')),
+                            );
+                            return;
+                          }
+                          await FirebaseFirestore.instance
+                              .collection('usuarios')
+                              .doc(uid)
+                              .collection('metas')
+                              .add({
+                            'titulo': titulo,
+                            'descripcion': descripcion,
+                            'creada': FieldValue.serverTimestamp(),
+                            'estado': 'pendiente',
+                            if (fechaLimite != null) 'fechaLimite': Timestamp.fromDate(fechaLimite!),
+                            'prioridad': prioridad,
+                          });
+                          if (!context.mounted) return;
+                          Navigator.of(ctx).pop();
+                          messenger.showSnackBar(const SnackBar(content: Text('Meta agregada')));
+                        },
+                        icon: const Icon(Icons.check),
+                        label: const Text('Guardar'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: TextField(
-                  controller: descCtrl,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.all(12),
-                    border: InputBorder.none,
-                    hintText:
-                        'Descripción (ej. Escribir 3 cosas por las que estoy agradecido)',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final titulo = tituloCtrl.text.trim();
-                    final descripcion = descCtrl.text.trim();
-                    if (titulo.isEmpty || descripcion.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Completa título y descripción.')),
-                      );
-                      return;
-                    }
-                    await FirebaseFirestore.instance
-                        .collection('usuarios')
-                        .doc(uid)
-                        .collection('metas')
-                        .add({
-                      'titulo': titulo,
-                      'descripcion': descripcion,
-                      'creada': FieldValue.serverTimestamp(),
-                      'estado': 'pendiente',
-                    });
-
-                    if (mounted) Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(const SnackBar(content: Text('Meta agregada')));
-                  },
-                  icon: const Icon(Icons.check),
-                  label: const Text('Guardar'),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -563,7 +611,7 @@ class _MetasScreenState extends State<MetasScreen> {
                 const Padding(
                   padding: EdgeInsets.only(left: 24, bottom: 8, top: 8),
                   child: Text(
-                    'Notas por completar',
+                    'Metas por completar',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
                   ),
                 ),

@@ -7,7 +7,6 @@ import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_application_1/data/diary_repo.dart';
 import 'package:flutter_application_1/data/api_service.dart'; // 👈 (ya estaba correcto)
 import 'package:flutter_application_1/state/app_state.dart';

@@ -557,7 +557,7 @@ class _CategoryPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? AppColors.fondo3.withOpacity(0.12) : color;
+  final bg = selected ? AppColors.fondo3.withValues(alpha: 0.12) : color;
     final fg = selected ? AppColors.fondo3 : Colors.black87;
     return InkWell(
       onTap: onTap,

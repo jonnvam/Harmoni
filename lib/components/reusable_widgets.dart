@@ -360,7 +360,7 @@ class ContenedorDiarioBuscar extends StatelessWidget {
                   hintText: hint,
                   hintStyle: TextStyles.textDiario3.copyWith(
                     fontWeight: FontWeight.w200,
-                    color: Colors.black.withOpacity(0.35),
+                    color: Colors.black.withValues(alpha: 0.35),
                     fontSize: 16,
                   ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -1508,7 +1508,7 @@ class _FlowerRingPainter extends CustomPainter {
           a1,
           sweep,
           false,
-          activePaint..color = activeColor.withOpacity(0.75),
+          activePaint..color = activeColor.withValues(alpha: 0.75),
         );
       }
     }

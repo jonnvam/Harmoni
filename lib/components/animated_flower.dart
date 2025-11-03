@@ -218,7 +218,7 @@ class _ProgressSegmentsPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth + 6
       ..strokeCap = StrokeCap.round
-      ..color = activeColor.withOpacity(0.35)
+  ..color = activeColor.withValues(alpha: 0.35)
       ..maskFilter = glow ? const MaskFilter.blur(BlurStyle.normal, 6) : null;
 
     // Inactivos primero
@@ -249,7 +249,7 @@ class _ProgressSegmentsPainter extends CustomPainter {
         a1,
         arc,
         false,
-        activePaint..color = activeColor.withOpacity(0.85),
+  activePaint..color = activeColor.withValues(alpha: 0.85),
       );
     }
   }

@@ -200,7 +200,7 @@ class _TagChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg ?? const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: (color ?? const Color(0xFF6B7280)).withOpacity(0.3)),
+  border: Border.all(color: (color ?? const Color(0xFF6B7280)).withValues(alpha: 0.3)),
       ),
       child: Text(text, style: TextStyle(color: color ?? const Color(0xFF374151), fontSize: 12, fontWeight: FontWeight.w600)),
     );

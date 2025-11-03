@@ -308,7 +308,7 @@ class _EmotionBarRow extends StatelessWidget {
                   Container(
                     height: 18,
                     decoration: BoxDecoration(
-                      color: datum.color.withOpacity(0.18),
+                      color: datum.color.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
