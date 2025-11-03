@@ -3,11 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/sign_login.dart';
+<<<<<<< HEAD
 import 'package:flutter_svg/svg.dart';
+=======
+>>>>>>> origin/cambiosJacque
 
 class VerificacionScreen extends StatefulWidget {
   final String email;
   const VerificacionScreen({super.key, this.email = 'example@email.com'});
+<<<<<<< HEAD
+=======
+  
+>>>>>>> origin/cambiosJacque
 
   @override
   State<VerificacionScreen> createState() => _VerificacionScreenState();
@@ -44,9 +51,15 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
   }
 
   OutlineInputBorder _otpBorder(Color color) => OutlineInputBorder(
+<<<<<<< HEAD
     borderSide: BorderSide(color: color, width: 1.2),
     borderRadius: BorderRadius.circular(24),
   );
+=======
+        borderSide: BorderSide(color: color, width: 1.2),
+        borderRadius: BorderRadius.circular(24),
+      );
+>>>>>>> origin/cambiosJacque
 
   Widget _buildOtpBox(int index) {
     return SizedBox(
@@ -57,6 +70,7 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
         textAlign: TextAlign.center,
         style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
         keyboardType: TextInputType.number,
+<<<<<<< HEAD
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
           LengthLimitingTextInputFormatter(1),
@@ -66,6 +80,12 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
           enabledBorder: _otpBorder(
             const Color.fromRGBO(165, 180, 252, 1),
           ), // AppColors.borde2 tone
+=======
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(1)],
+        decoration: InputDecoration(
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+          enabledBorder: _otpBorder(const Color.fromRGBO(165, 180, 252, 1)), // AppColors.borde2 tone
+>>>>>>> origin/cambiosJacque
           focusedBorder: _otpBorder(AppColors.fondo3),
           filled: true,
           fillColor: Colors.white,
@@ -93,8 +113,12 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Back button inside a circle
+<<<<<<< HEAD
               Padding(padding: EdgeInsets.only(left:10,top: 31 ),
               child: InkWell(
+=======
+              InkWell(
+>>>>>>> origin/cambiosJacque
                 borderRadius: BorderRadius.circular(24),
                 onTap: () {
                   // Ir explícitamente a SignLoginScreen
@@ -111,10 +135,17 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.borde2, width: 1),
                   ),
+<<<<<<< HEAD
                   child: Icon(Icons.arrow_back, color: Colors.black87),
                 ),
               ),),
               const SizedBox(height: 0),
+=======
+                  child: const Icon(Icons.arrow_back, color: Colors.black87),
+                ),
+              ),
+              const SizedBox(height: 16),
+>>>>>>> origin/cambiosJacque
 
               // Outer bordered theme container for the main content
               Expanded(
@@ -126,15 +157,20 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                     // Se quita el borde morado/lavanda
                   ),
                   child: SingleChildScrollView(
+<<<<<<< HEAD
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 24,
                     ),
+=======
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+>>>>>>> origin/cambiosJacque
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         // Title
                         Align(
+<<<<<<< HEAD
                           alignment: Alignment.topCenter,
                           child: Text(
                             'Verificación',
@@ -142,11 +178,18 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                               fontSize: 28,
                               fontWeight: FontWeight.w700,
                             ),
+=======
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Verificación',
+                            style: TextStyles.tituloBienvenida.copyWith(fontSize: 28, fontWeight: FontWeight.w700),
+>>>>>>> origin/cambiosJacque
                           ),
                         ),
                         const SizedBox(height: 24),
 
                         // Central illustration: circle with friendly icon
+<<<<<<< HEAD
                         Align(
                           alignment: Alignment.center,
                           child: Container(
@@ -189,20 +232,49 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                           ),
                         
 
+=======
+                        Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color.fromRGBO(224, 231, 255, 1),
+                                Color.fromRGBO(199, 210, 254, 1),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            border: Border.all(color: const Color.fromRGBO(165, 180, 252, 1), width: 1),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.verified_user_outlined, size: 64, color: Color.fromRGBO(99, 102, 241, 1)),
+                          ),
+                        ),
+>>>>>>> origin/cambiosJacque
                         const SizedBox(height: 24),
 
                         // Subtitle and helper
                         Align(
+<<<<<<< HEAD
                           alignment: Alignment.topCenter,
                           child: Text(
                             'Código de verificación',
                             style: TextStyles.textBlackLogin.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
+=======
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Código de verificación',
+                            style: TextStyles.textBlackLogin.copyWith(fontWeight: FontWeight.w700),
+>>>>>>> origin/cambiosJacque
                           ),
                         ),
                         const SizedBox(height: 8),
                         Align(
+<<<<<<< HEAD
                           alignment: Alignment.topCenter,
                           child: Text(
                             'Escribe el código que enviamos a ${widget.email}',
@@ -210,6 +282,12 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                               fontSize: 14,
                               fontWeight: FontWeight.w300,
                             ),
+=======
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Escribe el código que enviamos a ${widget.email}',
+                            style: TextStyles.textDicho.copyWith(fontSize: 14, fontWeight: FontWeight.w300),
+>>>>>>> origin/cambiosJacque
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -223,11 +301,16 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
 
                         // Confirm button
                         SizedBox(
+<<<<<<< HEAD
                           width: 170,
+=======
+                          width: double.infinity,
+>>>>>>> origin/cambiosJacque
                           height: 52,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.fondo3,
+<<<<<<< HEAD
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -243,6 +326,13 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
+=======
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 0,
+                            ),
+                            onPressed: _onConfirm,
+                            child: const Text('Confirmar', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+>>>>>>> origin/cambiosJacque
                           ),
                         ),
 
@@ -250,10 +340,14 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                         // Secondary help text
                         Text(
                           '¿No recibiste el código?',
+<<<<<<< HEAD
                           style: TextStyles.textDicho.copyWith(
                             fontSize: 13,
                             color: Colors.black54,
                           ),
+=======
+                          style: TextStyles.textDicho.copyWith(fontSize: 13, color: Colors.black54),
+>>>>>>> origin/cambiosJacque
                         ),
                       ],
                     ),
@@ -266,4 +360,8 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
       ),
     );
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/cambiosJacque

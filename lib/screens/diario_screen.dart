@@ -142,13 +142,13 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           Row(
                             children: [
                               Padding(
-                                padding: const EdgeInsets.only(
+                                padding: EdgeInsets.only(
                                   left: 20,
                                   top: 25,
                                 ),
-                                child: Text(
-                                  "Hola Tyler",
+                                child: HolaNombre(
                                   style: TextStyles.textDiario,
+                                  prefix: "Hola",
                                 ),
                               ),
                             ],

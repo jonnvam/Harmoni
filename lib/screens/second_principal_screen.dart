@@ -5,12 +5,13 @@ import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
-import 'package:flutter_application_1/data/goals_manager.dart';
 import 'package:flutter_application_1/components/animated_flower.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_application_1/data/emotion_journal.dart';
 import 'package:flutter_application_1/data/diary_repo.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -23,33 +24,28 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
   bool showStep2 = false;
   bool showStep3 = false;
   bool showStep4 = false;
-  String currentScreen = "second";
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    //tuve que haer esto para que las imagenes se precarguen
-    precacheImage(AssetImage("assets/images/flores/flor2.png"), context);
-    precacheImage(AssetImage("assets/images/flores/flor3.png"), context);
-    precacheImage(AssetImage("assets/images/flores/flor4.png"), context);
-    precacheImage(AssetImage("assets/images/carousel/t1.jpg"), context);
-    // Paso 2: mostrar parte media después de 300ms
-    Future.delayed(Duration(milliseconds: 300), () {
+    precacheImage(const AssetImage("assets/images/flores/flor2.png"), context);
+    precacheImage(const AssetImage("assets/images/flores/flor3.png"), context);
+    precacheImage(const AssetImage("assets/images/flores/flor4.png"), context);
+    precacheImage(const AssetImage("assets/images/carousel/t1.jpg"), context);
+
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) setState(() => showStep2 = true);
     });
-    // Paso 3: mostrar ProgressBar
-    Future.delayed(Duration(milliseconds: 600), () {
+    Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) setState(() => showStep3 = true);
     });
-    //Paso 4 menu circular
-    Future.delayed(Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) setState(() => showStep4 = true);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final goalsManager = GoalsManager.instance;
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       backgroundColor: Colors.white,
@@ -58,35 +54,30 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
           SingleChildScrollView(
             child: Column(
               children: [
-                //TopUserHeader(
-                DropMenu(),
-                //TopFeeling(),
-                if (showStep2) //Contenido Medio
-                  Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [TopFeeling()],
-                      ),
-                    ],
+                const DropMenu(),
+                if (showStep2)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [TopFeeling()],
                   ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
+
+                // ====== Emojis rápidas (sin cambios) ======
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Column(
                       children: [
-                        //esto es el boton de emociobes
                         EmotionButton(
                           text: "Feliz",
                           icon: "assets/images/emotions/Feliz.svg",
                           onTap: () async {
-                            await EmotionJournal.instance.saveEmotion(EmotionType.happy);
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.happy);
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Guardado: Feliz')),
                             );
-                            // Create a diary note draft and navigate to Diario to edit
                             final id = await DiaryRepo.nextId();
                             final note = DiaryNote(
                               id: id,
@@ -96,38 +87,43 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                             );
                             await DiaryRepo.instance.addNote(note);
                             if (!mounted) return;
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const DiarioScreen()));
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
                           },
                         ),
                       ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6, right: 6),
-                      child: Column(
-                        children: [
-                          EmotionButton(
-                            text: "Triste",
-                            icon: "assets/images/emotions/Triste.svg",
-                            onTap: () async {
-                              await EmotionJournal.instance.saveEmotion(EmotionType.sad);
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Guardado: Triste')),
-                              );
-                              final id = await DiaryRepo.nextId();
-                              final note = DiaryNote(
-                                id: id,
-                                date: DateTime.now(),
-                                type: DiaryNoteType.text,
-                                text: 'Hoy me sentí Triste: ',
-                              );
-                              await DiaryRepo.instance.addNote(note);
-                              if (!mounted) return;
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const DiarioScreen()));
-                            },
-                          ),
-                        ],
-                      ),
+                    const SizedBox(width: 6),
+                    Column(
+                      children: [
+                        EmotionButton(
+                          text: "Triste",
+                          icon: "assets/images/emotions/Triste.svg",
+                          onTap: () async {
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.sad);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Guardado: Triste')),
+                            );
+                            final id = await DiaryRepo.nextId();
+                            final note = DiaryNote(
+                              id: id,
+                              date: DateTime.now(),
+                              type: DiaryNoteType.text,
+                              text: 'Hoy me sentí Triste: ',
+                            );
+                            await DiaryRepo.instance.addNote(note);
+                            if (!mounted) return;
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
+                          },
+                        ),
+                      ],
                     ),
                     Column(
                       children: [
@@ -135,7 +131,8 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                           text: "Enojado",
                           icon: "assets/images/emotions/Enojado.svg",
                           onTap: () async {
-                            await EmotionJournal.instance.saveEmotion(EmotionType.angry);
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.angry);
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Guardado: Enojado')),
@@ -149,14 +146,17 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                             );
                             await DiaryRepo.instance.addNote(note);
                             if (!mounted) return;
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const DiarioScreen()));
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
                           },
                         ),
                       ],
                     ),
                   ],
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -166,7 +166,8 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                           text: "Sorpresa",
                           icon: "assets/images/emotions/Sorpresa.svg",
                           onTap: () async {
-                            await EmotionJournal.instance.saveEmotion(EmotionType.surprised);
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.surprised);
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Guardado: Sorpresa')),
@@ -180,19 +181,23 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                             );
                             await DiaryRepo.instance.addNote(note);
                             if (!mounted) return;
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const DiarioScreen()));
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
                           },
                         ),
                       ],
                     ),
-                    SizedBox(width: 14),
+                    const SizedBox(width: 14),
                     Column(
                       children: [
                         EmotionButton(
                           text: "Miedo",
                           icon: "assets/images/emotions/Miedo.svg",
                           onTap: () async {
-                            await EmotionJournal.instance.saveEmotion(EmotionType.fear);
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.fear);
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Guardado: Miedo')),
@@ -206,22 +211,25 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                             );
                             await DiaryRepo.instance.addNote(note);
                             if (!mounted) return;
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const DiarioScreen()));
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
                           },
                         ),
                       ],
                     ),
                   ],
                 ),
-                if (showStep3) //ProgressBar
-                  SizedBox(height: 70),
-                // Nueva animación Lottie de la flor (coloca tu JSON en assets/animations/flower.json)
+
+                if (showStep3) const SizedBox(height: 70),
                 const AnimatedFlower(
                   assetPath: 'assets/animations/flower.json',
                   showOverlayRing: true,
                   segments: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
                 ),
-                SizedBox(height: 70),
+                const SizedBox(height: 70),
+
                 ContainerC1(
                   width: 300,
                   alignment: Alignment.centerLeft,
@@ -230,8 +238,8 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     children: [
                       Column(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 15, top: 8),
+                          const Padding(
+                            padding: EdgeInsets.only(left: 15, top: 8),
                             child: Text(
                               "Proxima Cita",
                               style: TextStyle(
@@ -242,7 +250,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
                           Row(
                             children: [
                               Text(
@@ -263,9 +271,9 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                               width: 110,
                               decoration: ShapeDecoration(
                                 shape: RoundedRectangleBorder(
-                                  side: BorderSide(
+                                  side: const BorderSide(
                                     width: 3,
-                                    color: const Color(0xFF6366F1),
+                                    color: Color(0xFF6366F1),
                                   ),
                                   borderRadius: BorderRadius.circular(15),
                                 ),
@@ -281,40 +289,18 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 30),
-                // Metas en progreso
-                ValueListenableBuilder(
-                  valueListenable: goalsManager,
-                  builder: (_, __, ___) {
-                    final inProgress = goalsManager.inProgressGoals;
-                    if (inProgress.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Metas en progreso',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontFamily: 'Kantumruy Pro',
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ...inProgress
-                            .map((g) => _InProgressGoalTile(goal: g))
-                            .toList(),
-                        const SizedBox(height: 20),
-                      ],
-                    );
-                  },
-                ),
-                SizedBox(height: 80),
+
+                // ====== Metas en progreso (desde Firestore) ======
+                _FirestoreInProgressList(),
+
+                const SizedBox(height: 80),
               ],
             ),
           ),
-          if (showStep4) //Menu Semi-circular nuevo
+
+          if (showStep4)
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
@@ -329,7 +315,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => DiarioScreen(),
+                            builder: (context) => const DiarioScreen(),
                           ),
                         );
                       },
@@ -348,9 +334,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => MetasScreen(),
-                          ),
+                          MaterialPageRoute(builder: (context) => const MetasScreen()),
                         );
                       },
                     ),
@@ -359,9 +343,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => Progreso(),
-                          ),
+                          MaterialPageRoute(builder: (context) => const Progreso()),
                         );
                       },
                     ),
@@ -370,7 +352,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => Psicologos()),
+                          MaterialPageRoute(builder: (context) => const Psicologos()),
                         );
                       },
                     ),
@@ -384,54 +366,110 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
   }
 }
 
-class _InProgressGoalTile extends StatelessWidget {
-  final Goal goal;
-  const _InProgressGoalTile({required this.goal});
-
+// ====== LISTA Firestore “en progreso” con botón de completar ======
+class _FirestoreInProgressList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final manager = GoalsManager.instance;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x14000000),
-              blurRadius: 6,
-              offset: Offset(0, 3),
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
+
+    final query = FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(uid)
+        .collection('metas')
+        .where('estado', isEqualTo: 'en_progreso')
+        .orderBy('creada', descending: true);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snap.hasError) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Error al cargar metas en progreso.'),
+          );
+        }
+        final docs = snap.data?.docs ?? [];
+        if (docs.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Text(
+              'Metas en progreso',
+              style: TextStyle(
+                fontSize: 18,
+                fontFamily: 'Kantumruy Pro',
+                fontWeight: FontWeight.w400,
+              ),
             ),
+            const SizedBox(height: 12),
+            ...docs.map((doc) {
+              final d = doc.data() as Map<String, dynamic>? ?? {};
+              final titulo = (d['titulo'] ?? '').toString();
+              final descripcion = (d['descripcion'] ?? '').toString();
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x14000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    title: Text(
+                      titulo,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      descripcion,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'Marcar como completada',
+                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                      onPressed: () async {
+                        await doc.reference.update({'estado': 'completada'});
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('¡Meta completada!'),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+            const SizedBox(height: 20),
           ],
-        ),
-        child: ListTile(
-          title: Text(
-            goal.titulo,
-            style: const TextStyle(
-              fontSize: 16,
-              fontFamily: 'Kantumruy Pro',
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          subtitle: Text(
-            goal.descripcion,
-            style: const TextStyle(
-              fontSize: 13,
-              fontFamily: 'Kantumruy Pro',
-              fontWeight: FontWeight.w300,
-            ),
-          ),
-          trailing: IconButton(
-            tooltip: 'Marcar como completada',
-            icon: const Icon(Icons.check_circle, color: Colors.green),
-            onPressed: () {
-              manager.completeGoal(goal);
-            },
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
