@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
+import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
@@ -581,45 +582,51 @@ class _MetasScreenState extends State<MetasScreen> {
             child: Column(
               children: [
                 const DropMenu(),
-                const SizedBox(height: 10),
-                const TitleSection(
-                  texto: 'Tus metas de hoy',
-                  maxLines: 2,
-                  padding: EdgeInsets.only(top: 40, left: 24, right: 24),
-                ),
-                // botón add
-                Padding(
-                  padding:
-                      const EdgeInsets.only(top: 4, left: 24, right: 24, bottom: 8),
-                  child: Row(
+                MaxWidthContainer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Spacer(),
-                      SizedBox(
-                        height: 40,
-                        child: CircularElevatedButton(
-                          onPressed: _showAddNoteSheet,
-                          child: SvgPicture.asset("assets/images/add.svg"),
+                      const SizedBox(height: 10),
+                      const TitleSection(
+                        texto: 'Tus metas de hoy',
+                        maxLines: 2,
+                        padding: EdgeInsets.only(top: 40),
+                      ),
+                      // botón add
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 8),
+                        child: Row(
+                          children: [
+                            const Spacer(),
+                            SizedBox(
+                              height: 40,
+                              child: CircularElevatedButton(
+                                onPressed: _showAddNoteSheet,
+                                child: SvgPicture.asset("assets/images/add.svg"),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      // 1) Sugeridas (deck)
+                      _buildDeck(),
+                      const SizedBox(height: 10),
+                      // 2) Notas por completar
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8, top: 8),
+                        child: Text(
+                          'Metas por completar',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+                        ),
+                      ),
+                      _buildNotesList(),
+                      const SizedBox(height: 10),
+                      // 3) Completados (chips circulares como antes)
+                      _buildCompletedChips(),
+                      const SizedBox(height: 130),
                     ],
                   ),
                 ),
-                // 1) Sugeridas (deck)
-                _buildDeck(),
-                const SizedBox(height: 10),
-                // 2) Notas por completar
-                const Padding(
-                  padding: EdgeInsets.only(left: 24, bottom: 8, top: 8),
-                  child: Text(
-                    'Metas por completar',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-                  ),
-                ),
-                _buildNotesList(),
-                const SizedBox(height: 10),
-                // 3) Completados (chips circulares como antes)
-                _buildCompletedChips(),
-                const SizedBox(height: 130),
               ],
             ),
           ),

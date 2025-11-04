@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
@@ -232,12 +233,12 @@ class _DiarioScreenState extends State<DiarioScreen> {
             child: Column(
               children: [
                 DropMenu(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Column(
+                MaxWidthContainer(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                    ),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
@@ -381,7 +382,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                               controller: _titleCtrl,
                               textInputAction: TextInputAction.next,
                               decoration: InputDecoration(
-                                hintText: 'Título (opcional)',
+                                hintText: 'Título',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -441,6 +442,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                         ],
                       ),
                     ],
+                    ),
                   ),
                 ),
               ],
@@ -596,11 +598,36 @@ extension _DiarioGroups on _DiarioScreenState {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            (n.title ?? '').isEmpty ? 'Sin título' : n.title!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  (n.title ?? '').isEmpty ? 'Sin título' : n.title!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              if (n.emotionAsset != null && n.emotionAsset!.isNotEmpty)
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    boxShadow: const [
+                                      BoxShadow(color: Color(0x14000000), blurRadius: 3, offset: Offset(0, 2)),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(4),
+                                  margin: const EdgeInsets.only(left: 6),
+                                  child: SvgPicture.asset(
+                                    n.emotionAsset!,
+                                    width: 18,
+                                    height: 18,
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           Expanded(child: _NotePreview(note: n)),
@@ -678,38 +705,6 @@ class _NotePreview extends StatelessWidget {
         );
         break;
     }
-
-    final badge = note.emotionAsset != null && note.emotionAsset!.isNotEmpty
-        ? Positioned(
-            top: 0,
-            right: 0,
-            child: Opacity(
-              opacity: 0.95,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x14000000), blurRadius: 3, offset: Offset(0, 2)),
-                  ],
-                ),
-                padding: const EdgeInsets.all(4),
-                child: SvgPicture.asset(
-                  note.emotionAsset!,
-                  width: 18,
-                  height: 18,
-                ),
-              ),
-            ),
-          )
-        : const SizedBox.shrink();
-
-    return Stack(
-      children: [
-        Positioned.fill(child: content),
-        badge,
-      ],
-    );
+    return content;
   }
 }

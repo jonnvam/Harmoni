@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/principal_screen.dart';
 import 'package:flutter_application_1/services/auth_google.dart';
 import 'package:flutter_application_1/screens/restCodigo.dart';
 import 'package:flutter_application_1/services/auth_email.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/screens/verificacion_signup.dart';
+import 'package:flutter_application_1/models/user_role.dart';
+import 'package:flutter_application_1/state/app_state.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -18,6 +23,7 @@ class SignLoginScreen extends StatefulWidget {
 
 class _SignLoginScreenState extends State<SignLoginScreen> {
   bool isSignUpScreen = true;
+  UserRole _selectedRole = UserRole.paciente;
 
   final _nombreCtrl = TextEditingController();
   final _apellidoCtrl = TextEditingController();
@@ -113,7 +119,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
               duration: const Duration(milliseconds: 500),
               curve: Curves.easeInOut,
               width: screenWidth,
-              height: isSignUpScreen ? 520 : 350,
+              // Dejar que el contenedor ocupe todo el espacio disponible entre top y bottom
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -128,13 +134,15 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
               child: Column(
                 children: [
                   // Switch buttons
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppColors.borde3),
-                    ),
-                    child: Row(
+                  MaxWidthContainer(
+                    padding: EdgeInsets.zero,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.borde3),
+                      ),
+                      child: Row(
                       children: [
                         Expanded(
                           child: GestureDetector(
@@ -189,19 +197,20 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                           ),
                         ),
                       ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
 
                   // Formulario dinámico
                   Expanded(
-                    //esto es para que se pueda hacer scroll, ya si no caben los elementos en el scrollview
+                    // Scroll del formulario
                     child: SingleChildScrollView(
-                      //Es un if el ? es que se muestra el signUpForm o el loginForm el : es el else
-                      child:
-                          isSignUpScreen
-                              ? _buildSignUpForm()
-                              : _buildLoginForm(),
+                      child: MaxWidthContainer(
+                        child: isSignUpScreen
+                            ? _buildSignUpForm()
+                            : _buildLoginForm(),
+                      ),
                     ),
                   ),
                 ],
@@ -227,35 +236,77 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: TextoDatos(texto: 'Nombre'),
+          padding: const EdgeInsets.only(left: 12, bottom: 8),
+          child: TextoDatos(texto: 'Rol'),
         ),
-        ContainerLogin(
-          width: double.infinity,
-          height: 53,
-          child: Padding(
-            padding: EdgeInsets.only(left: 8),
-            child: TextField(
-              controller: _nombreCtrl,
-              decoration: InputDecoration(border: InputBorder.none),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: TextoDatos(texto: 'Apellido'),
-        ),
-        ContainerLogin(
-          width: double.infinity,
-          height: 53,
-          child: Padding(
-            padding: EdgeInsets.only(left: 8),
-            child: TextField(
-              controller: _apellidoCtrl,
-              decoration: InputDecoration(border: InputBorder.none),
-            ),
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Soy Paciente'),
+                selected: _selectedRole == UserRole.paciente,
+                onSelected: (_) => setState(() => _selectedRole = UserRole.paciente),
+              ),
+              ChoiceChip(
+                label: const Text('Soy Psicólogo'),
+                selected: _selectedRole == UserRole.psicologo,
+                onSelected: (_) => setState(() => _selectedRole = UserRole.psicologo),
+              ),
+            ],
           ),
+        ),
+        // Nombre y Apellido en la misma fila
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: TextoDatos(texto: 'Nombre'),
+                  ),
+                  ContainerLogin(
+                    width: double.infinity,
+                    height: 53,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: TextField(
+                        controller: _nombreCtrl,
+                        decoration: const InputDecoration(border: InputBorder.none),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: TextoDatos(texto: 'Apellido'),
+                  ),
+                  ContainerLogin(
+                    width: double.infinity,
+                    height: 53,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: TextField(
+                        controller: _apellidoCtrl,
+                        decoration: const InputDecoration(border: InputBorder.none),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Padding(
@@ -294,7 +345,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 10),
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.only(left: 12),
@@ -319,9 +369,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 24),
-        // Mantener el mismo espacio vertical: antes había un top:30 en el padding del botón
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
         Align(
           alignment: Alignment.center,
           child: AuthButton(
@@ -366,10 +414,10 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                   email: email,
                   password: pass,
                   fechaNacimiento: dob,
+                  role: _selectedRole.key,
                 );
 
                 if (!mounted) return;
-                // Lleva a una pantalla que explique “te enviamos un correo”
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -390,7 +438,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             },
           ),
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 16),
         Align(
           alignment: Alignment.center,
           child: Text(
@@ -403,7 +451,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -439,11 +487,32 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          //Par que el texto no este muy pegado a la izquierda
+          padding: const EdgeInsets.only(left: 12, bottom: 8),
+          child: TextoDatos(texto: 'Rol (si es tu primer login)'),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Paciente'),
+                selected: _selectedRole == UserRole.paciente,
+                onSelected: (_) => setState(() => _selectedRole = UserRole.paciente),
+              ),
+              ChoiceChip(
+                label: const Text('Psicólogo'),
+                selected: _selectedRole == UserRole.psicologo,
+                onSelected: (_) => setState(() => _selectedRole = UserRole.psicologo),
+              ),
+            ],
+          ),
+        ),
+        Padding(
           padding: const EdgeInsets.only(left: 12),
           child: TextoDatos(texto: 'Email'),
         ),
-        const SizedBox(height: 0),
         ContainerLogin(
           width: double.infinity,
           height: 53,
@@ -461,7 +530,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           padding: const EdgeInsets.only(left: 12),
           child: TextoDatos(texto: 'Contraseña'),
         ),
-        const SizedBox(height: 0),
         ContainerLogin(
           width: double.infinity,
           height: 53,
@@ -477,10 +545,9 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 6),
         Row(
           children: [
-            // Mantiene el inicio (left:12) del primer texto
             const Padding(
               padding: EdgeInsets.only(left: 12),
               child: Text(
@@ -493,7 +560,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
               ),
             ),
             const Spacer(),
-            // Simetría: alineamos el segundo texto al borde derecho con un padding similar
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: InkWell(
@@ -515,8 +581,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        const SizedBox(height: 30),
+        const SizedBox(height: 16),
         Align(
           alignment: Alignment.center,
           child: AuthButton(
@@ -539,10 +604,28 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                 );
                 if (!mounted) return;
                 if (user != null) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
-                  );
+                  // Obtener o establecer rol
+                  final uid = user.uid;
+                  final doc = await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
+                  String roleStr = doc.data()?['role'] as String? ?? '';
+                  if (roleStr.isEmpty) {
+                    roleStr = _selectedRole.key; // primer login sin rol guardado
+                    await FirebaseFirestore.instance.collection('usuarios').doc(uid).set({'role': roleStr}, SetOptions(merge: true));
+                  }
+                  final role = UserRoleX.from(roleStr);
+                  await AppState.instance.setRole(role);
+                  if (!mounted) return;
+                  if (role == UserRole.psicologo) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
+                    );
+                  } else {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                    );
+                  }
                 }
               } on FirebaseAuthException catch (e) {
                 if (e.code == 'email-not-verified') {
@@ -570,7 +653,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             },
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         Align(
           alignment: Alignment.center,
           child: Text(
@@ -583,7 +666,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -600,7 +683,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                 }
               },
             ),
-
             const SizedBox(width: 16),
             AuthIconButton(
               iconPath: "assets/images/icon/apple.svg",

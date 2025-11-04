@@ -11,6 +11,8 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_1/state/app_state.dart';
+import 'package:flutter_application_1/models/user_role.dart';
 
 String _initialsFrom({
   String? displayName,
@@ -193,11 +195,15 @@ class _InfoBubble extends StatelessWidget {
                 ),
               ),
               Positioned(
-                top: 4,
-                right: 4,
-                child: GestureDetector(
+                top: 6,
+                right: 6,
+                child: InkWell(
                   onTap: onClose,
-                  child: const Icon(Icons.close, size: 18),
+                  borderRadius: BorderRadius.circular(12),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4.0),
+                    child: Icon(Icons.close, size: 16, color: Colors.black54),
+                  ),
                 ),
               ),
             ],
@@ -958,18 +964,20 @@ class _DropMenuState extends State<DropMenu> {
       padding: const EdgeInsets.only(top: 55),
       child: Row(
         children: [
-          IconButtonWithPadding(
-            onPressed: () {
-              // Navegar correctamente a la pantalla de emergencia
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EmergenciaScreen(),
-                ),
-              );
-            },
-            svgAssetPath: "assets/images/alarm.svg",
-          ),
+          (AppState.instance.role != UserRole.psicologo)
+              ? IconButtonWithPadding(
+                  onPressed: () {
+                    // Navegar correctamente a la pantalla de emergencia
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EmergenciaScreen(),
+                      ),
+                    );
+                  },
+                  svgAssetPath: "assets/images/alarm.svg",
+                )
+              : const SizedBox.shrink(),
           const Spacer(),
           Padding(
             padding: const EdgeInsets.only(right: 15),
