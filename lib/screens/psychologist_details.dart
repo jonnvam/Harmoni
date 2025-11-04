@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/psychologist.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PsychologistDetailsScreen extends StatelessWidget {
   final Psychologist psychologist;
@@ -338,8 +340,23 @@ class _BookingSheetState extends State<BookingSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              onPressed: () {
-                // Aquí iría la lógica real de reserva/pago
+              onPressed: () async {
+                // Persistir la cita básica para conectar con panel del psicólogo
+                final user = FirebaseAuth.instance.currentUser;
+                final now = DateTime.now();
+                final base = _selectedDay == 0 ? now : now.add(const Duration(days: 1));
+                final hour = 8 + _timeValue.round();
+                final date = DateTime(base.year, base.month, base.day, hour);
+                await FirebaseFirestore.instance.collection('appointments').add({
+                  'psychId': widget.psychologist.id,
+                  'psychName': widget.psychologist.name,
+                  'patientId': user?.uid,
+                  'patientName': user?.displayName ?? 'Paciente',
+                  'dateTime': Timestamp.fromDate(date),
+                  'status': 'pendiente',
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+                if (!mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Reserva confirmada')),
