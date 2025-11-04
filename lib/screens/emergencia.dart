@@ -142,6 +142,7 @@ class _EmergenciaScreenState extends State<EmergenciaScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo iniciar la llamada.')),
       );

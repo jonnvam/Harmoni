@@ -251,7 +251,7 @@ class _MetasScreenState extends State<MetasScreen> {
         .collection('usuarios')
         .doc(uid)
         .collection('metas')
-        .where('estado', isEqualTo: 'pendiente')
+        .where('estado', isEqualTo: 'en_progreso')
         .orderBy('creada', descending: true);
 
     return StreamBuilder<QuerySnapshot>(
@@ -365,54 +365,129 @@ class _MetasScreenState extends State<MetasScreen> {
     );
   }
 
-  Widget _buildCompletedChips() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return const SizedBox.shrink();
+// Reemplaza tu _buildCompletedChips() por este
+Widget _buildCompletedChips() {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return const SizedBox.shrink();
 
-    final query = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(uid)
-        .collection('metas')
-        .where('estado', isEqualTo: 'completada')
-        .orderBy('creada', descending: true);
+  final query = FirebaseFirestore.instance
+      .collection('usuarios')
+      .doc(uid)
+      .collection('metas')
+      .where('estado', isEqualTo: 'completada')
+      .orderBy('creada', descending: true);
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
-      builder: (context, snap) {
-        if (!snap.hasData || (snap.data?.docs ?? []).isEmpty) {
-          return const SizedBox.shrink();
-        }
-        final docs = snap.data!.docs;
-        // mostramos últimas 3 como chips (igual que tu look)
-        final recent = docs.take(3).toList();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(left: 24, bottom: 8, top: 8),
-              child: Text(
-                'Completados',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: recent.map((d) {
-                  final data = d.data() as Map<String, dynamic>? ?? {};
-                  final titulo = (data['titulo'] ?? '').toString();
-                  return _CompletedCircleChip(title: titulo);
-                }).toList(),
-              ),
-            ),
-          ],
+  return StreamBuilder<QuerySnapshot>(
+    stream: query.snapshots(),
+    builder: (context, snap) {
+      if (snap.connectionState == ConnectionState.waiting) {
+        return const SizedBox.shrink();
+      }
+      if (snap.hasError) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: Text('Error al cargar metas completadas.'),
         );
-      },
-    );
-  }
+      }
+      final docs = snap.data?.docs ?? [];
+      if (docs.isEmpty) return const SizedBox.shrink();
+
+      final recent = docs.take(3).toList();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(left: 24, bottom: 8, top: 8),
+            child: Text(
+              'Completados',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: recent.map((d) {
+                final data = d.data() as Map<String, dynamic>? ?? {};
+                final titulo = (data['titulo'] ?? '').toString();
+                return _CompletedCircleChip(title: titulo);
+              }).toList(),
+            ),
+          ),
+          if (docs.length > 3)
+            // texto pequeño, alineado a la izquierda
+            Padding(
+              padding: const EdgeInsets.only(left: 24, top: 6),
+              child: GestureDetector(
+                onTap: () => _showAllCompletedBottomSheet(docs),
+                child: const Text(
+                  'ver más',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w300,
+                    color: Colors.black54,
+                    decoration: TextDecoration.underline,
+                    decorationThickness: 1,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  );
+}
+
+// Agrega este helper debajo (abre un bottom sheet con todos los chips)
+void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
+  showModalBottomSheet(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (ctx) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(left: 8, bottom: 8),
+                child: Text(
+                  'Metas completadas',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: docs.map((d) {
+                        final data = d.data() as Map<String, dynamic>? ?? {};
+                        final titulo = (data['titulo'] ?? '').toString();
+                        return _CompletedCircleChip(title: titulo);
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
   // ---- BottomSheet agregar nota ----
   void _showAddNoteSheet() {
@@ -549,7 +624,7 @@ class _MetasScreenState extends State<MetasScreen> {
                             'titulo': titulo,
                             'descripcion': descripcion,
                             'creada': FieldValue.serverTimestamp(),
-                            'estado': 'pendiente',
+                            'estado': 'en_progreso',
                             if (fechaLimite != null) 'fechaLimite': Timestamp.fromDate(fechaLimite!),
                             'prioridad': prioridad,
                           });

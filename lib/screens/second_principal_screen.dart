@@ -123,11 +123,11 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                       // Save to EmotionJournal
                       final lower = emotionLabel.toLowerCase();
                       EmotionType? t;
-                      if (lower.contains('feliz')) t = EmotionType.happy;
-                      else if (lower.contains('triste')) t = EmotionType.sad;
-                      else if (lower.contains('enojad')) t = EmotionType.angry; // enojado/enojada
-                      else if (lower.contains('sorpres') || lower.contains('sorprendid')) t = EmotionType.surprised;
-                      else if (lower.contains('miedo')) t = EmotionType.fear;
+                      if (lower.contains('feliz')) {t = EmotionType.happy;}
+                      else if (lower.contains('triste')) {t = EmotionType.sad;}
+                      else if (lower.contains('enojad')) {t = EmotionType.angry;} // enojado/enojada
+                      else if (lower.contains('sorpres') || lower.contains('sorprendid')) {t = EmotionType.surprised;}
+                      else if (lower.contains('miedo')) {t = EmotionType.fear;}
                       if (t != null) {
                         await EmotionJournal.instance.saveEmotion(t);
                       }
@@ -267,11 +267,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                 ),
 
                 if (showStep3) const SizedBox(height: 70),
-                const AnimatedFlower(
-                  assetPath: 'assets/animations/flower.json',
-                  showOverlayRing: true,
-                  segments: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
-                ),
+                const _FirestoreFlowerProgress(),
                 const SizedBox(height: 70),
 
                 ContainerC1(
@@ -485,6 +481,57 @@ class _FirestoreInProgressList extends StatelessWidget {
             }).toList(),
             const SizedBox(height: 20),
           ],
+        );
+      },
+    );
+  }
+}
+
+class _FirestoreFlowerProgress extends StatelessWidget {
+  const _FirestoreFlowerProgress();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      // Sin sesión: flor en 0
+      return const AnimatedFlower(
+        assetPath: 'assets/animations/flower.json',
+        showOverlayRing: true,
+        segments: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        fractionOverride: 0.0,
+        segmentsCountOverride: 6,
+      );
+    }
+
+    final metasCol = FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(uid)
+        .collection('metas');
+
+    // Un solo stream a toda la colección; contamos en memoria.
+    return StreamBuilder<QuerySnapshot>(
+      stream: metasCol.snapshots(),
+      builder: (context, snap) {
+        double fraction = 0.0;
+        if (snap.hasData) {
+          final all = snap.data!.docs;
+          final total = all.length;
+          if (total > 0) {
+            final completed = all.where((d) {
+              final m = d.data() as Map<String, dynamic>? ?? {};
+              return (m['estado'] ?? '') == 'completada';
+            }).length;
+            fraction = completed / total;
+          }
+        }
+
+        return AnimatedFlower(
+          assetPath: 'assets/animations/flower.json',
+          showOverlayRing: true,
+          segments: const [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+          fractionOverride: fraction.clamp(0.0, 1.0),
+          segmentsCountOverride: 6,
         );
       },
     );

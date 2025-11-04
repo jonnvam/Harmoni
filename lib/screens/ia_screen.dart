@@ -117,7 +117,7 @@ class _IaScreenState extends State<IaScreen> {
                           });
                         },
                         title: Text(title),
-                        subtitle: Text('[${dateStr}] ${firstLine}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Text('[$dateStr] $firstLine', maxLines: 1, overflow: TextOverflow.ellipsis),
                       );
                     },
                   ),
@@ -148,13 +148,13 @@ class _IaScreenState extends State<IaScreen> {
                           final title = (n.title ?? '').trim().isEmpty ? n.type.name.toUpperCase() : n.title!.trim();
                           switch (n.type) {
                             case DiaryNoteType.text:
-                              buffer.writeln('[$date] ${title}: ${n.text ?? ''}');
+                              buffer.writeln('[$date] $title: ${n.text ?? ''}');
                               break;
                             case DiaryNoteType.audio:
-                              buffer.writeln('[$date] ${title}: (Audio) ${n.filePath ?? ''}');
+                              buffer.writeln('[$date] $title: (Audio) ${n.filePath ?? ''}');
                               break;
                             case DiaryNoteType.image:
-                              buffer.writeln('[$date] ${title}: (Imagen) ${n.filePath ?? ''} ${n.text ?? ''}');
+                              buffer.writeln('[$date] $title: (Imagen) ${n.filePath ?? ''} ${n.text ?? ''}');
                               break;
                           }
                         }
@@ -307,7 +307,7 @@ class _IaScreenState extends State<IaScreen> {
                       padding: const EdgeInsets.only(top: 20, left: 15),
                       child: InfoBubbleButton(
                         message:
-                            "Es una IA no te lo creas todo",
+                            "Este asistente no sustituye la ayuda de un psicólogo o preofesional de la salud mental",
                         autoHideDuration: const Duration(seconds: 4),
                         iconSize: 26,
                       ),

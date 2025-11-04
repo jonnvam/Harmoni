@@ -1,18 +1,20 @@
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
-import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:flutter_application_1/state/app_state.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-// Audio recording temporarily disabled until plugin mismatch is resolved.
-import 'package:flutter_application_1/data/diary_repo.dart';
-import 'package:intl/intl.dart';
 
 class DiarioScreen extends StatefulWidget {
   const DiarioScreen({super.key});
@@ -22,103 +24,138 @@ class DiarioScreen extends StatefulWidget {
 }
 
 class _DiarioScreenState extends State<DiarioScreen> {
-  final TextEditingController _noteCtrl = TextEditingController();
-  final TextEditingController _titleCtrl = TextEditingController();
-  // final _recorder = AudioRecorder();
-  bool _isRecording = false; // UI state only while audio is disabled
-  List<DiaryNote> _notes = [];
-  final FocusNode _textFocus = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNotes();
-  }
+  final _titleCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+  final _textFocus = FocusNode();
+  final _picker = ImagePicker();
 
   @override
   void dispose() {
-    _noteCtrl.dispose();
     _titleCtrl.dispose();
+    _noteCtrl.dispose();
     _textFocus.dispose();
     super.dispose();
   }
 
-  Future<void> _loadNotes() async {
-    final notes = await DiaryRepo.instance.listNotes();
-    if (!mounted) return;
-    setState(() => _notes = notes);
+  /// Referencia a la subcolección de notas del usuario actual.
+  CollectionReference<Map<String, dynamic>>? _notesCol() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
+    return FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(uid)
+        .collection('notas');
   }
 
+  /// Sube una imagen a Storage y devuelve su URL pública.
+  Future<String> _uploadImageToStorage({
+    required String uid,
+    required String docId,
+    required File file,
+  }) async {
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('usuarios')
+        .child(uid)
+        .child('diario')
+        .child('$docId.jpg');
+    await ref.putFile(file);
+    return await ref.getDownloadURL();
+  }
+
+  /// Agregar nota de texto.
   Future<void> _addTextNote() async {
-    final content = _noteCtrl.text.trim();
-    final title = _titleCtrl.text.trim();
-    if (content.isEmpty) {
+    final col = _notesCol();
+    if (col == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debes iniciar sesión.')),
+      );
+      return;
+    }
+    final texto = _noteCtrl.text.trim();
+    if (texto.isEmpty) {
       _textFocus.requestFocus();
       return;
     }
-    final id = await DiaryRepo.nextId();
-    final note = DiaryNote(
-      id: id,
-      date: DateTime.now(),
-      type: DiaryNoteType.text,
-      title: title.isEmpty ? 'Nota' : title,
-      text: content,
-    );
-    await DiaryRepo.instance.addNote(note);
-    _noteCtrl.clear();
+    final titulo = _titleCtrl.text.trim().isEmpty ? 'Nota' : _titleCtrl.text.trim();
+
+    await col.add({
+      'titulo': titulo,
+      'texto': texto,
+      'tipo': 'texto',
+      'imageUrl': null,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
     _titleCtrl.clear();
-    await _loadNotes();
+    _noteCtrl.clear();
+
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Nota guardada')),
+    );
   }
 
-  Future<void> _toggleRecord() async {
-    // TODO: Re-enable using `record` plugin when dependency versions are aligned.
-    // For now, just toggle UI and create a placeholder audio note without file.
-    if (_isRecording) {
-      setState(() => _isRecording = false);
-      final id = await DiaryRepo.nextId();
-      final title = _titleCtrl.text.trim();
-      final note = DiaryNote(
-        id: id,
-        date: DateTime.now(),
-        type: DiaryNoteType.audio,
-        title: title.isEmpty ? 'Nota de audio' : title,
-        filePath: null,
-        text: _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
-      );
-      await DiaryRepo.instance.addNote(note);
-      _noteCtrl.clear();
-      _titleCtrl.clear();
-      await _loadNotes();
-    } else {
-      setState(() => _isRecording = true);
-    }
-  }
-
+  /// Agregar nota con imagen (opcionalmente acompañada de texto).
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery);
-    if (file != null) {
-      final id = await DiaryRepo.nextId();
-      final title = _titleCtrl.text.trim();
-      final note = DiaryNote(
-        id: id,
-        date: DateTime.now(),
-        type: DiaryNoteType.image,
-        title: title.isEmpty ? 'Imagen' : title,
-        filePath: file.path,
-        text: _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
+    final col = _notesCol();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (col == null || uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Debes iniciar sesión.')),
       );
-      await DiaryRepo.instance.addNote(note);
-      _noteCtrl.clear();
+      return;
+    }
+
+    final picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    // Crea doc para tener docId y luego sube la imagen con ese id
+    final tempDoc = await col.add({
+      'titulo': _titleCtrl.text.trim().isEmpty ? 'Imagen' : _titleCtrl.text.trim(),
+      'texto': _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+      'tipo': 'imagen',
+      'imageUrl': null,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    try {
+      final url = await _uploadImageToStorage(
+        uid: uid,
+        docId: tempDoc.id,
+        file: File(picked.path),
+      );
+      await tempDoc.update({'imageUrl': url});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagen guardada en tu diario')),
+      );
+    } catch (e) {
+      // Si falla la subida, borra el doc vacío
+      await tempDoc.delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al subir imagen')),
+      );
+    } finally {
       _titleCtrl.clear();
-      await _loadNotes();
+      _noteCtrl.clear();
     }
   }
 
-  Future<void> _openEditNote(DiaryNote note) async {
-    final titleCtrl = TextEditingController(text: note.title ?? '');
-    final textCtrl = TextEditingController(text: note.text ?? '');
-    String? imagePath = note.type == DiaryNoteType.image ? note.filePath : null;
+  // ---------- Editar / eliminar ----------
+  Future<void> _openEditNote(
+    String docId, {
+    required String? titulo,
+    required String? texto,
+    required String tipo,
+    required String? imageUrl,
+  }) async {
+    final col = _notesCol();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (col == null || uid == null) return;
+
+    final titleCtrl = TextEditingController(text: titulo ?? '');
+    final textCtrl = TextEditingController(text: texto ?? '');
+    String? newImageUrl = imageUrl;
 
     await showModalBottomSheet(
       context: context,
@@ -154,30 +191,35 @@ class _DiarioScreenState extends State<DiarioScreen> {
                     children: [
                       FilledButton.icon(
                         onPressed: () async {
-                          final picker = ImagePicker();
-                          final file = await picker.pickImage(source: ImageSource.gallery);
-                          if (file != null) {
-                            setModal(() => imagePath = file.path);
+                          final picked = await _picker.pickImage(source: ImageSource.gallery);
+                          if (picked != null) {
+                            final file = File(picked.path);
+                            final url = await _uploadImageToStorage(uid: uid, docId: docId, file: file);
+                            setModal(() => newImageUrl = url);
                           }
                         },
                         icon: const Icon(Icons.image),
-                        label: const Text('Agregar imagen'),
+                        label: const Text('Agregar / reemplazar imagen'),
                       ),
                       const SizedBox(width: 8),
-                      if (imagePath != null)
+                      if (newImageUrl != null)
                         TextButton.icon(
-                          onPressed: () => setModal(() => imagePath = null),
+                          onPressed: () => setModal(() => newImageUrl = null),
                           icon: const Icon(Icons.close),
                           label: const Text('Quitar imagen'),
                         ),
                     ],
                   ),
-                  if (imagePath != null) ...[
+                  if (newImageUrl != null) ...[
                     const SizedBox(height: 8),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.file(File(imagePath!), height: 140, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported)),
+                      child: Image.network(
+                        newImageUrl!,
+                        height: 140,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                      ),
                     ),
                   ],
                   const SizedBox(height: 14),
@@ -185,10 +227,20 @@ class _DiarioScreenState extends State<DiarioScreen> {
                     children: [
                       OutlinedButton.icon(
                         onPressed: () async {
-                          await DiaryRepo.instance.deleteNote(note.id);
+                          // borra doc (y opcionalmente la imagen en storage)
+                          await col.doc(docId).delete();
+                          if ((newImageUrl ?? imageUrl) != null) {
+                            try {
+                              await FirebaseStorage.instance
+                                  .refFromURL(newImageUrl ?? imageUrl!)
+                                  .delete();
+                            } catch (_) {}
+                          }
                           if (!mounted) return;
                           Navigator.of(ctx).pop();
-                          await _loadNotes();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nota eliminada')),
+                          );
                         },
                         icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
                         label: const Text('Eliminar'),
@@ -196,19 +248,19 @@ class _DiarioScreenState extends State<DiarioScreen> {
                       const Spacer(),
                       FilledButton(
                         onPressed: () async {
-                          final updated = DiaryNote(
-                            id: note.id,
-                            date: note.date,
-                            type: imagePath != null ? DiaryNoteType.image : note.type,
-                            title: titleCtrl.text.trim().isEmpty ? note.title : titleCtrl.text.trim(),
-                            text: textCtrl.text.trim().isEmpty ? null : textCtrl.text.trim(),
-                            filePath: imagePath,
-                            emotionAsset: note.emotionAsset,
-                          );
-                          await DiaryRepo.instance.updateNote(updated);
+                          await col.doc(docId).update({
+                            'titulo': titleCtrl.text.trim().isEmpty ? (titulo ?? 'Nota') : titleCtrl.text.trim(),
+                            'texto': textCtrl.text.trim().isEmpty ? null : textCtrl.text.trim(),
+                            'tipo': (newImageUrl != null)
+                                ? 'imagen'
+                                : (tipo == 'imagen' && newImageUrl == null ? 'texto' : tipo),
+                            'imageUrl': newImageUrl,
+                          });
                           if (!mounted) return;
                           Navigator.of(ctx).pop();
-                          await _loadNotes();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Cambios guardados')),
+                          );
                         },
                         child: const Text('Guardar cambios'),
                       ),
@@ -222,6 +274,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
       },
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -232,21 +285,19 @@ class _DiarioScreenState extends State<DiarioScreen> {
           SingleChildScrollView(
             child: Column(
               children: [
-                DropMenu(),
-                MaxWidthContainer(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                    ),
-                    child: Column(
+                const DropMenu(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Mes actual
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             DateFormat('MMMM', 'es_MX').format(DateTime.now()),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'Kantumruy Pro',
                               fontSize: 30,
                               fontWeight: FontWeight.w400,
@@ -254,19 +305,16 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           ),
                         ],
                       ),
-
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       SevenDayCalendar(currentDate: DateTime.now()),
 
+                      // Saludo + subtítulo
                       Column(
                         children: [
                           Row(
                             children: [
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  left: 20,
-                                  top: 25,
-                                ),
+                              const Padding(
+                                padding: EdgeInsets.only(left: 20, top: 25),
                                 child: HolaNombre(
                                   style: TextStyles.textDiario,
                                   prefix: "Hola",
@@ -275,12 +323,9 @@ class _DiarioScreenState extends State<DiarioScreen> {
                             ],
                           ),
                           Row(
-                            children: [
+                            children: const [
                               Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 20,
-                                  top: 5,
-                                ),
+                                padding: EdgeInsets.only(left: 20, top: 5),
                                 child: Text(
                                   "Tus pensamientos importan, regístralos aquí",
                                   style: TextStyles.textDiario2,
@@ -290,164 +335,136 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 35),
-                      Column(
+                      const SizedBox(height: 35),
+
+                      // Caja ¿Cómo te sientes hoy? + botones laterales (guardar texto / audio UI / imagen)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              //Como te sientes
-                              ContainerC2(
-                                width: 290,
-                                height: 95,
-                                child: Column(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: 8,
-                                        top: 4,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Text(
-                                            "¿Cómo te sientes hoy?",
-                                            style: TextStyles.textDiario3,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 8),
-                                      child: Row(
-                                        children: [
-                                          Text(
-                                            "Registra tus emociones y pensamientos \npara seguir tu bienestar",
-                                            style: TextStyles.textDiario4,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(width: 5),
-                              //Botones Laterales
-                              ContainerC1(
-                                width: 45,
-                                height: 130,
-                                child: SizedBox(
-                                  width: 45,
-                                  height: 130,
-                                  child: Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                          ContainerC2(
+                            width: 290,
+                            height: 95,
+                            child: Column(
+                              children: const [
+                                Padding(
+                                  padding: EdgeInsets.only(left: 8, top: 4),
+                                  child: Row(
                                     children: [
-                                      SizedBox(height: 5),
-                                      InkWell(
-                                        onTap: _addTextNote,
-                                        child: safeSvg(
-                                          "assets/images/diario/edit.svg",
-                                          width: 30,
-                                          height: 30,
-                                        ),
-                                      ),
-                                      InkWell(
-                                        onTap: _toggleRecord,
-                                        child: safeSvg(
-                                          "assets/images/diario/microphone-2.svg",
-                                          width: 30,
-                                          height: 30,
-                                        ),
-                                      ),
-                                      InkWell(
-                                        onTap: _pickImage,
-                                        child: safeSvg(
-                                          "assets/images/diario/gallery.svg",
-                                          width: 30,
-                                          height: 30,
-                                        ),
-                                      ),
-                                      SizedBox(height: 5),
+                                      Text("¿Cómo te sientes hoy?", style: TextStyles.textDiario3),
                                     ],
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Campo de texto para título y notas (sirve para texto y acompañar imagen)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: TextField(
-                              controller: _titleCtrl,
-                              textInputAction: TextInputAction.next,
-                              decoration: InputDecoration(
-                                hintText: 'Título',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                Padding(
+                                  padding: EdgeInsets.only(left: 8),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        "Registra tus emociones y pensamientos \npara seguir tu bienestar",
+                                        style: TextStyles.textDiario4,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Campo de texto para notas (sirve para texto y acompañar imagen)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: TextField(
-                              controller: _noteCtrl,
-                              maxLines: 3,
-                              focusNode: _textFocus,
-                              decoration: InputDecoration(
-                                hintText: 'Escribe una nota...',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                          //Notas
-                          SizedBox(height: 40),
-                          ContainerC3(
-                            width: 380,
-                            alignment: Alignment.center,
-                            child: Column(
-                              children: [
-                                SizedBox(height: 15),
-                                Row(
-                                  children: [
-                                    SizedBox(width: 35),
-                                    Text(
-                                      "Tus notas",
-                                      style: TextStyles.textDiario5,
-                                    ),
-                                    SizedBox(width: 180),
-                                    safeSvg(
-                                      "assets/images/diario/calendar.svg",
-                                      width: 30,
-                                      height: 30,
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 15),
-                                Column(children: [ContenedorDiarioBuscar()]),
-                                const SizedBox(height: 12),
-                                _buildMonthlySections(),
                               ],
                             ),
                           ),
-
-                          // Row(children: [Column()]),
+                          const SizedBox(width: 5),
+                          ContainerC1(
+                            width: 45,
+                            height: 130,
+                            child: SizedBox(
+                              width: 45,
+                              height: 130,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const SizedBox(height: 5),
+                                  InkWell(
+                                    onTap: _addTextNote,
+                                    child: safeSvg("assets/images/diario/edit.svg", width: 30, height: 30),
+                                  ),
+                                  // Mic: solo UI (no graba, pero puedes reaprovechar para crear nota de audio si luego activas plugin)
+                                  InkWell(
+                                    onTap: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Grabación de audio deshabilitada por ahora.')),
+                                      );
+                                    },
+                                    child: safeSvg("assets/images/diario/microphone-2.svg", width: 30, height: 30),
+                                  ),
+                                  InkWell(
+                                    onTap: _pickImage,
+                                    child: safeSvg("assets/images/diario/gallery.svg", width: 30, height: 30),
+                                  ),
+                                  const SizedBox(height: 5),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+
+                      // Título + contenido (para guardar texto o acompañar imagen)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: TextField(
+                          controller: _titleCtrl,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            hintText: 'Título (opcional)',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: TextField(
+                          controller: _noteCtrl,
+                          maxLines: 3,
+                          focusNode: _textFocus,
+                          decoration: InputDecoration(
+                            hintText: 'Escribe una nota...',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+
+                      // Listado de notas
+                      const SizedBox(height: 40),
+                      ContainerC3(
+                        width: 380,
+                        alignment: Alignment.center,
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 15),
+                            Row(
+                              children: [
+                                const SizedBox(width: 35),
+                                const Text("Tus notas", style: TextStyles.textDiario5),
+                                const Spacer(),
+                                safeSvg("assets/images/diario/calendar.svg", width: 30, height: 30),
+                                const SizedBox(width: 16),
+                              ],
+                            ),
+                            const SizedBox(height: 15),
+                            const Column(children: [ContenedorDiarioBuscar()]),
+                            const SizedBox(height: 12),
+                            _MonthlyNotesStream(onOpenEdit: _openEditNote),
+                          ],
+                        ),
+                      ),
                     ],
-                    ),
                   ),
                 ),
               ],
             ),
           ),
+
+          // Menú radial inferior
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -456,7 +473,6 @@ class _DiarioScreenState extends State<DiarioScreen> {
                 currentIconAsset: "assets/images/icon/diario.svg",
                 ringColor: Colors.transparent,
                 items: [
-                  // IA (left)
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/ia.svg",
                     onTap: () {
@@ -466,13 +482,9 @@ class _DiarioScreenState extends State<DiarioScreen> {
                         );
                         return;
                       }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => IaScreen()),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => IaScreen()));
                     },
                   ),
-                  // Metas
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
                     onTap: () {
@@ -482,25 +494,16 @@ class _DiarioScreenState extends State<DiarioScreen> {
                         );
                         return;
                       }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => MetasScreen()),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const MetasScreen()));
                     },
                   ),
-                  // Home (center of ring)
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/house.svg",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SecondPrincipalScreen(),
-                        ),
-                      );
-                    },
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SecondPrincipalScreen()),
+                    ),
                   ),
-                  // Progreso
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
                     onTap: () {
@@ -508,11 +511,9 @@ class _DiarioScreenState extends State<DiarioScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
                         );
-                        return;
                       }
                     },
                   ),
-                  // Psicólogos (right)
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",
                     onTap: () {
@@ -522,10 +523,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                         );
                         return;
                       }
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const Psicologos()),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const Psicologos()));
                     },
                   ),
                 ],
@@ -538,173 +536,199 @@ class _DiarioScreenState extends State<DiarioScreen> {
   }
 }
 
-extension on DateTime {
-  String get monthKey => '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}';
-}
+/// StreamBuilder que agrupa por mes las notas de `usuarios/{uid}/notas`
+/// y pinta carruseles por cada mes.
+class _MonthlyNotesStream extends StatelessWidget {
+  final void Function(
+    String docId, {
+    required String? titulo,
+    required String? texto,
+    required String tipo,
+    required String? imageUrl,
+  }) onOpenEdit;
 
-Widget _monthHeader(String label) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-  );
-}
+  const _MonthlyNotesStream({required this.onOpenEdit});
 
-String _formatMonthES(DateTime d) {
-  // Simple mapa en español para evitar issues de locales
-  const meses = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-  return '${meses[d.month - 1]} ${d.year}';
-}
+  CollectionReference<Map<String, dynamic>>? _notesCol() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
+    return FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(uid)
+        .collection('notas');
+  }
 
-extension _DiarioGroups on _DiarioScreenState {
-  Widget _buildMonthlySections() {
-    if (_notes.isEmpty) {
-      return const SizedBox(height: 80, child: Center(child: Text('Sin notas aún.')));
+  @override
+  Widget build(BuildContext context) {
+    final col = _notesCol();
+    if (col == null) {
+      return const SizedBox(
+        height: 80,
+        child: Center(child: Text('Inicia sesión para ver tus notas.')),
+      );
     }
 
-    // Agrupar por mes
-    final Map<String, List<DiaryNote>> groups = {};
-    for (final n in _notes) {
-      final key = n.date.monthKey;
-      groups.putIfAbsent(key, () => []).add(n);
+    final query = col.orderBy('createdAt', descending: true);
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: query.snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()));
+        }
+        if (snap.hasError) {
+          return const SizedBox(height: 80, child: Center(child: Text('Error al cargar notas.')));
+        }
+        final docs = snap.data?.docs ?? [];
+        if (docs.isEmpty) {
+          return const SizedBox(height: 80, child: Center(child: Text('Sin notas aún.')));
+        }
+
+        // Agrupar por mes (YYYY-MM)
+        final Map<String, List<QueryDocumentSnapshot<Map<String, dynamic>>>> groups = {};
+        for (final d in docs) {
+          final ts = d.data()['createdAt'] as Timestamp?;
+          final date = ts?.toDate() ?? DateTime.now();
+          final key = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
+          groups.putIfAbsent(key, () => []).add(d);
+        }
+        final keys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
+
+        String formatMonthES(String key) {
+          final d = DateTime.parse('$key-01');
+          const meses = [
+            'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+            'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+          ];
+          return '${meses[d.month - 1]} ${d.year}';
+        }
+
+        Widget monthHeader(String label) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final key in keys) ...[
+              monthHeader(formatMonthES(key)),
+              SizedBox(
+                height: 120,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: groups[key]!.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (ctx, i) {
+                    final d = groups[key]![i];
+                    final data = d.data();
+                    final titulo = (data['titulo'] ?? '').toString();
+                    final texto = (data['texto'] ?? '')?.toString();
+                    final tipo = (data['tipo'] ?? 'texto').toString();
+                    final imageUrl = (data['imageUrl'] ?? '')?.toString();
+                    return GestureDetector(
+                      onTap: () => onOpenEdit(
+                        d.id,
+                        titulo: titulo,
+                        texto: texto,
+                        tipo: tipo,
+                        imageUrl: imageUrl?.isEmpty == true ? null : imageUrl,
+                      ),
+                      child: ContainerDiarioWhite(
+                        height: 108,
+                        width: 150,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: _NoteCell(
+                            titulo: titulo.isEmpty ? 'Sin título' : titulo,
+                            texto: texto,
+                            tipo: tipo,
+                            imageUrl: imageUrl,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _NoteCell extends StatelessWidget {
+  final String titulo;
+  final String? texto;
+  final String tipo; // 'texto' | 'imagen'
+  final String? imageUrl;
+
+  const _NoteCell({
+    required this.titulo,
+    required this.texto,
+    required this.tipo,
+    required this.imageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Widget content;
+    if (tipo == 'imagen' && (imageUrl != null && imageUrl!.isNotEmpty)) {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Image.network(
+              imageUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+            ),
+          ),
+          if (texto != null && texto!.isNotEmpty)
+            Text(
+              texto!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Colors.black87, height: 1.2),
+            ),
+        ],
+      );
+    } else {
+      content = Text(
+        texto ?? '',
+        maxLines: 5,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 13, height: 1.25, color: Colors.black87),
+      );
     }
-    // Ordenar por mes desc
-    final keys = groups.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final key in keys) ...[
-          _monthHeader(_formatMonthES(DateTime.parse('$key-01'))),
-          SizedBox(
-            height: 120,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: groups[key]!.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (ctx, i) {
-                final n = groups[key]![i];
-                return GestureDetector(
-                  onTap: () => _openEditNote(n),
-                  child: ContainerDiarioWhite(
-                    height: 108,
-                    width: 150,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  (n.title ?? '').isEmpty ? 'Sin título' : n.title!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                              if (n.emotionAsset != null && n.emotionAsset!.isNotEmpty)
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                                    boxShadow: const [
-                                      BoxShadow(color: Color(0x14000000), blurRadius: 3, offset: Offset(0, 2)),
-                                    ],
-                                  ),
-                                  padding: const EdgeInsets.all(4),
-                                  margin: const EdgeInsets.only(left: 6),
-                                  child: SvgPicture.asset(
-                                    n.emotionAsset!,
-                                    width: 18,
-                                    height: 18,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Expanded(child: _NotePreview(note: n)),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
+        Text(
+          titulo,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 4),
+        Expanded(child: content),
       ],
     );
   }
 }
 
+/// Helper seguro para SVGs (si falla, muestra ícono)
 Widget safeSvg(String path, {double? width, double? height}) {
   try {
     return SvgPicture.asset(path, width: width, height: height);
   } catch (e) {
-    return Icon(Icons.error, color: Colors.red);
-  }
-}
-
-class _NotePreview extends StatelessWidget {
-  final DiaryNote note;
-  const _NotePreview({required this.note});
-
-  @override
-  Widget build(BuildContext context) {
-    Widget content;
-    switch (note.type) {
-      case DiaryNoteType.text:
-        content = Text(
-          note.text ?? '',
-          maxLines: 5,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 13,
-            height: 1.25,
-            color: Colors.black87,
-          ),
-        );
-        break;
-      case DiaryNoteType.image:
-        content = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Image.file(
-                File(note.filePath ?? ''),
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
-              ),
-            ),
-            if (note.text != null && note.text!.isNotEmpty)
-              Text(
-                note.text!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: Colors.black87, height: 1.2),
-              ),
-          ],
-        );
-        break;
-      case DiaryNoteType.audio:
-        content = Row(
-          children: const [
-            Icon(Icons.mic, size: 18),
-            SizedBox(width: 6),
-            Expanded(child: Text('Nota de audio', style: TextStyle(fontSize: 12, color: Colors.black87))),
-          ],
-        );
-        break;
-    }
-    return content;
+    return const Icon(Icons.error, color: Colors.red);
   }
 }

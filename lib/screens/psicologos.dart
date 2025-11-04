@@ -112,7 +112,7 @@ class _PsicologosState extends State<Psicologos> {
                         items: <int?>[null, 400, 500, 600, 800]
                             .map((v) => DropdownMenuItem<int?>(
                                   value: v,
-                                  child: Text(v == null ? 'Cualquiera' : '\u0024${v}'),
+                                  child: Text(v == null ? 'Cualquiera' : '\u0024$v'),
                                 ))
                             .toList(),
                         onChanged: (v) => setModalState(() => tempPrice = v),
@@ -515,8 +515,9 @@ class _CategoriesRow extends StatelessWidget {
       (icon: Icons.child_care, label: 'Psicología Infantil', color: const Color(0xFFFFF3E6)),
       (icon: Icons.favorite_outline, label: 'Terapia de Pareja', color: const Color(0xFFF3E8FF)),
     ];
-    final scale = MediaQuery.of(context).textScaleFactor;
-    final extra = ((scale - 1.0).clamp(0.0, 1.0)) * 44.0; // add up to 44px when scale up to 2.0
+    final scaler = MediaQuery.textScalerOf(context);
+    final factor = scaler.scale(1.0);   
+    final extra = ((factor - 1.0).clamp(0.0, 1.0)) * 44.0; // add up to 44px when scale up to 2.0
     final rowHeight = 92.0 + extra;
     return SizedBox(
       height: rowHeight,

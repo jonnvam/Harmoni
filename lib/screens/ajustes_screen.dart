@@ -86,10 +86,11 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
       // FirebaseAuth displayName
       await user.updateDisplayName('$nombre $apellido');
 
+      if (!mounted) return;
       setState(() => _isEditing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cambios guardados.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cambios guardados.')));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudieron guardar los cambios.')),
@@ -102,12 +103,19 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
     if (email == null) return;
     try {
       await _auth.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Enviamos un correo a $email para cambiar tu contraseña.')),
+        SnackBar(
+          content: Text(
+            'Enviamos un correo a $email para cambiar tu contraseña.',
+          ),
+        ),
       );
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo enviar el correo de cambio de contraseña.')),
+        const SnackBar(
+          content: Text('No se pudo enviar el correo de cambio de contraseña.'),
+        ),
       );
     }
   }
@@ -121,15 +129,9 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
     if (user == null) {
-      // Si no hay sesión, regresa al login
-      Future.microtask(() {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const SignLoginScreen()),
-          (_) => false,
-        );
-      });
-      return const SizedBox.shrink();
+      if (user == null) {
+        return const SignLoginScreen();
+      }
     }
 
     return Scaffold(
@@ -160,10 +162,12 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                 _fechaCtrl.text = _formatFecha(fechaNac);
               }
 
-              final hasPhoto = (user.photoURL != null && user.photoURL!.isNotEmpty);
-              final initials = ((nombre.isNotEmpty ? nombre[0] : '') +
-                      (apellido.isNotEmpty ? apellido[0] : ''))
-                  .toUpperCase();
+              final hasPhoto =
+                  (user.photoURL != null && user.photoURL!.isNotEmpty);
+              final initials =
+                  ((nombre.isNotEmpty ? nombre[0] : '') +
+                          (apellido.isNotEmpty ? apellido[0] : ''))
+                      .toUpperCase();
 
               return SingleChildScrollView(
                 child: Column(
@@ -196,13 +200,20 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                             CircleAvatar(
                               radius: 60,
                               backgroundColor: Colors.black12,
-                              backgroundImage: hasPhoto ? NetworkImage(user.photoURL!) : null,
-                              child: hasPhoto
-                                  ? null
-                                  : Text(
-                                      initials.isEmpty ? '🙂' : initials,
-                                      style: const TextStyle(fontSize: 32, color: Colors.black87),
-                                    ),
+                              backgroundImage:
+                                  hasPhoto
+                                      ? NetworkImage(user.photoURL!)
+                                      : null,
+                              child:
+                                  hasPhoto
+                                      ? null
+                                      : Text(
+                                        initials.isEmpty ? '🙂' : initials,
+                                        style: const TextStyle(
+                                          fontSize: 32,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
                             ),
                             const SizedBox(height: 10),
                             InkWell(
@@ -249,7 +260,9 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                                 child: TextField(
                                   controller: _nombreCtrl,
                                   enabled: _isEditing,
-                                  decoration: const InputDecoration(border: InputBorder.none),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                  ),
                                 ),
                               ),
                             ),
@@ -269,7 +282,9 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                                 child: TextField(
                                   controller: _apellidoCtrl,
                                   enabled: _isEditing,
-                                  decoration: const InputDecoration(border: InputBorder.none),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                  ),
                                 ),
                               ),
                             ),
@@ -294,7 +309,9 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                             child: TextField(
                               controller: _emailCtrl,
                               enabled: false,
-                              decoration: const InputDecoration(border: InputBorder.none),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                              ),
                             ),
                           ),
                         ),
@@ -307,7 +324,10 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Fecha de nacimiento", style: TextStyles.textDatos),
+                        Text(
+                          "Fecha de nacimiento",
+                          style: TextStyles.textDatos,
+                        ),
                         const SizedBox(height: 6),
                         GestureDetector(
                           onTap: _isEditing ? _pickFechaNacimiento : null,
@@ -338,7 +358,10 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_isGoogleProvider ? "Autenticación" : "Contraseña", style: TextStyles.textDatos),
+                        Text(
+                          _isGoogleProvider ? "Autenticación" : "Contraseña",
+                          style: TextStyles.textDatos,
+                        ),
                         const SizedBox(height: 6),
                         ContainerLogin(
                           width: 340,
@@ -350,7 +373,9 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    _isGoogleProvider ? "Cuenta de Google vinculada" : "••••••••",
+                                    _isGoogleProvider
+                                        ? "Cuenta de Google vinculada"
+                                        : "••••••••",
                                     style: const TextStyle(fontSize: 16),
                                   ),
                                 ),
@@ -375,36 +400,50 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                         texto: "Cerrar sesión",
                         isPressed: true,
                         onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text("Confirmar salida"),
-                              content: const Text("¿Deseas cerrar tu sesión en Harmoni?"),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text("Cancelar"),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text("Cerrar sesión"),
-                                ),
-                              ],
+                          final nav = Navigator.of(
+                            context,
+                          ); // ← cachea el Navigator
+
+                          final confirm =
+                              await showDialog<bool>(
+                                context: context,
+                                builder:
+                                    (ctx) => AlertDialog(
+                                      title: const Text("Confirmar salida"),
+                                      content: const Text(
+                                        "¿Deseas cerrar tu sesión en Harmoni?",
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.pop(ctx, false),
+                                          child: const Text("Cancelar"),
+                                        ),
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.pop(ctx, true),
+                                          child: const Text("Cerrar sesión"),
+                                        ),
+                                      ],
+                                    ),
+                              ) ??
+                              false;
+
+                          if (!mounted || !confirm){
+                            return; 
+                          }                            
+                          await FirebaseAuth.instance.signOut();
+
+                          // Usa el navigator cacheado (no dependes de context tras await)
+                          nav.pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const SignLoginScreen(),
                             ),
+                            (_) => false,
                           );
-                          if (confirm == true) {
-                            await FirebaseAuth.instance.signOut();
-                            if (!mounted) return;
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (_) => const SignLoginScreen()),
-                              (route) => false,
-                            );
-                          }
                         },
                       ),
                     ),
-
                     const SizedBox(height: 200),
                   ],
                 ),
@@ -423,7 +462,9 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                 onCenterDoubleTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SecondPrincipalScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => SecondPrincipalScreen(),
+                    ),
                   );
                 },
                 items: [
@@ -431,7 +472,11 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                     iconAsset: "assets/images/icon/psicologos.svg",
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        const SnackBar(
+                          content: Text(
+                            'Completa el test inicial para desbloquear esta sección.',
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -439,7 +484,11 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                     iconAsset: "assets/images/icon/diario.svg",
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        const SnackBar(
+                          content: Text(
+                            'Completa el test inicial para desbloquear esta sección.',
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -447,7 +496,11 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                     iconAsset: "assets/images/icon/metas.svg",
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        const SnackBar(
+                          content: Text(
+                            'Completa el test inicial para desbloquear esta sección.',
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -455,7 +508,11 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                     iconAsset: "assets/images/icon/progreso.svg",
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        const SnackBar(
+                          content: Text(
+                            'Completa el test inicial para desbloquear esta sección.',
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -463,7 +520,11 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                     iconAsset: "assets/images/icon/ia.svg",
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                        const SnackBar(
+                          content: Text(
+                            'Completa el test inicial para desbloquear esta sección.',
+                          ),
+                        ),
                       );
                     },
                   ),

@@ -41,7 +41,7 @@ class AuthService {
 
       DateTime? cumple = await _fetchBirthday(googleAuth.accessToken);
       cumple ??= await _askBirthdate(context);
-
+      
       if (cumple == null) {
         await _handleUnderageOrUnknown(user, context,
             reason: 'No proporcionaste fecha de nacimiento.');

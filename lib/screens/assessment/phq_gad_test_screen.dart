@@ -69,7 +69,7 @@ class _PhqGadTestScreenState extends State<PhqGadTestScreen> {
         ],
       ),
     );
-    // TODO: Guardar resultados en backend/Firestore si aplica
+    // Por hacer: Guardar resultados en backend/Firestore si aplica
     await AppState.instance.setTestCompleted(true);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(

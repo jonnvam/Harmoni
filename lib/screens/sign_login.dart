@@ -5,7 +5,7 @@ import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/principal_screen.dart';
 import 'package:flutter_application_1/services/auth_google.dart';
-import 'package:flutter_application_1/screens/restCodigo.dart';
+import 'package:flutter_application_1/screens/rest_codigo.dart';
 import 'package:flutter_application_1/services/auth_email.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/screens/verificacion_signup.dart';
@@ -66,6 +66,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -472,7 +473,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             AuthIconButton(
               iconPath: "assets/images/icon/apple.svg",
               onPressed: () {
-                // TODO: Implementar registro con Apple
+                // para hacer: Implementar registro con Apple
               },
             ),
           ],
@@ -687,7 +688,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             AuthIconButton(
               iconPath: "assets/images/icon/apple.svg",
               onPressed: () {
-                // TODO: Implementar inicio de sesión con Apple
+                // para hacer: Implementar inicio de sesión con Apple
               },
             ),
           ],

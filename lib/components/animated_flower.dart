@@ -14,6 +14,8 @@ class AnimatedFlower extends StatefulWidget {
   final Curve progressCurve;
   final bool pulseOnStageIncrement;
   final Duration pulseDuration;
+  final double? fractionOverride;         // 0..1 si quieres forzar el avance
+  final int? segmentsCountOverride; 
 
   const AnimatedFlower({
     super.key,
@@ -25,6 +27,8 @@ class AnimatedFlower extends StatefulWidget {
     this.progressCurve = Curves.easeInOutCubic,
     this.pulseOnStageIncrement = true,
     this.pulseDuration = const Duration(milliseconds: 420),
+    this.fractionOverride,          
+    this.segmentsCountOverride,
   });
 
   @override
@@ -37,15 +41,25 @@ class _AnimatedFlowerState extends State<AnimatedFlower> with SingleTickerProvid
   int _lastStage = 0;
 
   late final AnimationController _pulseController;
+  bool _listeningGoalsManager = false;
 
   @override
   void initState() {
     super.initState();
     final gm = GoalsManager.instance;
-    _targetFraction = gm.progressFraction;
-    _prevFraction = _targetFraction;
-    _lastStage = gm.currentStage;
-    gm.addListener(_onGoalsChanged);
+    if (widget.fractionOverride != null) {
+      _targetFraction = widget.fractionOverride!.clamp(0.0, 1.0);
+      _prevFraction = _targetFraction;
+      _lastStage = ( _targetFraction * (widget.segmentsCountOverride ?? gm.totalStages) ).floor();
+      _listeningGoalsManager = false;
+    } else {
+      _targetFraction = gm.progressFraction;
+      _prevFraction = _targetFraction;
+      _lastStage = gm.currentStage;
+      gm.addListener(_onGoalsChanged);
+      _listeningGoalsManager = true;
+    }
+
     _pulseController = AnimationController(vsync: this, duration: widget.pulseDuration);
   }
 
@@ -55,21 +69,45 @@ class _AnimatedFlowerState extends State<AnimatedFlower> with SingleTickerProvid
     if (oldWidget.pulseDuration != widget.pulseDuration) {
       _pulseController.duration = widget.pulseDuration;
     }
+
+    if (widget.fractionOverride != null) {
+      final newFrac = widget.fractionOverride!.clamp(0.0, 1.0);
+      if (newFrac != _targetFraction) {
+        setState(() {
+          _prevFraction = _animatedValue;
+          _targetFraction = newFrac;
+        });
+      }
+      // Si antes escuchábamos al GM, dejamos de hacerlo (una sola vez).
+      if (_listeningGoalsManager) {
+        GoalsManager.instance.removeListener(_onGoalsChanged);
+        _listeningGoalsManager = false;
+      }
+    } else {
+      // Volvemos a GoalsManager si no hay override.
+      if (!_listeningGoalsManager) {
+        GoalsManager.instance.addListener(_onGoalsChanged);
+        _listeningGoalsManager = true;
+      }
+    }
   }
 
   @override
   void dispose() {
-    GoalsManager.instance.removeListener(_onGoalsChanged);
+    if (_listeningGoalsManager) {
+      GoalsManager.instance.removeListener(_onGoalsChanged);
+    }
     _pulseController.dispose();
     super.dispose();
   }
 
   void _onGoalsChanged() {
+    if (widget.fractionOverride != null) return; // si hay override, ignoramos
     final gm = GoalsManager.instance;
     final newFraction = gm.progressFraction;
-    if (newFraction == _targetFraction) return; // nada que animar
+    if (newFraction == _targetFraction) return;
     setState(() {
-      _prevFraction = _animatedValue; // arranque desde donde estaba la animación actual
+      _prevFraction = _animatedValue;
       _targetFraction = newFraction;
       final newStage = gm.currentStage;
       if (widget.pulseOnStageIncrement && newStage > _lastStage) {
@@ -106,8 +144,12 @@ class _AnimatedFlowerState extends State<AnimatedFlower> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final gm = GoalsManager.instance;
-    final totalStages = gm.totalStages;
-    final stageNow = gm.currentStage;
+    final totalStages = widget.fractionOverride != null
+        ? (widget.segmentsCountOverride ?? 6)
+        : gm.totalStages;
+    final stageNow = widget.fractionOverride != null
+        ? (_targetFraction * totalStages).floor()
+        : gm.currentStage;
 
     return TweenAnimationBuilder<double>(
       key: ValueKey(_targetFraction),

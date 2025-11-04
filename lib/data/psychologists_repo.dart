@@ -124,7 +124,7 @@ class _LocalPsychologistsDataSource implements PsychologistsDataSource {
 
 /// Data source remoto: reemplaza la URL y la estructura cuando tengas tu backend listo.
 class _RemotePsychologistsDataSource implements PsychologistsDataSource {
-  // TODO: Inyectar cliente http y baseUrl desde configuración
+  // Por hacer: Inyectar cliente http y baseUrl desde configuración
   @override
   Future<List<Psychologist>> fetchAll({
     String? query,

@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../core/log.dart';
 
 class ApiService {
   static final String apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
   static const String endpoint = "https://api.openai.com/v1/chat/completions";
-  
+
   // 🧠 Cambie esto: ahora acepta historial para mantener el contexto
   static Future<String> enviarMensaje(
     String mensajeUsuario,
@@ -30,10 +31,13 @@ Eres Haru, un asistente empático y motivador especializado únicamente en biene
 "Lo siento, solo puedo hablar sobre bienestar emocional y hábitos saludables 😊".
 
 Tu meta es escuchar con empatía, ofrecer apoyo emocional general y redirigir a profesionales cuando detectes riesgo emocional o crisis.
-"""
+""",
         },
         ...historial, // 👈 historial del chat (user + assistant)
-        {"role": "user", "content": mensajeUsuario}, // último mensaje del usuario
+        {
+          "role": "user",
+          "content": mensajeUsuario,
+        }, // último mensaje del usuario
       ];
 
       // Petición a OpenAI
@@ -56,11 +60,11 @@ Tu meta es escuchar con empatía, ofrecer apoyo emocional general y redirigir a 
         // Respuesta textual del modelo
         return data["choices"][0]["message"]["content"];
       } else {
-        print("❌ Error ${response.statusCode}: ${response.body}");
+        log.e('Error ${response.statusCode}: ${response.body}');
         return "⚠️ Error al conectar con Haru. Intenta más tarde.";
       }
-    } catch (e) {
-      print("❌ Excepción: $e");
+    } catch (e, st) {
+      log.e('Excepción en ApiService', error: e, stackTrace: st);
       return "⚠️ Ocurrió un error inesperado al contactar a Haru.";
     }
   }

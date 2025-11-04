@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/screens/psychologist_details.dart';
 import 'package:flutter_application_1/screens/sign_login.dart';
 import 'package:intl/date_symbol_data_local.dart'; // 👈 necesario para locales
 import 'package:logger/logger.dart';
@@ -7,7 +6,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; // este archivo se genera con flutterfire configure
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 
 final logger = Logger();
 
@@ -37,7 +35,7 @@ class MainApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const Scaffold(body: PsychologistHomeScreen()),
+      home: const Scaffold(body: SignLoginScreen()),
     );
 
   }
