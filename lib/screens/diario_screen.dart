@@ -96,7 +96,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
     );
   }
 
-  /// Agregar nota con imagen (opcionalmente acompañada de texto).
+  /// Agregar nota con imagen (opcionalmente acompañada de texto)
   Future<void> _pickImage() async {
     final col = _notesCol();
     final uid = FirebaseAuth.instance.currentUser?.uid;

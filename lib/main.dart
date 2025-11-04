@@ -15,7 +15,7 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await AppState.instance.init();
   try {
-    await dotenv.load(fileName: 'assets/env/.env'); // cargar .env (opcional)
+    await dotenv.load(fileName: 'assets/env/.env'); // cargar .env (opcional
   } catch (e) {
     logger.w('No se pudo cargar .env: $e');
   }

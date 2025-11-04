@@ -307,7 +307,7 @@ class _IaScreenState extends State<IaScreen> {
                       padding: const EdgeInsets.only(top: 20, left: 15),
                       child: InfoBubbleButton(
                         message:
-                            "Este asistente no sustituye la ayuda de un psicólogo o preofesional de la salud mental",
+                            "Este asistente no sustituye la ayuda de un psicólogo o profesional de la salud mental",
                         autoHideDuration: const Duration(seconds: 4),
                         iconSize: 26,
                       ),

@@ -152,7 +152,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                       ScaffoldMessenger.of(parentContext).showSnackBar(
                         const SnackBar(content: Text('Estado de ánimo guardado en tu diario.')),
                       );
-                      // Navega al diario para ver/editar si el usuario desea
+                      // Navega al diario para ver/editar si el usuario dese
                       await Navigator.push(
                         parentContext,
                         MaterialPageRoute(builder: (_) => const DiarioScreen()),
