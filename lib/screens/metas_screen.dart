@@ -10,6 +10,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/state/app_state.dart';
+import 'package:flutter_application_1/core/text_styles.dart';
 
 class MetasScreen extends StatefulWidget {
   const MetasScreen({super.key});
@@ -662,22 +663,33 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 10),
-                      const TitleSection(
-                        texto: 'Tus metas de hoy',
-                        maxLines: 2,
-                        padding: EdgeInsets.only(top: 40),
-                      ),
-                      // botón add
+                      // Header: título + botón Agregar (alineado a la derecha)
                       Padding(
-                        padding: const EdgeInsets.only(top: 4, bottom: 8),
+                        padding: const EdgeInsets.fromLTRB(24, 40, 24, 8),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const Spacer(),
-                            SizedBox(
-                              height: 40,
-                              child: CircularElevatedButton(
+                            Expanded(
+                              child: Text(
+                                'Tus metas de hoy',
+                                style: TextStyles.tituloMotivacional,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(minWidth: 44, maxWidth: 140),
+                              child: OutlinedButton.icon(
                                 onPressed: _showAddNoteSheet,
-                                child: SvgPicture.asset("assets/images/add.svg"),
+                                icon: const Icon(Icons.add, size: 16),
+                                label: const Text('Agregar', style: TextStyle(fontSize: 14)),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  foregroundColor: const Color(0xFF111827),
+                                ),
                               ),
                             ),
                           ],

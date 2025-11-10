@@ -457,6 +457,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 140),
                     ],
                   ),
                 ),
