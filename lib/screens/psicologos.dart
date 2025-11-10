@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/data/psychologists_repo.dart';
@@ -95,13 +96,18 @@ class _PsicologosState extends State<Psicologos> {
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-                left: 16, right: 16, top: 8,
+                left: 16,
+                right: 16,
+                top: 8,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Filtros', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Filtros',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -109,12 +115,17 @@ class _PsicologosState extends State<Psicologos> {
                       const SizedBox(width: 12),
                       DropdownButton<int?>(
                         value: tempPrice,
-                        items: <int?>[null, 400, 500, 600, 800]
-                            .map((v) => DropdownMenuItem<int?>(
-                                  value: v,
-                                  child: Text(v == null ? 'Cualquiera' : '\u0024$v'),
-                                ))
-                            .toList(),
+                        items:
+                            <int?>[null, 400, 500, 600, 800]
+                                .map(
+                                  (v) => DropdownMenuItem<int?>(
+                                    value: v,
+                                    child: Text(
+                                      v == null ? 'Cualquiera' : '\u0024$v',
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                         onChanged: (v) => setModalState(() => tempPrice = v),
                       ),
                     ],
@@ -125,12 +136,19 @@ class _PsicologosState extends State<Psicologos> {
                       const SizedBox(width: 12),
                       DropdownButton<double?>(
                         value: tempRating,
-                        items: <double?>[null, 3.5, 4.0, 4.5, 5.0]
-                            .map((v) => DropdownMenuItem<double?>(
-                                  value: v,
-                                  child: Text(v == null ? 'Cualquiera' : '${v.toStringAsFixed(1)} ★'),
-                                ))
-                            .toList(),
+                        items:
+                            <double?>[null, 3.5, 4.0, 4.5, 5.0]
+                                .map(
+                                  (v) => DropdownMenuItem<double?>(
+                                    value: v,
+                                    child: Text(
+                                      v == null
+                                          ? 'Cualquiera'
+                                          : '${v.toStringAsFixed(1)} ★',
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                         onChanged: (v) => setModalState(() => tempRating = v),
                       ),
                     ],
@@ -157,7 +175,10 @@ class _PsicologosState extends State<Psicologos> {
                           setState(() {
                             _maxPrice = tempPrice;
                             _minRating = tempRating;
-                            _specialty = tempSpec.trim().isEmpty ? null : tempSpec.trim();
+                            _specialty =
+                                tempSpec.trim().isEmpty
+                                    ? null
+                                    : tempSpec.trim();
                           });
                           Navigator.pop(ctx);
                           _fetch();
@@ -175,6 +196,7 @@ class _PsicologosState extends State<Psicologos> {
       },
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -218,7 +240,10 @@ class _PsicologosState extends State<Psicologos> {
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 6,
+                              ),
                               child: InkWell(
                                 onTap: _openFilters,
                                 borderRadius: BorderRadius.circular(999),
@@ -229,11 +254,15 @@ class _PsicologosState extends State<Psicologos> {
                                   ),
                                   child: const Padding(
                                     padding: EdgeInsets.all(10),
-                                    child: Icon(Icons.tune_rounded, size: 20, color: Colors.black87),
+                                    child: Icon(
+                                      Icons.tune_rounded,
+                                      size: 20,
+                                      color: Colors.black87,
+                                    ),
                                   ),
                                 ),
                               ),
-                            )
+                            ),
                           ],
                         ),
                       ),
@@ -259,7 +288,13 @@ class _PsicologosState extends State<Psicologos> {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                     children: [
-                      Text('Psicólogos Disponibles', style: TextStyles.tituloBienvenida.copyWith(fontSize: 20, fontWeight: FontWeight.w800)),
+                      Text(
+                        'Psicólogos Disponibles',
+                        style: TextStyles.tituloBienvenida.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       const Spacer(),
                       TextButton(
                         onPressed: () {
@@ -298,11 +333,18 @@ class _PsicologosState extends State<Psicologos> {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => DiarioScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => DiarioScreen()),
+                      );
                     },
                   ),
                   RadialMenuItem(
@@ -310,18 +352,30 @@ class _PsicologosState extends State<Psicologos> {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => MetasScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MetasScreen()),
+                      );
                     },
                   ),
 
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/house.svg",
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder:(context)=>SecondPrincipalScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SecondPrincipalScreen(),
+                        ),
+                      );
                     },
                   ),
                   RadialMenuItem(
@@ -329,11 +383,18 @@ class _PsicologosState extends State<Psicologos> {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => IaScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => IaScreen()),
+                      );
                     },
                   ),
                   RadialMenuItem(
@@ -341,13 +402,17 @@ class _PsicologosState extends State<Psicologos> {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => MetasScreen()),
+                        MaterialPageRoute(builder: (context) => Progreso()),
                       );
                     },
                   ),
@@ -432,7 +497,13 @@ class _PsychCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFFEAECEE)),
-          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 8, offset: Offset(0, 3))],
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D000000),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
@@ -442,14 +513,17 @@ class _PsychCard extends StatelessWidget {
               // Avatar redondo grande
               CircleAvatar(
                 radius: 36,
-                backgroundImage: (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
-                    ? NetworkImage(p.avatarUrl!)
-                    : (p.avatarAsset != null && p.avatarAsset!.isNotEmpty)
+                backgroundImage:
+                    (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
+                        ? NetworkImage(p.avatarUrl!)
+                        : (p.avatarAsset != null && p.avatarAsset!.isNotEmpty)
                         ? AssetImage(p.avatarAsset!) as ImageProvider
                         : null,
-                child: (p.avatarUrl == null && (p.avatarAsset == null || p.avatarAsset!.isEmpty))
-                    ? const Icon(Icons.person, size: 36)
-                    : null,
+                child:
+                    (p.avatarUrl == null &&
+                            (p.avatarAsset == null || p.avatarAsset!.isEmpty))
+                        ? const Icon(Icons.person, size: 36)
+                        : null,
               ),
               const SizedBox(height: 10),
               Text(
@@ -457,7 +531,10 @@ class _PsychCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -471,13 +548,33 @@ class _PsychCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 16,
+                    color: Color(0xFFF59E0B),
+                  ),
                   const SizedBox(width: 4),
-                  Text(p.rating.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                    p.rating.toStringAsFixed(1),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                   const SizedBox(width: 8),
-                  Container(width: 4, height: 4, decoration: const BoxDecoration(color: Color(0xFFCBD5E1), shape: BoxShape.circle)),
+                  Container(
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFCBD5E1),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Text('\$${p.price}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                  Text(
+                    '\$${p.price}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
               const Spacer(),
@@ -487,7 +584,9 @@ class _PsychCard extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.fondo3,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   onPressed: onTap,
@@ -510,14 +609,32 @@ class _CategoriesRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categories = <({IconData icon, String label, Color color})>[
-      (icon: Icons.psychology_alt, label: 'Todas', color: const Color(0xFFE8EAF6)),
-      (icon: Icons.lightbulb_outline, label: 'Terapia Cognitivo-Conductual', color: const Color(0xFFE6F7F2)),
-      (icon: Icons.child_care, label: 'Psicología Infantil', color: const Color(0xFFFFF3E6)),
-      (icon: Icons.favorite_outline, label: 'Terapia de Pareja', color: const Color(0xFFF3E8FF)),
+      (
+        icon: Icons.psychology_alt,
+        label: 'Todas',
+        color: const Color(0xFFE8EAF6),
+      ),
+      (
+        icon: Icons.lightbulb_outline,
+        label: 'Terapia Cognitivo-Conductual',
+        color: const Color(0xFFE6F7F2),
+      ),
+      (
+        icon: Icons.child_care,
+        label: 'Psicología Infantil',
+        color: const Color(0xFFFFF3E6),
+      ),
+      (
+        icon: Icons.favorite_outline,
+        label: 'Terapia de Pareja',
+        color: const Color(0xFFF3E8FF),
+      ),
     ];
     final scaler = MediaQuery.textScalerOf(context);
-    final factor = scaler.scale(1.0);   
-    final extra = ((factor - 1.0).clamp(0.0, 1.0)) * 44.0; // add up to 44px when scale up to 2.0
+    final factor = scaler.scale(1.0);
+    final extra =
+        ((factor - 1.0).clamp(0.0, 1.0)) *
+        44.0; // add up to 44px when scale up to 2.0
     final rowHeight = 92.0 + extra;
     return SizedBox(
       height: rowHeight,
@@ -526,7 +643,8 @@ class _CategoriesRow extends StatelessWidget {
         padding: const EdgeInsets.only(left: 4, right: 4),
         itemBuilder: (ctx, i) {
           final item = categories[i];
-          final isSel = selected == null ? item.label == 'Todas' : selected == item.label;
+          final isSel =
+              selected == null ? item.label == 'Todas' : selected == item.label;
           return _CategoryPill(
             icon: item.icon,
             label: item.label,
@@ -558,7 +676,7 @@ class _CategoryPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  final bg = selected ? AppColors.fondo3.withValues(alpha: 0.12) : color;
+    final bg = selected ? AppColors.fondo3.withValues(alpha: 0.12) : color;
     final fg = selected ? AppColors.fondo3 : Colors.black87;
     return InkWell(
       onTap: onTap,
@@ -585,7 +703,12 @@ class _CategoryPill extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, height: 1.2, fontWeight: FontWeight.w600, color: fg),
+                style: TextStyle(
+                  fontSize: 11,
+                  height: 1.2,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
+                ),
               ),
             ),
           ],
@@ -594,7 +717,7 @@ class _CategoryPill extends StatelessWidget {
     );
   }
 }
- 
+
 // Eliminado: _AvatarAsset ya no se utiliza tras el rediseño de las tarjetas.
 
 void _openPreview(BuildContext context, Psychologist p) {
@@ -628,47 +751,90 @@ void _openPreview(BuildContext context, Psychologist p) {
                 children: [
                   CircleAvatar(
                     radius: 40,
-                    backgroundImage: (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
-                        ? NetworkImage(p.avatarUrl!)
-                        : (p.avatarAsset != null && p.avatarAsset!.isNotEmpty)
+                    backgroundImage:
+                        (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
+                            ? NetworkImage(p.avatarUrl!)
+                            : (p.avatarAsset != null &&
+                                p.avatarAsset!.isNotEmpty)
                             ? AssetImage(p.avatarAsset!) as ImageProvider
                             : null,
-                    child: (p.avatarUrl == null && (p.avatarAsset == null || p.avatarAsset!.isEmpty))
-                        ? const Icon(Icons.person, size: 40)
-                        : null,
+                    child:
+                        (p.avatarUrl == null &&
+                                (p.avatarAsset == null ||
+                                    p.avatarAsset!.isEmpty))
+                            ? const Icon(Icons.person, size: 40)
+                            : null,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(p.name, style: TextStyles.tituloBienvenida.copyWith(fontSize: 22, fontWeight: FontWeight.w800)),
+                        Text(
+                          p.name,
+                          style: TextStyles.tituloBienvenida.copyWith(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                         const SizedBox(height: 6),
                         Row(
                           children: [
                             ...List.generate(5, (i) {
                               final full = p.rating.floor();
                               final half = (p.rating - full) >= 0.5;
-                              if (i < full) return const Icon(Icons.star, color: Colors.amber, size: 18);
-                              if (i == full && half) return const Icon(Icons.star_half, color: Colors.amber, size: 18);
-                              return const Icon(Icons.star_border, color: Colors.amber, size: 18);
+                              if (i < full)
+                                return const Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                  size: 18,
+                                );
+                              if (i == full && half)
+                                return const Icon(
+                                  Icons.star_half,
+                                  color: Colors.amber,
+                                  size: 18,
+                                );
+                              return const Icon(
+                                Icons.star_border,
+                                color: Colors.amber,
+                                size: 18,
+                              );
                             }),
                             const SizedBox(width: 6),
-                            Text('${p.rating.toStringAsFixed(1)} (2,100 reseñas)', style: TextStyles.textDicho.copyWith(fontSize: 12)),
+                            Text(
+                              '${p.rating.toStringAsFixed(1)} (2,100 reseñas)',
+                              style: TextStyles.textDicho.copyWith(
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
-                        Text(p.specialties.join(' • '), style: TextStyles.textDicho.copyWith(fontSize: 13)),
+                        Text(
+                          p.specialties.join(' • '),
+                          style: TextStyles.textDicho.copyWith(fontSize: 13),
+                        ),
                         const SizedBox(height: 8),
                         if (p.isAvailable)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.green.shade50,
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(color: Colors.green.shade200),
                             ),
-                            child: const Text('Disponible Hoy', style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600, fontSize: 12)),
+                            child: const Text(
+                              'Disponible Hoy',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -683,12 +849,21 @@ void _openPreview(BuildContext context, Psychologist p) {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFE5E7EB)),
-                  boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 4))],
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0F000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const CircleAvatar(radius: 16, child: Icon(Icons.person, size: 16)),
+                    const CircleAvatar(
+                      radius: 16,
+                      child: Icon(Icons.person, size: 16),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -707,13 +882,18 @@ void _openPreview(BuildContext context, Psychologist p) {
                     backgroundColor: AppColors.fondo3,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   onPressed: () {
                     Navigator.pop(ctx);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => PsychologistDetailsScreen(psychologist: p)),
+                      MaterialPageRoute(
+                        builder:
+                            (_) => PsychologistDetailsScreen(psychologist: p),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.arrow_forward_rounded),

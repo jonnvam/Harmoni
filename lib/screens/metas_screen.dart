@@ -3,6 +3,7 @@ import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
+import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_application_1/data/goals_manager.dart';
@@ -775,6 +776,7 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                         );
                         return;
                       }
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => Progreso()));
                     },
                   ),
                   RadialMenuItem(
@@ -831,7 +833,7 @@ class _GoalCard extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [const Color(0xFFE0E7FF), const Color(0xFFFFFFFF)],
+                    colors: [const Color(0xD8E0E7FF), const Color(0xFFFFFFFF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
