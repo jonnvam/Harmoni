@@ -313,8 +313,16 @@ class _DiarioScreenState extends State<DiarioScreen> {
                         children: [
                           Row(
                             children: [
+<<<<<<< HEAD
                               const Padding(
                                 padding: EdgeInsets.only(left: 20, top: 25),
+=======
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  left: 20,
+                                  top: 25,
+                                ),
+>>>>>>> feature/stabilize-before-main
                                 child: HolaNombre(
                                   style: TextStyles.textDiario,
                                   prefix: "Hola",
@@ -457,6 +465,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 140),
                     ],
                   ),
                 ),

@@ -5,6 +5,7 @@ import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/principal_screen.dart';
 import 'package:flutter_application_1/services/auth_google.dart';
+<<<<<<< HEAD
 import 'package:flutter_application_1/screens/rest_codigo.dart';
 import 'package:flutter_application_1/services/auth_email.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,6 +14,12 @@ import 'package:flutter_application_1/models/user_role.dart';
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
+=======
+import 'package:flutter_application_1/screens/restCodigo.dart';
+import 'package:flutter_application_1/services/auth_email.dart';
+import 'package:flutter_application_1/screens/verificacion.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+>>>>>>> feature/stabilize-before-main
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -24,6 +31,47 @@ class SignLoginScreen extends StatefulWidget {
 class _SignLoginScreenState extends State<SignLoginScreen> {
   bool isSignUpScreen = true;
   UserRole _selectedRole = UserRole.paciente;
+
+  final _nombreCtrl = TextEditingController();
+  final _apellidoCtrl = TextEditingController();
+  final _emailUpCtrl = TextEditingController();
+  final _passUpCtrl = TextEditingController();
+  DateTime? _fechaNacimiento;
+  final _fechaCtrl = TextEditingController();
+
+  final _emailInCtrl = TextEditingController();
+  final _passInCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _apellidoCtrl.dispose();
+    _emailUpCtrl.dispose();
+    _passUpCtrl.dispose();
+    _fechaCtrl.dispose();
+    _emailInCtrl.dispose();
+    _passInCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFechaNacimiento(BuildContext context) async {
+    final now = DateTime.now();
+    final initial = DateTime(now.year - 18, now.month, now.day); // sugerir 18+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _fechaNacimiento ?? initial,
+      firstDate: DateTime(1900),
+      lastDate: now,
+      helpText: 'Selecciona tu fecha de nacimiento',
+    );
+    if (picked != null) {
+      setState(() {
+        _fechaNacimiento = picked;
+        _fechaCtrl.text =
+            "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      });
+    }
+  }
 
   final _nombreCtrl = TextEditingController();
   final _apellidoCtrl = TextEditingController();
@@ -240,6 +288,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           padding: const EdgeInsets.only(left: 12, bottom: 8),
           child: TextoDatos(texto: 'Rol'),
         ),
+<<<<<<< HEAD
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Wrap(
@@ -257,6 +306,33 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                 onSelected: (_) => setState(() => _selectedRole = UserRole.psicologo),
               ),
             ],
+=======
+        ContainerLogin(
+          width: double.infinity,
+          height: 53,
+          child: Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: TextField(
+              controller: _nombreCtrl,
+              decoration: InputDecoration(border: InputBorder.none),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: TextoDatos(texto: 'Apellido'),
+        ),
+        ContainerLogin(
+          width: double.infinity,
+          height: 53,
+          child: Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: TextField(
+              controller: _apellidoCtrl,
+              decoration: InputDecoration(border: InputBorder.none),
+            ),
+>>>>>>> feature/stabilize-before-main
           ),
         ),
         // Nombre y Apellido en la misma fila
@@ -346,6 +422,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
+<<<<<<< HEAD
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.only(left: 12),
@@ -371,6 +448,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
           ),
         ),
         const SizedBox(height: 16),
+=======
+        const SizedBox(height: 10),
+        // Mantener el mismo espacio vertical: antes había un top:30 en el padding del botón
+        const SizedBox(height: 10),
+>>>>>>> feature/stabilize-before-main
         Align(
           alignment: Alignment.center,
           child: AuthButton(
@@ -415,10 +497,17 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                   email: email,
                   password: pass,
                   fechaNacimiento: dob,
+<<<<<<< HEAD
                   role: _selectedRole.key,
                 );
 
                 if (!mounted) return;
+=======
+                );
+
+                if (!mounted) return;
+                // Lleva a una pantalla que explique “te enviamos un correo”
+>>>>>>> feature/stabilize-before-main
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -439,7 +528,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             },
           ),
         ),
+<<<<<<< HEAD
         const SizedBox(height: 16),
+=======
+        const SizedBox(height: 30),
+>>>>>>> feature/stabilize-before-main
         Align(
           alignment: Alignment.center,
           child: Text(
@@ -452,7 +545,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
+<<<<<<< HEAD
         const SizedBox(height: 12),
+=======
+        const SizedBox(height: 20),
+>>>>>>> feature/stabilize-before-main
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -460,7 +557,10 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
               iconPath: "assets/images/icon/google.svg",
               onPressed: () async {
                 final user = await AuthService().signInWithGoogle(context);
+<<<<<<< HEAD
                 if (!mounted) return;
+=======
+>>>>>>> feature/stabilize-before-main
                 if (user != null) {
                   Navigator.pushReplacement(
                     context,
@@ -473,7 +573,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             AuthIconButton(
               iconPath: "assets/images/icon/apple.svg",
               onPressed: () {
+<<<<<<< HEAD
                 // para hacer: Implementar registro con Apple
+=======
+                print("Registrarse con Apple");
+>>>>>>> feature/stabilize-before-main
               },
             ),
           ],
@@ -561,6 +665,10 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
               ),
             ),
             const Spacer(),
+<<<<<<< HEAD
+=======
+            // Simetría: alineamos el segundo texto al borde derecho con un padding similar
+>>>>>>> feature/stabilize-before-main
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: InkWell(
@@ -605,6 +713,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                 );
                 if (!mounted) return;
                 if (user != null) {
+<<<<<<< HEAD
                   // Obtener o establecer rol
                   final uid = user.uid;
                   final doc = await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
@@ -627,6 +736,12 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                       MaterialPageRoute(builder: (_) => PrincipalScreen()),
                     );
                   }
+=======
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                  );
+>>>>>>> feature/stabilize-before-main
                 }
               } on FirebaseAuthException catch (e) {
                 if (e.code == 'email-not-verified') {
@@ -654,7 +769,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             },
           ),
         ),
+<<<<<<< HEAD
         const SizedBox(height: 16),
+=======
+        const SizedBox(height: 20),
+>>>>>>> feature/stabilize-before-main
         Align(
           alignment: Alignment.center,
           child: Text(
@@ -667,7 +786,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             ),
           ),
         ),
+<<<<<<< HEAD
         const SizedBox(height: 12),
+=======
+        const SizedBox(height: 20),
+>>>>>>> feature/stabilize-before-main
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -675,7 +798,10 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
               iconPath: "assets/images/icon/google.svg",
               onPressed: () async {
                 final user = await AuthService().signUpWithGoogle(context);
+<<<<<<< HEAD
                 if (!mounted) return;
+=======
+>>>>>>> feature/stabilize-before-main
                 if (user != null) {
                   Navigator.pushReplacement(
                     context,
@@ -684,11 +810,19 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                 }
               },
             ),
+<<<<<<< HEAD
+=======
+
+>>>>>>> feature/stabilize-before-main
             const SizedBox(width: 16),
             AuthIconButton(
               iconPath: "assets/images/icon/apple.svg",
               onPressed: () {
+<<<<<<< HEAD
                 // para hacer: Implementar inicio de sesión con Apple
+=======
+                print("Iniciar sesión con Apple");
+>>>>>>> feature/stabilize-before-main
               },
             ),
           ],

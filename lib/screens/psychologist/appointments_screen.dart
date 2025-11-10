@@ -2,10 +2,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
+<<<<<<< HEAD
 import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/patients_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/availability_screen.dart';
+=======
+// TODO: Reintroduce responsive & other psychologist screens when implemented.
+// import 'package:flutter_application_1/core/responsive.dart';
+// import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
+// import 'package:flutter_application_1/screens/psychologist/patients_screen.dart';
+// import 'package:flutter_application_1/screens/psychologist/availability_screen.dart';
+>>>>>>> feature/stabilize-before-main
 
 class PsychologistAppointmentsScreen extends StatelessWidget {
   const PsychologistAppointmentsScreen({super.key});
@@ -22,7 +30,13 @@ class PsychologistAppointmentsScreen extends StatelessWidget {
               children: [
                 const DropMenu(),
                 Expanded(
+<<<<<<< HEAD
                   child: MaxWidthContainer(
+=======
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+>>>>>>> feature/stabilize-before-main
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -94,6 +108,7 @@ class PsychologistAppointmentsScreen extends StatelessWidget {
                   currentIconAsset: "assets/images/icon/agenda.svg",
                   ringColor: Colors.transparent,
                   items: [
+<<<<<<< HEAD
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/pacientes.svg",
                       onTap: () => Navigator.pushReplacement(
@@ -114,6 +129,20 @@ class PsychologistAppointmentsScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(builder: (_) => const PsychologistAvailabilityScreen()),
                       ),
+=======
+                    // Placeholder items until other screens exist
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/pacientes.svg",
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pantalla Pacientes pendiente'))),
+                    ),
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/house.svg",
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pantalla Inicio pendiente'))),
+                    ),
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/disponi.svg",
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pantalla Disponibilidad pendiente'))),
+>>>>>>> feature/stabilize-before-main
                     ),
                   ],
                 ),

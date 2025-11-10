@@ -11,8 +11,12 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+<<<<<<< HEAD
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_application_1/models/user_role.dart';
+import 'package:flutter_application_1/screens/assessment/phq_gad_test_screen.dart';
+=======
+>>>>>>> feature/stabilize-before-main
 
 String _initialsFrom({
   String? displayName,
@@ -1241,6 +1245,35 @@ class _RadialCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Wrap the provided onTap with a guard: patients who have not completed the
+    // initial PHQ/GAD test should be prompted to take it before navigating.
+    void handleTap() {
+      final isLocked = !AppState.instance.isTestCompleted && AppState.instance.role == UserRole.paciente;
+      if (isLocked) {
+        showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Completa el test inicial'),
+            content: const Text('Para usar el menú primero debes completar el test inicial (PHQ/GAD). ¿Deseas hacerlo ahora?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancelar')),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhqGadTestScreen()));
+                },
+                child: const Text('Ir al test'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+      try {
+        onTap();
+      } catch (_) {}
+    }
+
     final button = Material(
       color: background,
       shape: CircleBorder(
@@ -1251,7 +1284,7 @@ class _RadialCircleButton extends StatelessWidget {
       ),
       elevation: 0,
       child: InkWell(
-        onTap: onTap,
+        onTap: handleTap,
         customBorder: const CircleBorder(),
         child: SizedBox(
           width: size,
@@ -1643,7 +1676,11 @@ class ContainerC2 extends StatelessWidget {
 }
 
 class ContainerC3 extends StatelessWidget {
+<<<<<<< HEAD
   final double? height; // allow dynamic height when null
+=======
+  final double height;
+>>>>>>> feature/stabilize-before-main
   final double width;
   final Widget child;
   final Alignment alignment; // 👈 lo guardamos

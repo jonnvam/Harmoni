@@ -12,8 +12,11 @@ import 'package:flutter_application_1/data/emotion_journal.dart';
 import 'package:flutter_application_1/data/diary_repo.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+<<<<<<< HEAD
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_application_1/state/app_state.dart';
+=======
+>>>>>>> feature/stabilize-before-main
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -26,6 +29,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
   bool showStep2 = false;
   bool showStep3 = false;
   bool showStep4 = false;
+<<<<<<< HEAD
 
   void _guardedNavigate(Widget screen) {
     if (!AppState.instance.isTestCompleted) {
@@ -168,6 +172,8 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
       },
     );
   }
+=======
+>>>>>>> feature/stabilize-before-main
 
   @override
   void didChangeDependencies() {
@@ -215,7 +221,31 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Feliz",
                           icon: "assets/images/emotions/Feliz.svg",
+<<<<<<< HEAD
                           onTap: () => _openMoodModal(context, 'Feliz', 'assets/images/emotions/Feliz.svg'),
+=======
+                          onTap: () async {
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.happy);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Guardado: Feliz')),
+                            );
+                            final id = await DiaryRepo.nextId();
+                            final note = DiaryNote(
+                              id: id,
+                              date: DateTime.now(),
+                              type: DiaryNoteType.text,
+                              text: 'Hoy me sentí Feliz: ',
+                            );
+                            await DiaryRepo.instance.addNote(note);
+                            if (!mounted) return;
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
+                          },
+>>>>>>> feature/stabilize-before-main
                         ),
                       ],
                     ),
@@ -225,7 +255,31 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Triste",
                           icon: "assets/images/emotions/Triste.svg",
+<<<<<<< HEAD
                           onTap: () => _openMoodModal(context, 'Triste', 'assets/images/emotions/Triste.svg'),
+=======
+                          onTap: () async {
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.sad);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Guardado: Triste')),
+                            );
+                            final id = await DiaryRepo.nextId();
+                            final note = DiaryNote(
+                              id: id,
+                              date: DateTime.now(),
+                              type: DiaryNoteType.text,
+                              text: 'Hoy me sentí Triste: ',
+                            );
+                            await DiaryRepo.instance.addNote(note);
+                            if (!mounted) return;
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
+                          },
+>>>>>>> feature/stabilize-before-main
                         ),
                       ],
                     ),
@@ -234,7 +288,31 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Enojado",
                           icon: "assets/images/emotions/Enojado.svg",
+<<<<<<< HEAD
                           onTap: () => _openMoodModal(context, 'Enojado', 'assets/images/emotions/Enojado.svg'),
+=======
+                          onTap: () async {
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.angry);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Guardado: Enojado')),
+                            );
+                            final id = await DiaryRepo.nextId();
+                            final note = DiaryNote(
+                              id: id,
+                              date: DateTime.now(),
+                              type: DiaryNoteType.text,
+                              text: 'Hoy me sentí Enojado: ',
+                            );
+                            await DiaryRepo.instance.addNote(note);
+                            if (!mounted) return;
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
+                          },
+>>>>>>> feature/stabilize-before-main
                         ),
                       ],
                     ),
@@ -249,7 +327,31 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Sorpresa",
                           icon: "assets/images/emotions/Sorpresa.svg",
+<<<<<<< HEAD
                           onTap: () => _openMoodModal(context, 'Sorprendido', 'assets/images/emotions/Sorpresa.svg'),
+=======
+                          onTap: () async {
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.surprised);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Guardado: Sorpresa')),
+                            );
+                            final id = await DiaryRepo.nextId();
+                            final note = DiaryNote(
+                              id: id,
+                              date: DateTime.now(),
+                              type: DiaryNoteType.text,
+                              text: 'Hoy me sentí Sorprendido: ',
+                            );
+                            await DiaryRepo.instance.addNote(note);
+                            if (!mounted) return;
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
+                          },
+>>>>>>> feature/stabilize-before-main
                         ),
                       ],
                     ),
@@ -259,7 +361,31 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                         EmotionButton(
                           text: "Miedo",
                           icon: "assets/images/emotions/Miedo.svg",
+<<<<<<< HEAD
                           onTap: () => _openMoodModal(context, 'Miedo', 'assets/images/emotions/Miedo.svg'),
+=======
+                          onTap: () async {
+                            await EmotionJournal.instance
+                                .saveEmotion(EmotionType.fear);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Guardado: Miedo')),
+                            );
+                            final id = await DiaryRepo.nextId();
+                            final note = DiaryNote(
+                              id: id,
+                              date: DateTime.now(),
+                              type: DiaryNoteType.text,
+                              text: 'Hoy me sentí con Miedo: ',
+                            );
+                            await DiaryRepo.instance.addNote(note);
+                            if (!mounted) return;
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DiarioScreen()));
+                          },
+>>>>>>> feature/stabilize-before-main
                         ),
                       ],
                     ),
@@ -267,7 +393,15 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                 ),
 
                 if (showStep3) const SizedBox(height: 70),
+<<<<<<< HEAD
                 const _FirestoreFlowerProgress(),
+=======
+                const AnimatedFlower(
+                  assetPath: 'assets/animations/flower.json',
+                  showOverlayRing: true,
+                  segments: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                ),
+>>>>>>> feature/stabilize-before-main
                 const SizedBox(height: 70),
 
                 ContainerC1(
@@ -330,6 +464,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                   ),
                 ),
 
+<<<<<<< HEAD
                 const SizedBox(height: 18),
 
                 // ====== Carousel de temas recomendados (Depresión, Ansiedad, etc.) ======
@@ -373,6 +508,8 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                   ),
                 ),
 
+=======
+>>>>>>> feature/stabilize-before-main
                 const SizedBox(height: 30),
 
                 // ====== Metas en progreso (desde Firestore) ======
@@ -394,7 +531,18 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                   items: [
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/diario.svg",
+<<<<<<< HEAD
                       onTap: () => _guardedNavigate(const DiarioScreen()),
+=======
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DiarioScreen(),
+                          ),
+                        );
+                      },
+>>>>>>> feature/stabilize-before-main
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/ia.svg",
@@ -402,6 +550,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/metas.svg",
+<<<<<<< HEAD
                       onTap: () => _guardedNavigate(const MetasScreen()),
                     ),
                     RadialMenuItem(
@@ -411,6 +560,32 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/psicologos.svg",
                       onTap: () => _guardedNavigate(const Psicologos()),
+=======
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const MetasScreen()),
+                        );
+                      },
+                    ),
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/progreso.svg",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const Progreso()),
+                        );
+                      },
+                    ),
+                    RadialMenuItem(
+                      iconAsset: "assets/images/icon/psicologos.svg",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const Psicologos()),
+                        );
+                      },
+>>>>>>> feature/stabilize-before-main
                     ),
                   ],
                 ),
@@ -424,6 +599,7 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
 
 // ====== LISTA Firestore “en progreso” con botón de completar ======
 class _FirestoreInProgressList extends StatelessWidget {
+<<<<<<< HEAD
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -620,10 +796,115 @@ class _TopicCard extends StatelessWidget {
             Align(
               alignment: Alignment.bottomRight,
               child: Text('Ver', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+=======
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
+
+    final query = FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(uid)
+        .collection('metas')
+        .where('estado', isEqualTo: 'en_progreso')
+        .orderBy('creada', descending: true);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snap.hasError) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Error al cargar metas en progreso.'),
+          );
+        }
+        final docs = snap.data?.docs ?? [];
+        if (docs.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Text(
+              'Metas en progreso',
+              style: TextStyle(
+                fontSize: 18,
+                fontFamily: 'Kantumruy Pro',
+                fontWeight: FontWeight.w400,
+              ),
+>>>>>>> feature/stabilize-before-main
             ),
+            const SizedBox(height: 12),
+            ...docs.map((doc) {
+              final d = doc.data() as Map<String, dynamic>? ?? {};
+              final titulo = (d['titulo'] ?? '').toString();
+              final descripcion = (d['descripcion'] ?? '').toString();
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x14000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    title: Text(
+                      titulo,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      descripcion,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'Marcar como completada',
+                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                      onPressed: () async {
+                        await doc.reference.update({'estado': 'completada'});
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('¡Meta completada!'),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+            const SizedBox(height: 20),
           ],
+<<<<<<< HEAD
         ),
       ),
+=======
+        );
+      },
+>>>>>>> feature/stabilize-before-main
     );
   }
 }

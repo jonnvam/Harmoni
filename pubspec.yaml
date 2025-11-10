@@ -7,7 +7,7 @@ environment:
   sdk: ^3.7.2
 
 dependencies:
-  carousel_slider: ^4.1.1
+  carousel_slider: ^5.1.1
   intl: ^0.18.1
   logger: ^2.0.2
   flutter:
@@ -25,9 +25,12 @@ dependencies:
   url_launcher: ^6.3.0
   email_otp: ^3.0.2
   firebase_storage: ^12.3.4
+<<<<<<< HEAD
   flutter_dotenv: ^5.0.2
 dependency_overrides:
   carousel_slider: 5.1.1
+=======
+>>>>>>> feature/stabilize-before-main
 
 
 dev_dependencies:

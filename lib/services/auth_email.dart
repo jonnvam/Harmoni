@@ -19,7 +19,10 @@ class EmailAuthService {
     required String email,
     required String password,
     required DateTime fechaNacimiento,
+<<<<<<< HEAD
     required String role,
+=======
+>>>>>>> feature/stabilize-before-main
   }) async {
     if (_edadDesde(fechaNacimiento) < 18) {
       throw FirebaseAuthException(
@@ -39,8 +42,12 @@ class EmailAuthService {
       'nombre': nombre,
       'apellido': apellido,
       'email': email.trim(),
+<<<<<<< HEAD
       'fechaNacimiento': Timestamp.fromDate(fechaNacimiento),
       'role': role,
+=======
+      'fechaNacimiento': Timestamp.fromDate(fechaNacimiento)
+>>>>>>> feature/stabilize-before-main
     }, SetOptions(merge: true));
 
     await cred.user!.sendEmailVerification();

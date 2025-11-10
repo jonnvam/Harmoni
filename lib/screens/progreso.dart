@@ -250,7 +250,7 @@ class _EmotionBarsCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE0F2FE), // light blue
+        color: const Color(0x68A5B4FC), // 
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -359,7 +359,7 @@ class _EmotionCalendarCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3E8FF), // light purple
+        color: const Color(0x72E0E7FF), // light purple
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
