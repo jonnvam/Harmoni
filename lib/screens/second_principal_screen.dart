@@ -330,6 +330,49 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 18),
+
+                // ====== Carousel de temas recomendados (Depresión, Ansiedad, etc.) ======
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(left: 6, bottom: 8),
+                        child: Text('Temas recomendados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      ),
+                      SizedBox(
+                        height: 120,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            const SizedBox(width: 6),
+                            _TopicCard(
+                              title: 'Depresión',
+                              subtitle: 'Síntomas, señales y cuándo pedir ayuda',
+                              onTap: () => _guardedNavigate(IaScreen(initialTopic: 'Depresión')),
+                            ),
+                            const SizedBox(width: 10),
+                            _TopicCard(
+                              title: 'Ansiedad',
+                              subtitle: 'Técnicas para calmar y manejar ataques',
+                              onTap: () => _guardedNavigate(IaScreen(initialTopic: 'Ansiedad')),
+                            ),
+                            const SizedBox(width: 10),
+                            _TopicCard(
+                              title: 'Insomnio',
+                              subtitle: 'Rutinas y hábitos para mejorar el sueño',
+                              onTap: () => _guardedNavigate(IaScreen(initialTopic: 'Insomnio')),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 30),
 
                 // ====== Metas en progreso (desde Firestore) ======
@@ -534,6 +577,53 @@ class _FirestoreFlowerProgress extends StatelessWidget {
           segmentsCountOverride: 6,
         );
       },
+    );
+  }
+}
+
+class _TopicCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _TopicCard({required this.title, required this.subtitle, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 240,
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE6E8F0)),
+          boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 4))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            Expanded(
+              child: Text(
+                subtitle,
+                style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w300),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Text('Ver', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

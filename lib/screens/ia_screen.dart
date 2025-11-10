@@ -12,7 +12,8 @@ import 'package:flutter_application_1/data/api_service.dart'; // 👈 (ya estaba
 import 'package:flutter_application_1/state/app_state.dart';
 
 class IaScreen extends StatefulWidget {
-  const IaScreen({super.key});
+  final String? initialTopic;
+  const IaScreen({super.key, this.initialTopic});
 
   @override
   State<IaScreen> createState() => _IaScreenState();
@@ -33,6 +34,25 @@ class _IaScreenState extends State<IaScreen> {
   void dispose() {
     _chatCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // If opened with an initial topic, prefill the chat and ask the IA to explain it.
+    if (widget.initialTopic != null && widget.initialTopic!.trim().isNotEmpty) {
+      final topic = widget.initialTopic!.trim();
+      // Prepare a friendly prompt asking the IA to explain the topic briefly and safely.
+      final prompt = 'Explícame brevemente sobre: $topic. ¿Qué es, cuáles son los síntomas principales y qué estrategias prácticas puedo usar para manejarlo en el día a día?';
+      // Delay a little to allow the screen to build.
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        _chatCtrl.text = prompt;
+        await Future.delayed(const Duration(milliseconds: 220));
+        if (!mounted) return;
+        await _sendMessage();
+      });
+    }
   }
 
   Future<void> _openDiarySelectionModal() async {
