@@ -318,13 +318,8 @@ class _IaScreenState extends State<IaScreen> {
                         children: [
                           HolaNombre(
                             style: TextStyles.textInicioName,
-<<<<<<< HEAD
-                            prefix:"Hola",
-                          ),
-=======
                             prefix: "Hola",
-                          )
->>>>>>> feature/stabilize-before-main
+                          ),
                         ],
                       ),
                     ),

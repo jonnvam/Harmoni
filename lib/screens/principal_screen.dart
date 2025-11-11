@@ -7,16 +7,10 @@ import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
-<<<<<<< HEAD
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_application_1/screens/assessment/phq_gad_test_screen.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-=======
-import 'package:flutter_application_1/state/app_state.dart';
-import 'package:flutter_application_1/screens/assessment/phq_gad_test_screen.dart';
-//import 'package:carousel_slider/carousel_slider.dart';
->>>>>>> feature/stabilize-before-main
 
 class PrincipalScreen extends StatefulWidget {
   const PrincipalScreen({super.key});
@@ -29,16 +23,6 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   bool showStep2 = false;
   bool showStep3 = false;
   bool showStep4 = false;
-
-  void _guardedNavigate(Widget screen) {
-    if (!AppState.instance.isTestCompleted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
-      );
-      return;
-    }
-    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
-  }
 
   @override
   void initState() {
@@ -74,12 +58,12 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
           SingleChildScrollView(
             child: Column(
               children: [
-                DropMenu(),
+                const DropMenu(),
                 Padding(
-                  padding: EdgeInsets.only(top: 20, left: 45),
+                  padding: const EdgeInsets.only(top: 20, left: 45),
                   child: Row(
                     children: [
-                      HolaNombre(style: TextStyles.textInicioName, prefix: "Hola",),
+                      HolaNombre(style: TextStyles.textInicioName, prefix: "Hola"),
                     ],
                   ),
                 ),
@@ -103,17 +87,10 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                     child: Row(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.only(
-                            left: 11,
-                            top: 6,
-                            right: 25,
-                          ),
+                          padding: const EdgeInsets.only(left: 11, top: 6, right: 25),
                           child: Column(
                             children: [
-                              Text(
-                                "Comienza tu estudio \ninicial",
-                                style: TextStyles.textInicioC1,
-                              ),
+                              Text("Comienza tu estudio \ninicial", style: TextStyles.textInicioC1),
                             ],
                           ),
                         ),
@@ -129,9 +106,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                                     MaterialPageRoute(builder: (_) => const PhqGadTestScreen()),
                                   );
                                 },
-                                child: SvgPicture.asset(
-                                  "assets/images/export.svg",
-                                ),
+                                child: SvgPicture.asset("assets/images/export.svg"),
                               ),
                             ),
                           ],
@@ -141,81 +116,75 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                  const SizedBox(height: 40),
-
-                  // ====== Carousel de temas recomendados (mejorado diseño + autoplay R->L) ======
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(left: 6, bottom: 8),
-                          child: Text('Temas recomendados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                        ),
-                        const SizedBox(height: 6),
-
-                        CarouselSlider.builder(
-                          itemCount: 4,
-                          itemBuilder: (context, index, realIdx) {
-                            // build slides: 0=Depresión,1=Ansiedad,2=Insomnio,3=Hora de escribir
-                            if (index == 3) {
-                              return TopicCard(
-                                title: 'Hora de escribir',
-                                subtitle: 'Abre tu diario y escribe una nota',
-                                icon: Icons.edit,
-                                backgroundColor: const Color(0xFFE0E7FF),
-                                onTap: () => _guardedNavigate(DiarioScreen()),
-                              );
-                            }
-
-                            final data = [
-                              {
-                                'title': 'Depresión',
-                                'subtitle': 'Síntomas, señales y cuándo pedir ayuda',
-                                'icon': Icons.mood_bad,
-                                'color': const Color(0xFFE0E7FF),
-                                'topic': 'Depresión'
-                              },
-                              {
-                                'title': 'Ansiedad',
-                                'subtitle': 'Técnicas para calmar y manejar ataques',
-                                'icon': Icons.self_improvement,
-                                'color': const Color(0xFFE0E7FF),
-                                'topic': 'Ansiedad'
-                              },
-                              {
-                                'title': 'Insomnio',
-                                'subtitle': 'Rutinas y hábitos para mejorar el sueño',
-                                'icon': Icons.bedtime,
-                                'color': const Color(0xFFE0E7FF),
-                                'topic': 'Insomnio'
-                              },
-                            ];
-
-                            final item = data[index];
+                // ====== Carousel de temas recomendados (mejorado diseño + autoplay R->L) ======
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(left: 6, bottom: 8),
+                        child: Text('Temas recomendados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(height: 6),
+                      CarouselSlider.builder(
+                        itemCount: 4,
+                        itemBuilder: (context, index, realIdx) {
+                          if (index == 3) {
                             return TopicCard(
-                              title: item['title'] as String,
-                              subtitle: item['subtitle'] as String,
-                              icon: item['icon'] as IconData,
-                              backgroundColor: item['color'] as Color,
-                              onTap: () => _guardedNavigate(IaScreen(initialTopic: item['topic'] as String)),
+                              title: 'Hora de escribir',
+                              subtitle: 'Abre tu diario y escribe una nota',
+                              icon: Icons.edit,
+                              backgroundColor: const Color(0xFFE0E7FF),
+                              onTap: () => _guardedNavigate(DiarioScreen()),
                             );
-                          },
-                          options: CarouselOptions(
-                            height: 140,
-                            viewportFraction: 0.8,
-                            enlargeCenterPage: true,
-                            autoPlay: true,
-                            autoPlayInterval: const Duration(seconds: 4),
-                            autoPlayAnimationDuration: const Duration(milliseconds: 700),
-                            reverse: true, // move right-to-left
-                            enableInfiniteScroll: true,
-                          ),
+                          }
+                          final data = [
+                            {
+                              'title': 'Depresión',
+                              'subtitle': 'Síntomas, señales y cuándo pedir ayuda',
+                              'icon': Icons.mood_bad,
+                              'color': const Color(0xFFE0E7FF),
+                              'topic': 'Depresión'
+                            },
+                            {
+                              'title': 'Ansiedad',
+                              'subtitle': 'Técnicas para calmar y manejar ataques',
+                              'icon': Icons.self_improvement,
+                              'color': const Color(0xFFE0E7FF),
+                              'topic': 'Ansiedad'
+                            },
+                            {
+                              'title': 'Insomnio',
+                              'subtitle': 'Rutinas y hábitos para mejorar el sueño',
+                              'icon': Icons.bedtime,
+                              'color': const Color(0xFFE0E7FF),
+                              'topic': 'Insomnio'
+                            },
+                          ];
+                          final item = data[index];
+                          return TopicCard(
+                            title: item['title'] as String,
+                            subtitle: item['subtitle'] as String,
+                            icon: item['icon'] as IconData,
+                            backgroundColor: item['color'] as Color,
+                            onTap: () => _guardedNavigate(IaScreen(initialTopic: item['topic'] as String)),
+                          );
+                        },
+                        options: CarouselOptions(
+                          height: 140,
+                          viewportFraction: 0.8,
+                          enlargeCenterPage: true,
+                          autoPlay: true,
+                          autoPlayInterval: const Duration(seconds: 4),
+                          autoPlayAnimationDuration: const Duration(milliseconds: 700),
+                          reverse: true,
+                          enableInfiniteScroll: true,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
               ],
             ),
           ),
@@ -237,19 +206,11 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
-<<<<<<< HEAD
                     onTap: () => _guardedNavigate(const MetasScreen()),
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
                     onTap: () => _guardedNavigate(const Progreso()),
-=======
-                    onTap: () => _guardedNavigate(Container()),
-                  ),
-                  RadialMenuItem(
-                    iconAsset: "assets/images/icon/progreso.svg",
-                    onTap: () => _guardedNavigate(Container()),
->>>>>>> feature/stabilize-before-main
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/psicologos.svg",

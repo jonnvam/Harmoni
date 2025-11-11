@@ -10,11 +10,8 @@ import 'package:flutter_application_1/data/goals_manager.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-<<<<<<< HEAD
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
-=======
->>>>>>> feature/stabilize-before-main
 
 class MetasScreen extends StatefulWidget {
   const MetasScreen({super.key});
@@ -59,11 +56,7 @@ class _MetasScreenState extends State<MetasScreen> {
   }
 
   Future<void> _startGoal(Goal goal) async {
-<<<<<<< HEAD
     _manager.startGoal(goal);
-=======
-    final ok = _manager.startGoal(goal);
->>>>>>> feature/stabilize-before-main
     if (!mounted) return;
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -260,11 +253,7 @@ class _MetasScreenState extends State<MetasScreen> {
         .collection('usuarios')
         .doc(uid)
         .collection('metas')
-<<<<<<< HEAD
         .where('estado', isEqualTo: 'en_progreso')
-=======
-        .where('estado', isEqualTo: 'pendiente')
->>>>>>> feature/stabilize-before-main
         .orderBy('creada', descending: true);
 
     return StreamBuilder<QuerySnapshot>(
@@ -290,11 +279,7 @@ class _MetasScreenState extends State<MetasScreen> {
           );
         }
 
-<<<<<<< HEAD
                 return ListView.separated(
-=======
-        return ListView.separated(
->>>>>>> feature/stabilize-before-main
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: docs.length,
@@ -318,7 +303,6 @@ class _MetasScreenState extends State<MetasScreen> {
                   ),
                 ],
               ),
-<<<<<<< HEAD
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                         child: Row(
@@ -376,45 +360,6 @@ class _MetasScreenState extends State<MetasScreen> {
                           ],
                         ),
                       ),
-=======
-              child: ListTile(
-                title: Text(
-                  titulo,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Kantumruy Pro',
-                  ),
-                ),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    descripcion,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w300,
-                      fontFamily: 'Kantumruy Pro',
-                    ),
-                  ),
-                ),
-                // 👉 BOTÓN DE COMPLETAR (palomita verde al confirmar)
-                trailing: IconButton(
-                  tooltip: 'Marcar como completada',
-                  icon: const Icon(Icons.check_circle, color: Colors.green),
-                  onPressed: () async {
-                    await docs[i].reference.update({'estado': 'completada'});
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Meta marcada como completada'),
-                        duration: Duration(seconds: 1),
-                      ),
-                    );
-                  },
-                ),
-                dense: true,
-              ),
->>>>>>> feature/stabilize-before-main
             );
           },
         );
@@ -422,7 +367,6 @@ class _MetasScreenState extends State<MetasScreen> {
     );
   }
 
-<<<<<<< HEAD
 // Reemplaza tu _buildCompletedChips() por este
 Widget _buildCompletedChips() {
   final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -461,164 +405,6 @@ Widget _buildCompletedChips() {
               'Completados',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
             ),
-=======
-  Widget _buildCompletedChips() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return const SizedBox.shrink();
-
-    final query = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(uid)
-        .collection('metas')
-        .where('estado', isEqualTo: 'completada')
-        .orderBy('creada', descending: true);
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
-      builder: (context, snap) {
-        if (!snap.hasData || (snap.data?.docs ?? []).isEmpty) {
-          return const SizedBox.shrink();
-        }
-        final docs = snap.data!.docs;
-        // mostramos últimas 3 como chips (igual que tu look)
-        final recent = docs.take(3).toList();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(left: 24, bottom: 8, top: 8),
-              child: Text(
-                'Completados',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: recent.map((d) {
-                  final data = d.data() as Map<String, dynamic>? ?? {};
-                  final titulo = (data['titulo'] ?? '').toString();
-                  return _CompletedCircleChip(title: titulo);
-                }).toList(),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // ---- BottomSheet agregar nota ----
-  void _showAddNoteSheet() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Debes iniciar sesión.')));
-      return;
-    }
-
-    final tituloCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-            top: 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('+',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Kantumruy Pro')),
-              const SizedBox(height: 12),
-              ContainerLogin(
-                width: double.infinity,
-                height: 53,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: TextField(
-                    controller: tituloCtrl,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'Título (ej. Agradecimientos)',
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: TextField(
-                  controller: descCtrl,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    contentPadding: EdgeInsets.all(12),
-                    border: InputBorder.none,
-                    hintText:
-                        'Descripción (ej. Escribir 3 cosas por las que estoy agradecido)',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final titulo = tituloCtrl.text.trim();
-                    final descripcion = descCtrl.text.trim();
-                    if (titulo.isEmpty || descripcion.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Completa título y descripción.')),
-                      );
-                      return;
-                    }
-                    await FirebaseFirestore.instance
-                        .collection('usuarios')
-                        .doc(uid)
-                        .collection('metas')
-                        .add({
-                      'titulo': titulo,
-                      'descripcion': descripcion,
-                      'creada': FieldValue.serverTimestamp(),
-                      'estado': 'pendiente',
-                    });
-
-                    if (mounted) Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(const SnackBar(content: Text('Meta agregada')));
-                  },
-                  icon: const Icon(Icons.check),
-                  label: const Text('Guardar'),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ],
->>>>>>> feature/stabilize-before-main
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -929,42 +715,6 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                     ],
                   ),
                 ),
-<<<<<<< HEAD
-=======
-                // botón add
-                Padding(
-                  padding:
-                      const EdgeInsets.only(top: 4, left: 24, right: 24, bottom: 8),
-                  child: Row(
-                    children: [
-                      const Spacer(),
-                      SizedBox(
-                        height: 40,
-                        child: CircularElevatedButton(
-                          onPressed: _showAddNoteSheet,
-                          child: SvgPicture.asset("assets/images/add.svg"),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 1) Sugeridas (deck)
-                _buildDeck(),
-                const SizedBox(height: 10),
-                // 2) Notas por completar
-                const Padding(
-                  padding: EdgeInsets.only(left: 24, bottom: 8, top: 8),
-                  child: Text(
-                    'Notas por completar',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
-                  ),
-                ),
-                _buildNotesList(),
-                const SizedBox(height: 10),
-                // 3) Completados (chips circulares como antes)
-                _buildCompletedChips(),
-                const SizedBox(height: 130),
->>>>>>> feature/stabilize-before-main
               ],
             ),
           ),
@@ -1082,12 +832,8 @@ class _GoalCard extends StatelessWidget {
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-<<<<<<< HEAD
-                    colors: [const Color(0xD8E0E7FF), const Color(0xFFFFFFFF)],
-=======
-                    colors: [const Color(0xFFE0E7FF), const Color(0xFFFFFFFF)],
->>>>>>> feature/stabilize-before-main
+                  gradient: const LinearGradient(
+                    colors: [Color(0xD8E0E7FF), Color(0xFFFFFFFF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),

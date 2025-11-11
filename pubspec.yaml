@@ -25,12 +25,7 @@ dependencies:
   url_launcher: ^6.3.0
   email_otp: ^3.0.2
   firebase_storage: ^12.3.4
-<<<<<<< HEAD
-  flutter_dotenv: ^5.0.2
-dependency_overrides:
-  carousel_slider: 5.1.1
-=======
->>>>>>> feature/stabilize-before-main
+
 
 
 dev_dependencies:
@@ -52,5 +47,4 @@ flutter:
     - assets/animations/
     # Explicitly list the Lottie file to avoid any asset resolution issues
     - assets/animations/flower.json
-    - assets/env/
-    - assets/env/.env
+  # (dotenv removido; no cargar .env directamente aquí)

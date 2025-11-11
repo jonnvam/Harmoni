@@ -69,11 +69,7 @@ class _PhqGadTestScreenState extends State<PhqGadTestScreen> {
         ],
       ),
     );
-<<<<<<< HEAD
-    // Por hacer: Guardar resultados en backend/Firestore si aplica
-=======
-    // TODO: Guardar resultados en backend/Firestore si aplica
->>>>>>> feature/stabilize-before-main
+  // TODO: Guardar resultados en backend/Firestore si aplica
     await AppState.instance.setTestCompleted(true);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(

@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
-<<<<<<< HEAD
-=======
-import 'package:flutter_application_1/screens/psicologos.dart';
->>>>>>> feature/stabilize-before-main
 import 'package:flutter_application_1/screens/sign_login.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -90,18 +86,11 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
       // FirebaseAuth displayName
       await user.updateDisplayName('$nombre $apellido');
 
-<<<<<<< HEAD
       if (!mounted) return;
       setState(() => _isEditing = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Cambios guardados.')));
-=======
-      setState(() => _isEditing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cambios guardados.')),
-      );
->>>>>>> feature/stabilize-before-main
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudieron guardar los cambios.')),
@@ -114,7 +103,6 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
     if (email == null) return;
     try {
       await _auth.sendPasswordResetEmail(email: email);
-<<<<<<< HEAD
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -128,14 +116,6 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
         const SnackBar(
           content: Text('No se pudo enviar el correo de cambio de contraseña.'),
         ),
-=======
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Enviamos un correo a $email para cambiar tu contraseña.')),
-      );
-    } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo enviar el correo de cambio de contraseña.')),
->>>>>>> feature/stabilize-before-main
       );
     }
   }
@@ -149,21 +129,9 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
     if (user == null) {
-<<<<<<< HEAD
       if (user == null) {
         return const SignLoginScreen();
       }
-=======
-      // Si no hay sesión, regresa al login
-      Future.microtask(() {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const SignLoginScreen()),
-          (_) => false,
-        );
-      });
-      return const SizedBox.shrink();
->>>>>>> feature/stabilize-before-main
     }
 
     return Scaffold(
@@ -483,11 +451,7 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
             },
           ),
 
-<<<<<<< HEAD
           // Menú radial inferior
-=======
-          // Menú radial inferior (igual que el tuyo)
->>>>>>> feature/stabilize-before-main
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -519,36 +483,24 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/diario.svg",
                     onTap: () {
-<<<<<<< HEAD
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
                             'Completa el test inicial para desbloquear esta sección.',
                           ),
                         ),
-=======
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => DiarioScreen()),
->>>>>>> feature/stabilize-before-main
                       );
                     },
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/metas.svg",
                     onTap: () {
-<<<<<<< HEAD
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
                             'Completa el test inicial para desbloquear esta sección.',
                           ),
                         ),
-=======
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => MetasScreen()),
->>>>>>> feature/stabilize-before-main
                       );
                     },
                   ),

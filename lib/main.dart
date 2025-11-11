@@ -5,10 +5,7 @@ import 'package:logger/logger.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; // este archivo se genera con flutterfire configure
 import 'package:flutter_application_1/state/app_state.dart';
-<<<<<<< HEAD
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-=======
->>>>>>> feature/stabilize-before-main
 
 final logger = Logger();
 
@@ -18,14 +15,11 @@ Future<void> main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await AppState.instance.init();
-<<<<<<< HEAD
   try {
     await dotenv.load(fileName: 'assets/env/.env'); // cargar .env 
   } catch (e) {
     logger.w('No se pudo cargar .env: $e');
   }
-=======
->>>>>>> feature/stabilize-before-main
 
   logger.d("Debug mensaje");
   logger.i("Info mensaje");

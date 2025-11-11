@@ -11,12 +11,9 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-<<<<<<< HEAD
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_application_1/models/user_role.dart';
 import 'package:flutter_application_1/screens/assessment/phq_gad_test_screen.dart';
-=======
->>>>>>> feature/stabilize-before-main
 
 String _initialsFrom({
   String? displayName,
@@ -1676,11 +1673,7 @@ class ContainerC2 extends StatelessWidget {
 }
 
 class ContainerC3 extends StatelessWidget {
-<<<<<<< HEAD
   final double? height; // allow dynamic height when null
-=======
-  final double height;
->>>>>>> feature/stabilize-before-main
   final double width;
   final Widget child;
   final Alignment alignment; // 👈 lo guardamos
