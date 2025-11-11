@@ -9,7 +9,6 @@ import 'package:flutter_application_1/components/animated_flower.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_application_1/data/emotion_journal.dart';
-import 'package:flutter_application_1/data/diary_repo.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -37,137 +36,144 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
-  Future<void> _openMoodModal(
-    BuildContext parentContext,
-    String emotionLabel,
-    String emotionIconAsset,
-  ) async {
-    final controller = TextEditingController();
-    final titleCtrl = TextEditingController(text: 'Estado de ánimo');
-    await showModalBottomSheet(
-      context: parentContext,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Título',
-                  hintText: 'Ponle un nombre a tu nota',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  SvgPicture.asset(
-                    emotionIconAsset,
-                    width: 36,
-                    height: 36,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '¿Qué te hizo sentir $emotionLabel?',
-                    style: const TextStyle(
-                      fontFamily: 'Kantumruy Pro',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: 'Escribe aquí (opcional)...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('Cancelar'),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: () async {
-                      // Save to EmotionJournal
-                      final lower = emotionLabel.toLowerCase();
-                      EmotionType? t;
-                      if (lower.contains('feliz')) {t = EmotionType.happy;}
-                      else if (lower.contains('triste')) {t = EmotionType.sad;}
-                      else if (lower.contains('enojad')) {t = EmotionType.angry;} // enojado/enojada
-                      else if (lower.contains('sorpres') || lower.contains('sorprendid')) {t = EmotionType.surprised;}
-                      else if (lower.contains('miedo')) {t = EmotionType.fear;}
-                      if (t != null) {
-                        await EmotionJournal.instance.saveEmotion(t);
-                      }
+Future<void> _openMoodModal(
+  BuildContext parentContext,
+  String emotionLabel,
+  String emotionIconAsset,
+) async {
+  final controller = TextEditingController();                // lo que le causó esa emoción
+  final titleCtrl   = TextEditingController(text: emotionLabel); // título por defecto = emoción
 
-                      // Save diary note
-                      final id = await DiaryRepo.nextId();
-                      final baseText = 'Hoy me sentí $emotionLabel';
-                      final extra = controller.text.trim();
-                      final fullText = extra.isEmpty ? '$baseText.' : '$baseText: $extra';
-                      final note = DiaryNote(
-                        id: id,
-                        date: DateTime.now(),
-                        type: DiaryNoteType.text,
-                        title: titleCtrl.text.trim().isEmpty ? 'Estado de ánimo' : titleCtrl.text.trim(),
-                        text: fullText,
-                        emotionAsset: emotionIconAsset,
+  await showModalBottomSheet(
+    context: parentContext,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) {
+      return Padding(
+        padding: EdgeInsets.only(
+          left: 16, right: 16, top: 16,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              decoration: InputDecoration(
+                labelText: 'Título',
+                hintText: 'Ponle un nombre a tu nota',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                SvgPicture.asset(emotionIconAsset, width: 36, height: 36),
+                const SizedBox(width: 12),
+                Text(
+                  '¿Qué te hizo sentir $emotionLabel?',
+                  style: const TextStyle(
+                    fontFamily: 'Kantumruy Pro',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Escribe aquí (opcional)...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () async {
+                    final col = _notesCol();
+                    if (col == null) {
+                      ScaffoldMessenger.of(parentContext).showSnackBar(
+                        const SnackBar(content: Text('Debes iniciar sesión.')),
                       );
-                      await DiaryRepo.instance.addNote(note);
+                      return;
+                    }
 
-                      if (!mounted) return;
+                    // 1) (opcional) seguir guardando en tu “EmotionJournal” local
+                    final lower = emotionLabel.toLowerCase();
+                    EmotionType? t;
+                    if (lower.contains('feliz')) {t = EmotionType.happy;}
+                    else if (lower.contains('triste')) {t = EmotionType.sad;}
+                    else if (lower.contains('enojad')) {t = EmotionType.angry;}
+                    else if (lower.contains('sorpres') || lower.contains('sorprendid')) {t = EmotionType.surprised;}
+                    else if (lower.contains('miedo')) {t = EmotionType.fear;}
+                    if (t != null) {
+                      await EmotionJournal.instance.saveEmotion(t);
+                    }
+
+                    // 2) Guardar **en Firestore** → usuarios/{uid}/notas
+                    final titulo = titleCtrl.text.trim().isEmpty ? emotionLabel : titleCtrl.text.trim();
+                    final causa  = controller.text.trim();
+                    final texto  = causa.isEmpty
+                        ? 'Hoy me sentí $emotionLabel.'
+                        : 'Hoy me sentí $emotionLabel: $causa';
+
+                    try {
+                      await col.add({
+                        'titulo'     : titulo,
+                        'texto'      : texto,
+                        'tipo'       : 'texto',        // para tu DiarioScreen
+                        'emocion'    : emotionLabel,   // útil para filtros
+                        'icono'      : emotionIconAsset,
+                        'createdAt'     : FieldValue.serverTimestamp(),
+                      });
+
+                      if (!parentContext.mounted) return;
                       Navigator.of(ctx).pop();
                       ScaffoldMessenger.of(parentContext).showSnackBar(
-                        const SnackBar(content: Text('Estado de ánimo guardado en tu diario.')),
+                        const SnackBar(content: Text('Estado de ánimo guardado.')),
                       );
-                      // Navega al diario para ver/editar si el usuario dese
+
+                      // Ir al diario (que ya lee de Firestore/notas)
                       await Navigator.push(
                         parentContext,
                         MaterialPageRoute(builder: (_) => const DiarioScreen()),
                       );
-                    },
-                    child: const Text('Guardar'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+                    } catch (e) {
+                      if (!parentContext.mounted) return;
+                      ScaffoldMessenger.of(parentContext).showSnackBar(
+                        SnackBar(content: Text('No se pudo guardar: $e')),
+                      );
+                    }
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   @override
   void didChangeDependencies() {
@@ -626,4 +632,13 @@ class _TopicCard extends StatelessWidget {
       ),
     );
   }
+}
+
+CollectionReference<Map<String, dynamic>>? _notesCol() {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return null;
+  return FirebaseFirestore.instance
+      .collection('usuarios')
+      .doc(uid)
+      .collection('notas');
 }

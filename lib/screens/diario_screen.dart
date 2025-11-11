@@ -25,9 +25,9 @@ class DiarioScreen extends StatefulWidget {
 
 class _DiarioScreenState extends State<DiarioScreen> {
   final _titleCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
+  final _noteCtrl  = TextEditingController();
   final _textFocus = FocusNode();
-  final _picker = ImagePicker();
+  final _picker    = ImagePicker();
 
   @override
   void dispose() {
@@ -90,13 +90,12 @@ class _DiarioScreenState extends State<DiarioScreen> {
     _titleCtrl.clear();
     _noteCtrl.clear();
 
-    
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Nota guardada')),
     );
   }
 
-  /// Agregar nota con imagen (opcionalmente acompañada de texto)
+  /// Agregar nota con imagen (opcionalmente acompañada de texto).
   Future<void> _pickImage() async {
     final col = _notesCol();
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -110,11 +109,11 @@ class _DiarioScreenState extends State<DiarioScreen> {
     final picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
 
-    // Crea doc para tener docId y luego sube la imagen con ese id
+    // Crea doc primero para usar su id como nombre del archivo en Storage.
     final tempDoc = await col.add({
       'titulo': _titleCtrl.text.trim().isEmpty ? 'Imagen' : _titleCtrl.text.trim(),
-      'texto': _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-      'tipo': 'imagen',
+      'texto':  _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+      'tipo':   'imagen',
       'imageUrl': null,
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -130,7 +129,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
         const SnackBar(content: Text('Imagen guardada en tu diario')),
       );
     } catch (e) {
-      // Si falla la subida, borra el doc vacío
+      // Si falla la subida, borra el doc vacío.
       await tempDoc.delete();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error al subir imagen')),
@@ -154,7 +153,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
     if (col == null || uid == null) return;
 
     final titleCtrl = TextEditingController(text: titulo ?? '');
-    final textCtrl = TextEditingController(text: texto ?? '');
+    final textCtrl  = TextEditingController(text: texto ?? '');
     String? newImageUrl = imageUrl;
 
     await showModalBottomSheet(
@@ -194,7 +193,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           final picked = await _picker.pickImage(source: ImageSource.gallery);
                           if (picked != null) {
                             final file = File(picked.path);
-                            final url = await _uploadImageToStorage(uid: uid, docId: docId, file: file);
+                            final url  = await _uploadImageToStorage(uid: uid, docId: docId, file: file);
                             setModal(() => newImageUrl = url);
                           }
                         },
@@ -227,7 +226,6 @@ class _DiarioScreenState extends State<DiarioScreen> {
                     children: [
                       OutlinedButton.icon(
                         onPressed: () async {
-                          // borra doc (y opcionalmente la imagen en storage)
                           await col.doc(docId).delete();
                           if ((newImageUrl ?? imageUrl) != null) {
                             try {
@@ -250,8 +248,8 @@ class _DiarioScreenState extends State<DiarioScreen> {
                         onPressed: () async {
                           await col.doc(docId).update({
                             'titulo': titleCtrl.text.trim().isEmpty ? (titulo ?? 'Nota') : titleCtrl.text.trim(),
-                            'texto': textCtrl.text.trim().isEmpty ? null : textCtrl.text.trim(),
-                            'tipo': (newImageUrl != null)
+                            'texto' : textCtrl.text.trim().isEmpty ? null : textCtrl.text.trim(),
+                            'tipo'  : (newImageUrl != null)
                                 ? 'imagen'
                                 : (tipo == 'imagen' && newImageUrl == null ? 'texto' : tipo),
                             'imageUrl': newImageUrl,
@@ -311,9 +309,9 @@ class _DiarioScreenState extends State<DiarioScreen> {
                       // Saludo + subtítulo
                       Column(
                         children: [
-                          Row(
+                          const Row(
                             children: [
-                              const Padding(
+                              Padding(
                                 padding: EdgeInsets.only(left: 20, top: 25),
                                 child: HolaNombre(
                                   style: TextStyles.textDiario,
@@ -322,8 +320,8 @@ class _DiarioScreenState extends State<DiarioScreen> {
                               ),
                             ],
                           ),
-                          Row(
-                            children: const [
+                          const Row(
+                            children: [
                               Padding(
                                 padding: EdgeInsets.only(left: 20, top: 5),
                                 child: Text(
@@ -337,15 +335,15 @@ class _DiarioScreenState extends State<DiarioScreen> {
                       ),
                       const SizedBox(height: 35),
 
-                      // Caja ¿Cómo te sientes hoy? + botones laterales (guardar texto / audio UI / imagen)
+                      // Caja ¿Cómo te sientes hoy? + botones laterales
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ContainerC2(
                             width: 290,
                             height: 95,
-                            child: Column(
-                              children: const [
+                            child: const Column(
+                              children: [
                                 Padding(
                                   padding: EdgeInsets.only(left: 8, top: 4),
                                   child: Row(
@@ -383,7 +381,6 @@ class _DiarioScreenState extends State<DiarioScreen> {
                                     onTap: _addTextNote,
                                     child: safeSvg("assets/images/diario/edit.svg", width: 30, height: 30),
                                   ),
-                                  // Mic: solo UI (no graba, pero puedes reaprovechar para crear nota de audio si luego activas plugin)
                                   InkWell(
                                     onTap: () {
                                       ScaffoldMessenger.of(context).showSnackBar(
@@ -405,7 +402,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Título + contenido (para guardar texto o acompañar imagen)
+                      // Título + contenido
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: TextField(
@@ -492,6 +489,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+//
                         );
                         return;
                       }
@@ -588,9 +586,10 @@ class _MonthlyNotesStream extends StatelessWidget {
         // Agrupar por mes (YYYY-MM)
         final Map<String, List<QueryDocumentSnapshot<Map<String, dynamic>>>> groups = {};
         for (final d in docs) {
-          final ts = d.data()['createdAt'] as Timestamp?;
+          final data = d.data();
+          final ts   = data['createdAt'] as Timestamp?;
           final date = ts?.toDate() ?? DateTime.now();
-          final key = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
+          final key  = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
           groups.putIfAbsent(key, () => []).add(d);
         }
         final keys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
@@ -624,19 +623,21 @@ class _MonthlyNotesStream extends StatelessWidget {
                   itemCount: groups[key]!.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 10),
                   itemBuilder: (ctx, i) {
-                    final d = groups[key]![i];
-                    final data = d.data();
-                    final titulo = (data['titulo'] ?? '').toString();
-                    final texto = (data['texto'] ?? '')?.toString();
-                    final tipo = (data['tipo'] ?? 'texto').toString();
-                    final imageUrl = (data['imageUrl'] ?? '')?.toString();
+                    final d     = groups[key]![i];
+                    final data  = d.data();
+
+                    final titulo   = (data['titulo'] as String?) ?? '';
+                    final texto    = (data['texto']  as String?) ?? '';
+                    final tipo     = (data['tipo']   as String?) ?? 'texto';
+                    final imageUrl = (data['imageUrl'] as String?) ?? '';
+
                     return GestureDetector(
                       onTap: () => onOpenEdit(
                         d.id,
-                        titulo: titulo,
-                        texto: texto,
-                        tipo: tipo,
-                        imageUrl: imageUrl?.isEmpty == true ? null : imageUrl,
+                        titulo: titulo.isEmpty ? null : titulo,
+                        texto:  texto.isEmpty ? null : texto,
+                        tipo:   tipo,
+                        imageUrl: imageUrl.isEmpty ? null : imageUrl,
                       ),
                       child: ContainerDiarioWhite(
                         height: 108,
@@ -645,8 +646,8 @@ class _MonthlyNotesStream extends StatelessWidget {
                           padding: const EdgeInsets.all(8.0),
                           child: _NoteCell(
                             titulo: titulo.isEmpty ? 'Sin título' : titulo,
-                            texto: texto,
-                            tipo: tipo,
+                            texto:  texto,
+                            tipo:   tipo,
                             imageUrl: imageUrl,
                           ),
                         ),
@@ -665,9 +666,9 @@ class _MonthlyNotesStream extends StatelessWidget {
 }
 
 class _NoteCell extends StatelessWidget {
-  final String titulo;
+  final String  titulo;
   final String? texto;
-  final String tipo; // 'texto' | 'imagen'
+  final String  tipo;     // 'texto' | 'imagen'
   final String? imageUrl;
 
   const _NoteCell({
@@ -702,7 +703,7 @@ class _NoteCell extends StatelessWidget {
       );
     } else {
       content = Text(
-        texto ?? '',
+        (texto ?? ''),
         maxLines: 5,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontSize: 13, height: 1.25, color: Colors.black87),
