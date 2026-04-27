@@ -67,6 +67,13 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
     }
   }
 
+  Future<Map<String, dynamic>?> _loadUserProfile(String uid) async {
+    final db = FirebaseFirestore.instance;
+    final userDoc = await db.collection('usuarios').doc(uid).get();
+    if (!userDoc.exists) return null;
+    return userDoc.data();
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -477,8 +484,8 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                     return;
                   }
 
-                  final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-                  if (!doc.exists) {
+                  final profile = await _loadUserProfile(uid);
+                  if (profile == null) {
                     await FirebaseAuth.instance.signOut();
                     if (!mounted) return;
                     Navigator.pushReplacement(
@@ -488,9 +495,8 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                     return;
                   }
 
-                  final data = doc.data() ?? {};
-                  final role = (data['role'] ?? '').toString();
-                  final verificationStatus = (data['verificationStatus'] ?? '').toString();
+                  final role = (profile['role'] ?? '').toString().trim().toLowerCase();
+                  final verificationStatus = (profile['verificationStatus'] ?? '').toString().trim().toLowerCase();
 
                   if (role == 'psicologo') {
                     if (verificationStatus == 'approved') {
@@ -664,8 +670,8 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                 if (user == null) return;
 
                 final uid = user.uid;
-                final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-                if (!doc.exists) {
+                final profile = await _loadUserProfile(uid);
+                if (profile == null) {
                   await FirebaseAuth.instance.signOut();
                   if (!mounted) return;
                   Navigator.pushReplacement(
@@ -675,9 +681,8 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                   return;
                 }
 
-                final data = doc.data() ?? {};
-                final roleStr = (data['role'] ?? '').toString();
-                final verificationStatus = (data['verificationStatus'] ?? '').toString();
+                final roleStr = (profile['role'] ?? '').toString().trim().toLowerCase();
+                final verificationStatus = (profile['verificationStatus'] ?? '').toString().trim().toLowerCase();
 
                 if (roleStr == 'psicologo') {
                   if (verificationStatus == 'approved') {
@@ -768,8 +773,8 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                     return;
                   }
 
-                  final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-                  if (!doc.exists) {
+                  final profile = await _loadUserProfile(uid);
+                  if (profile == null) {
                     await FirebaseAuth.instance.signOut();
                     if (!mounted) return;
                     Navigator.pushReplacement(
@@ -779,9 +784,8 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                     return;
                   }
 
-                  final data = doc.data() ?? {};
-                  final role = (data['role'] ?? '').toString();
-                  final verificationStatus = (data['verificationStatus'] ?? '').toString();
+                  final role = (profile['role'] ?? '').toString().trim().toLowerCase();
+                  final verificationStatus = (profile['verificationStatus'] ?? '').toString().trim().toLowerCase();
 
                   if (role == 'psicologo') {
                     if (verificationStatus == 'approved') {

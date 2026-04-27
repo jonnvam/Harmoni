@@ -6,6 +6,7 @@ import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/appointments_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/availability_screen.dart';
+import 'package:flutter_application_1/screens/psychologist/patient_detail_screen.dart';
 
 class PsychologistPatientsScreen extends StatelessWidget {
   const PsychologistPatientsScreen({super.key});
@@ -75,7 +76,11 @@ class PsychologistPatientsScreen extends StatelessWidget {
                                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                                       itemBuilder: (context, i) {
                                         final e = entries[i];
-                                        return _PatientTile(name: e.value['name'] as String, count: e.value['count'] as int);
+                                        return _PatientTile(
+                                          name: e.value['name'] as String,
+                                          count: e.value['count'] as int,
+                                          patientId: e.key,
+                                        );
                                       },
                                     );
                                   },
@@ -131,7 +136,8 @@ class PsychologistPatientsScreen extends StatelessWidget {
 class _PatientTile extends StatelessWidget {
   final String name;
   final int count;
-  const _PatientTile({required this.name, required this.count});
+  final String patientId;
+  const _PatientTile({required this.name, required this.count, required this.patientId});
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +152,13 @@ class _PatientTile extends StatelessWidget {
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: 'Kantumruy Pro')),
         subtitle: Text('$count citas', style: const TextStyle(fontSize: 12, color: Colors.black54, fontFamily: 'Kantumruy Pro')),
         leading: const CircleAvatar(child: Icon(Icons.person)),
+        trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.black38),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PatientDetailScreen(patientId: patientId, patientName: name),
+          ),
+        ),
       ),
     );
   }

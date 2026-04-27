@@ -20,6 +20,41 @@ class _PsychologistAvailabilityScreenState extends State<PsychologistAvailabilit
   double startHour = 9; // 9am
   double endHour = 18;  // 6pm
   bool saving = false;
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailability();
+  }
+
+  Future<void> _loadAvailability() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      if (mounted) setState(() => loading = false);
+      return;
+    }
+    try {
+      final doc = await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
+      final data = doc.data();
+      final availability = data?['availability'] as Map<String, dynamic>?;
+      if (availability != null) {
+        final daysList = (availability['days'] as List?)?.cast<int>();
+        final start = availability['startHour'] as int?;
+        final end = availability['endHour'] as int?;
+        if (daysList != null) {
+          selectedDays
+            ..clear()
+            ..addAll(daysList);
+        }
+        if (start != null) startHour = start.toDouble();
+        if (end != null) endHour = end.toDouble();
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
 
   String _format(double h) {
     final hour = h.round();
@@ -75,25 +110,39 @@ class _PsychologistAvailabilityScreenState extends State<PsychologistAvailabilit
                           style: TextStyle(fontSize: 13, color: Colors.black54, fontFamily: 'Kantumruy Pro'),
                         ),
                         const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            for (int i = 0; i < days.length; i++)
-                              ChoiceChip(
-                                label: Text(days[i]),
-                                selected: selectedDays.contains(i),
-                                onSelected: (_) {
-                                  setState(() {
-                                    if (selectedDays.contains(i)) {
-                                      selectedDays.remove(i);
-                                    } else {
-                                      selectedDays.add(i);
-                                    }
-                                  });
-                                },
-                              ),
+                        Row(
+                          children: const [
+                            Icon(Icons.public, size: 16, color: Colors.black54),
+                            SizedBox(width: 6),
+                            Text('Zona horaria: local del dispositivo', style: TextStyle(fontSize: 13, color: Colors.black54, fontFamily: 'Kantumruy Pro')),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        if (loading)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              for (int i = 0; i < days.length; i++)
+                                ChoiceChip(
+                                  label: Text(days[i]),
+                                  selected: selectedDays.contains(i),
+                                  onSelected: (_) {
+                                    setState(() {
+                                      if (selectedDays.contains(i)) {
+                                        selectedDays.remove(i);
+                                      } else {
+                                        selectedDays.add(i);
+                                      }
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
                         const SizedBox(height: 16),
                         const Text('Desde'),
                         Slider(
@@ -102,7 +151,7 @@ class _PsychologistAvailabilityScreenState extends State<PsychologistAvailabilit
                           divisions: 23,
                           value: startHour,
                           label: _format(startHour),
-                          onChanged: (v) => setState(() => startHour = v.clamp(0, endHour)),
+                          onChanged: loading ? null : (v) => setState(() => startHour = v.clamp(0, endHour)),
                         ),
                         Text(_format(startHour), style: const TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
@@ -113,14 +162,14 @@ class _PsychologistAvailabilityScreenState extends State<PsychologistAvailabilit
                           divisions: 23,
                           value: endHour,
                           label: _format(endHour),
-                          onChanged: (v) => setState(() => endHour = v.clamp(startHour, 23)),
+                          onChanged: loading ? null : (v) => setState(() => endHour = v.clamp(startHour, 23)),
                         ),
                         Text(_format(endHour), style: const TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
-                            onPressed: saving ? null : _save,
+                            onPressed: (saving || loading) ? null : _save,
                             child: Text(saving ? 'Guardando...' : 'Guardar'),
                           ),
                         ),

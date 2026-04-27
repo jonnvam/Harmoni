@@ -79,7 +79,7 @@ class _VerificacionProfesionalScreenState extends State<VerificacionProfesionalS
       final ineBackUrl = await ineBackRef.getDownloadURL();
       final cedulaUrl = await cedulaRef.getDownloadURL();
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      await FirebaseFirestore.instance.collection('usuarios').doc(uid).set({
         'ineFrontUrl': ineFrontUrl,
         'ineBackUrl': ineBackUrl,
         'cedulaUrl': cedulaUrl,

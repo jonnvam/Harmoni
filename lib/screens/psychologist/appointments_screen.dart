@@ -2,13 +2,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/patients_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/availability_screen.dart';
 
-class PsychologistAppointmentsScreen extends StatelessWidget {
+class PsychologistAppointmentsScreen extends StatefulWidget {
   const PsychologistAppointmentsScreen({super.key});
+
+  @override
+  State<PsychologistAppointmentsScreen> createState() => _PsychologistAppointmentsScreenState();
+}
+
+class _PsychologistAppointmentsScreenState extends State<PsychologistAppointmentsScreen> {
+  String _filter = 'hoy';
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +49,27 @@ class PsychologistAppointmentsScreen extends StatelessWidget {
                           style: TextStyle(fontSize: 13, color: Colors.black54, fontFamily: 'Kantumruy Pro'),
                         ),
                         const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            _FilterChip(
+                              label: 'Hoy',
+                              selected: _filter == 'hoy',
+                              onSelected: () => setState(() => _filter = 'hoy'),
+                            ),
+                            _FilterChip(
+                              label: 'Pendientes',
+                              selected: _filter == 'pendiente',
+                              onSelected: () => setState(() => _filter = 'pendiente'),
+                            ),
+                            _FilterChip(
+                              label: 'Confirmadas',
+                              selected: _filter == 'confirmada',
+                              onSelected: () => setState(() => _filter = 'confirmada'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
                         Expanded(
                           child: uid == null
                               ? const Center(child: Text('Inicia sesión para ver tus citas'))
@@ -58,11 +87,29 @@ class PsychologistAppointmentsScreen extends StatelessWidget {
                                     if (docs.isEmpty) {
                                       return const Center(child: Text('Aún no tienes citas'));
                                     }
+                                    final now = DateTime.now();
+                                    final startOfDay = DateTime(now.year, now.month, now.day);
+                                    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+                                    final filtered = docs.where((doc) {
+                                      final d = doc.data() as Map<String, dynamic>? ?? {};
+                                      final status = (d['status'] ?? 'pendiente').toString();
+                                      final date = (d['dateTime'] as Timestamp?)?.toDate();
+                                      if (_filter == 'pendiente') return status == 'pendiente';
+                                      if (_filter == 'confirmada') return status == 'confirmada';
+                                      if (date == null) return false;
+                                      return date.isAfter(startOfDay) && date.isBefore(endOfDay);
+                                    }).toList();
+
+                                    if (filtered.isEmpty) {
+                                      return const Center(child: Text('Sin citas para este filtro'));
+                                    }
+
                                     return ListView.separated(
-                                      itemCount: docs.length,
+                                      itemCount: filtered.length,
                                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                                       itemBuilder: (context, i) {
-                                        final d = docs[i].data() as Map<String, dynamic>? ?? {};
+                                        final d = filtered[i].data() as Map<String, dynamic>? ?? {};
                                         final patientName = (d['patientName'] ?? 'Paciente').toString();
                                         final date = (d['dateTime'] as Timestamp?)?.toDate();
                                         final status = (d['status'] ?? 'pendiente').toString();
@@ -71,7 +118,7 @@ class PsychologistAppointmentsScreen extends StatelessWidget {
                                           title: patientName,
                                           date: date,
                                           status: status,
-                                          docRef: docs[i].reference,
+                                          docRef: filtered[i].reference,
                                           patientId: patientId,
                                         );
                                       },
@@ -176,6 +223,15 @@ class _AppointmentTile extends StatelessWidget {
             children: [
               const Text('Acciones de la cita', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Kantumruy Pro')),
               const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _reprogram(context, ctx),
+                  icon: const Icon(Icons.edit_calendar),
+                  label: const Text('Reprogramar'),
+                ),
+              ),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
@@ -233,6 +289,56 @@ class _AppointmentTile extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _reprogram(BuildContext context, BuildContext sheetContext) async {
+    final initialDate = date ?? DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (pickedDate == null) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initialDate),
+    );
+    if (pickedTime == null) return;
+
+    final newDate = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    await docRef.update({'dateTime': Timestamp.fromDate(newDate)});
+    if (!sheetContext.mounted) return;
+    Navigator.pop(sheetContext);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cita reprogramada')));
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  const _FilterChip({required this.label, required this.selected, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      selectedColor: AppColors.fondo3,
+      backgroundColor: Colors.white,
+      side: BorderSide(color: selected ? AppColors.borde3 : const Color(0xFFE5E7EB)),
     );
   }
 }
