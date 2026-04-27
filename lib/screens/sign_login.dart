@@ -13,6 +13,7 @@ import 'package:flutter_application_1/models/user_role.dart';
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
+import 'package:flutter_application_1/screens/psychologist/verification_professional.dart';
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -430,6 +431,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                   SnackBar(content: Text(e.message ?? 'Error al registrarte')),
                 );
               } catch (e) {
+                debugPrint('SignUp error: $e');
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Error inesperado al registrarte.'),
@@ -459,12 +461,67 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             AuthIconButton(
               iconPath: "assets/images/icon/google.svg",
               onPressed: () async {
-                final user = await AuthService().signInWithGoogle(context);
-                if (!mounted) return;
-                if (user != null) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                try {
+                  final user = await AuthService().signUpWithGoogle(context);
+                  if (!mounted) return;
+                  if (user == null) return;
+
+                  final uid = user.user?.uid;
+                  if (uid == null) {
+                    await FirebaseAuth.instance.signOut();
+                    if (!mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+                    );
+                    return;
+                  }
+
+                  final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+                  if (!doc.exists) {
+                    await FirebaseAuth.instance.signOut();
+                    if (!mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+                    );
+                    return;
+                  }
+
+                  final data = doc.data() ?? {};
+                  final role = (data['role'] ?? '').toString();
+                  final verificationStatus = (data['verificationStatus'] ?? '').toString();
+
+                  if (role == 'psicologo') {
+                    if (verificationStatus == 'approved') {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
+                      );
+                    } else {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const VerificacionProfesionalScreen()),
+                      );
+                    }
+                  } else if (role == 'paciente') {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                    );
+                  } else {
+                    await FirebaseAuth.instance.signOut();
+                    if (!mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Google signup error: $e');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Error al registrarte con Google.')),
                   );
                 }
               },
@@ -604,29 +661,49 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                   password: pass,
                 );
                 if (!mounted) return;
-                if (user != null) {
-                  // Obtener o establecer rol
-                  final uid = user.uid;
-                  final doc = await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
-                  String roleStr = doc.data()?['role'] as String? ?? '';
-                  if (roleStr.isEmpty) {
-                    roleStr = _selectedRole.key; // primer login sin rol guardado
-                    await FirebaseFirestore.instance.collection('usuarios').doc(uid).set({'role': roleStr}, SetOptions(merge: true));
-                  }
-                  final role = UserRoleX.from(roleStr);
-                  await AppState.instance.setRole(role);
+                if (user == null) return;
+
+                final uid = user.uid;
+                final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+                if (!doc.exists) {
+                  await FirebaseAuth.instance.signOut();
                   if (!mounted) return;
-                  if (role == UserRole.psicologo) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+                  );
+                  return;
+                }
+
+                final data = doc.data() ?? {};
+                final roleStr = (data['role'] ?? '').toString();
+                final verificationStatus = (data['verificationStatus'] ?? '').toString();
+
+                if (roleStr == 'psicologo') {
+                  if (verificationStatus == 'approved') {
+                    await AppState.instance.setRole(UserRole.psicologo);
+                    if (!mounted) return;
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
                     );
                   } else {
+                    await AppState.instance.setRole(UserRole.psicologo);
+                    if (!mounted) return;
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                      MaterialPageRoute(builder: (_) => const VerificacionProfesionalScreen()),
                     );
                   }
+                } else if (roleStr == 'paciente') {
+                  await AppState.instance.setRole(UserRole.paciente);
+                  if (!mounted) return;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                  );
+                } else {
+                  await FirebaseAuth.instance.signOut();
                 }
               } on FirebaseAuthException catch (e) {
                 if (e.code == 'email-not-verified') {
@@ -645,6 +722,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                   );
                 }
               } catch (_) {
+                debugPrint('Login error');
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Error inesperado al iniciar sesión.'),
@@ -674,12 +752,67 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             AuthIconButton(
               iconPath: "assets/images/icon/google.svg",
               onPressed: () async {
-                final user = await AuthService().signUpWithGoogle(context);
-                if (!mounted) return;
-                if (user != null) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                try {
+                  final user = await AuthService().signInWithGoogle(context);
+                  if (!mounted) return;
+                  if (user == null) return;
+
+                  final uid = user.user?.uid;
+                  if (uid == null) {
+                    await FirebaseAuth.instance.signOut();
+                    if (!mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+                    );
+                    return;
+                  }
+
+                  final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+                  if (!doc.exists) {
+                    await FirebaseAuth.instance.signOut();
+                    if (!mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+                    );
+                    return;
+                  }
+
+                  final data = doc.data() ?? {};
+                  final role = (data['role'] ?? '').toString();
+                  final verificationStatus = (data['verificationStatus'] ?? '').toString();
+
+                  if (role == 'psicologo') {
+                    if (verificationStatus == 'approved') {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
+                      );
+                    } else {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => const VerificacionProfesionalScreen()),
+                      );
+                    }
+                  } else if (role == 'paciente') {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                    );
+                  } else {
+                    await FirebaseAuth.instance.signOut();
+                    if (!mounted) return;
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Google login error: $e');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Error al iniciar sesión con Google.')),
                   );
                 }
               },
