@@ -13,6 +13,8 @@ import 'package:flutter_application_1/models/user_role.dart';
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
+import 'package:flutter_application_1/screens/psychologist/verification_professional.dart';
+import 'package:flutter_application_1/screens/completar_registro_google_screen.dart';
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -64,6 +66,98 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
       });
     }
+  }
+
+  Future<Map<String, dynamic>?> _loadUserProfile(String uid) async {
+    final db = FirebaseFirestore.instance;
+    final userDoc = await db.collection('usuarios').doc(uid).get();
+    if (!userDoc.exists) return null;
+    return userDoc.data();
+  }
+
+  Future<void> _routeAfterAuth(User user) async {
+    final profile = await _loadUserProfile(user.uid);
+
+    if (!mounted) return;
+
+    if (profile == null) {
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tu cuenta no tiene perfil registrado.')),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+      );
+      return;
+    }
+
+    final role = (profile['role'] ?? '').toString().trim().toLowerCase();
+
+    final profileCompleted = profile['profileCompleted'] == true;
+
+    final professionalStatus =
+        (profile['professionalVerificationStatus'] ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
+
+    if (!profileCompleted || role.isEmpty || role == 'null') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const CompletarRegistroGoogleScreen(),
+        ),
+      );
+      return;
+    }
+
+    if (role == 'paciente') {
+      await AppState.instance.setRole(UserRole.paciente);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => PrincipalScreen()),
+      );
+      return;
+    }
+
+    if (role == 'psicologo') {
+      await AppState.instance.setRole(UserRole.psicologo);
+
+      if (!mounted) return;
+
+      if (professionalStatus == 'verified') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const VerificacionProfesionalScreen(),
+          ),
+        );
+      }
+      return;
+    }
+
+    await FirebaseAuth.instance.signOut();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tu cuenta no tiene un rol válido.')),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+    );
   }
 
   @override
@@ -144,60 +238,62 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                         border: Border.all(color: AppColors.borde3),
                       ),
                       child: Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => isSignUpScreen = true),
-                            child: Container(
-                              height: fifty,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color:
-                                    isSignUpScreen
-                                        ? AppColors.fondo3
-                                        : Colors.transparent,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-
-                              child: Text(
-                                'Sign Up',
-                                style: TextStyles.textoSingLogin.copyWith(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap:
+                                  () => setState(() => isSignUpScreen = true),
+                              child: Container(
+                                height: fifty,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
                                   color:
                                       isSignUpScreen
-                                          ? const Color(0xFFF0EDE8)
-                                          : Colors.black,
+                                          ? AppColors.fondo3
+                                          : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+
+                                child: Text(
+                                  'Sign Up',
+                                  style: TextStyles.textoSingLogin.copyWith(
+                                    color:
+                                        isSignUpScreen
+                                            ? const Color(0xFFF0EDE8)
+                                            : Colors.black,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => isSignUpScreen = false),
-                            child: Container(
-                              height: fifty,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color:
-                                    !isSignUpScreen
-                                        ? AppColors.fondo3
-                                        : const Color.fromARGB(0, 0, 0, 0),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-
-                              child: Text(
-                                'Login',
-                                style: TextStyles.textoSingLogin.copyWith(
+                          Expanded(
+                            child: GestureDetector(
+                              onTap:
+                                  () => setState(() => isSignUpScreen = false),
+                              child: Container(
+                                height: fifty,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
                                   color:
                                       !isSignUpScreen
-                                          ? const Color(0xFFF0EDE8)
-                                          : Colors.black,
+                                          ? AppColors.fondo3
+                                          : const Color.fromARGB(0, 0, 0, 0),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+
+                                child: Text(
+                                  'Login',
+                                  style: TextStyles.textoSingLogin.copyWith(
+                                    color:
+                                        !isSignUpScreen
+                                            ? const Color(0xFFF0EDE8)
+                                            : Colors.black,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
                       ),
                     ),
                   ),
@@ -208,9 +304,10 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                     // Scroll del formulario
                     child: SingleChildScrollView(
                       child: MaxWidthContainer(
-                        child: isSignUpScreen
-                            ? _buildSignUpForm()
-                            : _buildLoginForm(),
+                        child:
+                            isSignUpScreen
+                                ? _buildSignUpForm()
+                                : _buildLoginForm(),
                       ),
                     ),
                   ),
@@ -238,27 +335,36 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 12, bottom: 8),
-          child: TextoDatos(texto: 'Rol'),
+          child: TextoDatos(texto: 'Tipo de cuenta'),
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: [
-              ChoiceChip(
-                label: const Text('Soy Paciente'),
-                selected: _selectedRole == UserRole.paciente,
-                onSelected: (_) => setState(() => _selectedRole = UserRole.paciente),
+        ContainerLogin(
+          width: double.infinity,
+          height: 53,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<UserRole>(
+                value: _selectedRole,
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(
+                    value: UserRole.paciente,
+                    child: Text('Paciente'),
+                  ),
+                  DropdownMenuItem(
+                    value: UserRole.psicologo,
+                    child: Text('Psicólogo'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _selectedRole = value);
+                },
               ),
-              ChoiceChip(
-                label: const Text('Soy Psicólogo'),
-                selected: _selectedRole == UserRole.psicologo,
-                onSelected: (_) => setState(() => _selectedRole = UserRole.psicologo),
-              ),
-            ],
+            ),
           ),
         ),
+        const SizedBox(height: 8),
         // Nombre y Apellido en la misma fila
         Row(
           children: [
@@ -277,7 +383,9 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                       padding: const EdgeInsets.only(left: 8),
                       child: TextField(
                         controller: _nombreCtrl,
-                        decoration: const InputDecoration(border: InputBorder.none),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                        ),
                       ),
                     ),
                   ),
@@ -300,7 +408,9 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                       padding: const EdgeInsets.only(left: 8),
                       child: TextField(
                         controller: _apellidoCtrl,
-                        decoration: const InputDecoration(border: InputBorder.none),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                        ),
                       ),
                     ),
                   ),
@@ -459,12 +569,30 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             AuthIconButton(
               iconPath: "assets/images/icon/google.svg",
               onPressed: () async {
-                final user = await AuthService().signInWithGoogle(context);
-                if (!mounted) return;
-                if (user != null) {
-                  Navigator.pushReplacement(
+                try {
+                  final credential = await AuthService().signUpWithGoogle(
                     context,
-                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                  );
+
+                  if (!mounted || credential == null) return;
+
+                  final user = credential.user;
+
+                  if (user == null) {
+                    await FirebaseAuth.instance.signOut();
+                    return;
+                  }
+
+                  await _routeAfterAuth(user);
+                } catch (e) {
+                  debugPrint('Google signup error: $e');
+
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Error al registrarte con Google.'),
+                    ),
                   );
                 }
               },
@@ -487,29 +615,6 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 12, bottom: 8),
-          child: TextoDatos(texto: 'Rol (si es tu primer login)'),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: [
-              ChoiceChip(
-                label: const Text('Paciente'),
-                selected: _selectedRole == UserRole.paciente,
-                onSelected: (_) => setState(() => _selectedRole = UserRole.paciente),
-              ),
-              ChoiceChip(
-                label: const Text('Psicólogo'),
-                selected: _selectedRole == UserRole.psicologo,
-                onSelected: (_) => setState(() => _selectedRole = UserRole.psicologo),
-              ),
-            ],
-          ),
-        ),
         Padding(
           padding: const EdgeInsets.only(left: 12),
           child: TextoDatos(texto: 'Email'),
@@ -591,6 +696,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             onPressed: () async {
               final email = _emailInCtrl.text.trim();
               final pass = _passInCtrl.text;
+
               if (email.isEmpty || pass.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Ingresa email y contraseña.')),
@@ -603,34 +709,14 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                   email: email,
                   password: pass,
                 );
-                if (!mounted) return;
-                if (user != null) {
-                  // Obtener o establecer rol
-                  final uid = user.uid;
-                  final doc = await FirebaseFirestore.instance.collection('usuarios').doc(uid).get();
-                  String roleStr = doc.data()?['role'] as String? ?? '';
-                  if (roleStr.isEmpty) {
-                    roleStr = _selectedRole.key; // primer login sin rol guardado
-                    await FirebaseFirestore.instance.collection('usuarios').doc(uid).set({'role': roleStr}, SetOptions(merge: true));
-                  }
-                  final role = UserRoleX.from(roleStr);
-                  await AppState.instance.setRole(role);
-                  if (!mounted) return;
-                  if (role == UserRole.psicologo) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
-                    );
-                  } else {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => PrincipalScreen()),
-                    );
-                  }
-                }
+
+                if (!mounted || user == null) return;
+
+                await _routeAfterAuth(user);
               } on FirebaseAuthException catch (e) {
                 if (e.code == 'email-not-verified') {
                   if (!mounted) return;
+
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
@@ -638,13 +724,19 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                     ),
                   );
                 } else {
+                  if (!mounted) return;
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(e.message ?? 'No se pudo iniciar sesión'),
+                      content: Text(e.message ?? 'No se pudo iniciar sesión.'),
                     ),
                   );
                 }
-              } catch (_) {
+              } catch (e) {
+                debugPrint('Login error: $e');
+
+                if (!mounted) return;
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Error inesperado al iniciar sesión.'),
@@ -674,12 +766,30 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
             AuthIconButton(
               iconPath: "assets/images/icon/google.svg",
               onPressed: () async {
-                final user = await AuthService().signUpWithGoogle(context);
-                if (!mounted) return;
-                if (user != null) {
-                  Navigator.pushReplacement(
+                try {
+                  final credential = await AuthService().signInWithGoogle(
                     context,
-                    MaterialPageRoute(builder: (_) => PrincipalScreen()),
+                  );
+
+                  if (!mounted || credential == null) return;
+
+                  final user = credential.user;
+
+                  if (user == null) {
+                    await FirebaseAuth.instance.signOut();
+                    return;
+                  }
+
+                  await _routeAfterAuth(user);
+                } catch (e) {
+                  debugPrint('Google login error: $e');
+
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Error al iniciar sesión con Google.'),
+                    ),
                   );
                 }
               },

@@ -1,9 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:flutter_application_1/models/user_role.dart';
+import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_application_1/screens/principal_screen.dart';
 import 'package:flutter_application_1/screens/sign_login.dart';
+import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
+import 'package:flutter_application_1/screens/psychologist/verification_professional.dart';
 import 'package:flutter_application_1/services/auth_email.dart';
 
 class VerificacionScreen extends StatefulWidget {
@@ -67,32 +74,147 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
     }
   }
 
-  Future<void> _checkVerified() async {
-    setState(() => _checking = true);
-    try {
-      final ok = await EmailAuthService().refreshVerificationStatus();
-      if (!mounted) return;
-      if (ok) {
-        // Ya está verificado, al Home
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const PrincipalScreen()),
-          (_) => false,
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Aún no se ha verificado. Revisa tu correo.')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo comprobar: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _checking = false);
-    }
+  Future<void> _routeAfterEmailVerified() async {
+  final user = FirebaseAuth.instance.currentUser;
+
+  if (user == null) {
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+      (route) => false,
+    );
+    return;
   }
+
+  await user.reload();
+
+  final refreshedUser = FirebaseAuth.instance.currentUser;
+
+  if (refreshedUser == null || !refreshedUser.emailVerified) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tu correo todavía no aparece como verificado.'),
+      ),
+    );
+    return;
+  }
+
+  final doc = await FirebaseFirestore.instance
+      .collection('usuarios')
+      .doc(refreshedUser.uid)
+      .get();
+
+  if (!mounted) return;
+
+  if (!doc.exists || doc.data() == null) {
+    await FirebaseAuth.instance.signOut();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('No se encontró el perfil del usuario.'),
+      ),
+    );
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+      (route) => false,
+    );
+    return;
+  }
+
+  final data = doc.data()!;
+
+  final role = (data['role'] ?? '').toString().trim().toLowerCase();
+
+  final professionalStatus =
+      (data['professionalVerificationStatus'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
+
+  debugPrint('VERIFICACION ROLE: $role');
+  debugPrint('VERIFICACION PROFESSIONAL STATUS: $professionalStatus');
+
+  if (role == 'paciente') {
+    await AppState.instance.setRole(UserRole.paciente);
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => PrincipalScreen()),
+      (route) => false,
+    );
+    return;
+  }
+
+  if (role == 'psicologo') {
+    await AppState.instance.setRole(UserRole.psicologo);
+
+    if (!mounted) return;
+
+    if (professionalStatus == 'verified') {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
+        (route) => false,
+      );
+    } else {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const VerificacionProfesionalScreen()),
+        (route) => false,
+      );
+    }
+
+    return;
+  }
+
+  await FirebaseAuth.instance.signOut();
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Tu cuenta no tiene un rol válido.'),
+    ),
+  );
+
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+    (route) => false,
+  );
+}
+
+  Future<void> _checkVerified() async {
+  setState(() => _checking = true);
+
+  try {
+    final ok = await EmailAuthService().refreshVerificationStatus();
+
+    if (!mounted) return;
+
+    if (ok) {
+      await _routeAfterEmailVerified();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aún no se ha verificado. Revisa tu correo.'),
+        ),
+      );
+    }
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('No se pudo comprobar: $e')),
+    );
+  } finally {
+    if (mounted) setState(() => _checking = false);
+  }
+}
 
   @override
   Widget build(BuildContext context) {
