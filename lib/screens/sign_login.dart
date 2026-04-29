@@ -11,10 +11,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/screens/verificacion_signup.dart';
 import 'package:flutter_application_1/models/user_role.dart';
 import 'package:flutter_application_1/state/app_state.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/verification_professional.dart';
 import 'package:flutter_application_1/screens/completar_registro_google_screen.dart';
+import 'package:flutter_application_1/services/user_profile_service.dart';
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -68,15 +68,10 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
     }
   }
 
-  Future<Map<String, dynamic>?> _loadUserProfile(String uid) async {
-    final db = FirebaseFirestore.instance;
-    final userDoc = await db.collection('usuarios').doc(uid).get();
-    if (!userDoc.exists) return null;
-    return userDoc.data();
-  }
-
   Future<void> _routeAfterAuth(User user) async {
-    final profile = await _loadUserProfile(user.uid);
+    final profile = await UserProfileService.instance.loadProfileAfterAuth(
+      user.uid,
+    );
 
     if (!mounted) return;
 
@@ -84,6 +79,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
       await FirebaseAuth.instance.signOut();
 
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tu cuenta no tiene perfil registrado.')),
       );
@@ -95,17 +91,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
       return;
     }
 
-    final role = (profile['role'] ?? '').toString().trim().toLowerCase();
-
-    final profileCompleted = profile['profileCompleted'] == true;
-
-    final professionalStatus =
-        (profile['professionalVerificationStatus'] ?? '')
-            .toString()
-            .trim()
-            .toLowerCase();
-
-    if (!profileCompleted || role.isEmpty || role == 'null') {
+    if (!profile.profileCompleted || profile.role == null) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -115,10 +101,11 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
       return;
     }
 
-    if (role == 'paciente') {
+    if (profile.isPaciente) {
       await AppState.instance.setRole(UserRole.paciente);
 
       if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => PrincipalScreen()),
@@ -126,12 +113,12 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
       return;
     }
 
-    if (role == 'psicologo') {
+    if (profile.isPsicologo) {
       await AppState.instance.setRole(UserRole.psicologo);
 
       if (!mounted) return;
 
-      if (professionalStatus == 'verified') {
+      if (profile.isVerifiedPsychologist) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
@@ -150,6 +137,7 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
     await FirebaseAuth.instance.signOut();
 
     if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Tu cuenta no tiene un rol válido.')),
     );
@@ -519,13 +507,18 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                 return;
               }
               try {
+                final roleToSave =
+                    _selectedRole == UserRole.psicologo
+                        ? UserProfileService.rolePsicologo
+                        : UserProfileService.rolePaciente;
+
                 await EmailAuthService().signUp(
                   nombre: nombre,
                   apellido: apellido,
                   email: email,
                   password: pass,
                   fechaNacimiento: dob,
-                  role: _selectedRole.key,
+                  role: roleToSave,
                 );
 
                 if (!mounted) return;
@@ -539,10 +532,15 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(e.message ?? 'Error al registrarte')),
                 );
-              } catch (e) {
+              } catch (e, st) {
+                debugPrint('SIGNUP ERROR REAL: $e');
+                debugPrint('SIGNUP STACK: $st');
+
+                if (!mounted) return;
+
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Error inesperado al registrarte.'),
+                  SnackBar(
+                    content: Text('Error inesperado al registrarte: $e'),
                   ),
                 );
               }

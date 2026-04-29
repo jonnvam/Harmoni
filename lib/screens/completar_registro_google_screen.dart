@@ -1,9 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import 'package:flutter_application_1/models/user_role.dart';
 import 'package:flutter_application_1/screens/principal_screen.dart';
+import 'package:flutter_application_1/screens/sign_login.dart';
+import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/verification_professional.dart';
 import 'package:flutter_application_1/services/auth_google.dart';
+import 'package:flutter_application_1/services/user_profile_service.dart';
+import 'package:flutter_application_1/state/app_state.dart';
 
 class CompletarRegistroGoogleScreen extends StatefulWidget {
   const CompletarRegistroGoogleScreen({super.key});
@@ -18,89 +23,118 @@ class _CompletarRegistroGoogleScreenState
   String _selectedRole = 'paciente';
   bool _loading = false;
 
-  Future<void> _completeRegistration() async {
-    final user = FirebaseAuth.instance.currentUser;
+ Future<void> _completeRegistration() async {
+  final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) {
-      Navigator.pop(context);
-      return;
-    }
+  if (user == null) {
+    if (!mounted) return;
 
-    setState(() => _loading = true);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+    );
+    return;
+  }
 
-    try {
-      await AuthService().completeGoogleRegistration(
-        uid: user.uid,
-        role: _selectedRole,
-      );
+  setState(() => _loading = true);
 
-      final doc = await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(user.uid)
-          .get();
+  try {
+    await AuthService().completeGoogleRegistration(
+      uid: user.uid,
+      role: _selectedRole,
+    );
 
-      final data = doc.data();
+    final profile = await UserProfileService.instance.loadProfileAfterAuth(
+      user.uid,
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      final role = (data?['role'] ?? '').toString();
-      final professionalStatus =
-          (data?['professionalVerificationStatus'] ?? '').toString();
-
-      if (role == 'paciente') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => PrincipalScreen()),
-        );
-        return;
-      }
-
-      if (role == 'psicologo') {
-        if (professionalStatus == 'verified') {
-          // Esto casi nunca debería pasar al registrar por primera vez.
-          // Lo dejamos por consistencia.
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const VerificacionProfesionalScreen(),
-            ),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const VerificacionProfesionalScreen(),
-            ),
-          );
-        }
-        return;
-      }
-
+    if (profile == null) {
       await FirebaseAuth.instance.signOut();
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No se pudo completar tu registro.'),
+          content: Text('No se pudo cargar tu perfil. Intenta iniciar sesión de nuevo.'),
         ),
       );
-    } catch (e) {
-      debugPrint('Complete Google registration error: $e');
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+      );
+      return;
+    }
+
+    if (profile.isPaciente) {
+      await AppState.instance.setRole(UserRole.paciente);
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al completar el registro.'),
-        ),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => PrincipalScreen()),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _loading = false);
+      return;
+    }
+
+    if (profile.isPsicologo) {
+      await AppState.instance.setRole(UserRole.psicologo);
+
+      if (!mounted) return;
+
+      if (profile.isVerifiedPsychologist) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const PsychologistHomeScreen(),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const VerificacionProfesionalScreen(),
+          ),
+        );
       }
+
+      return;
+    }
+
+    await FirebaseAuth.instance.signOut();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tu cuenta no tiene un rol válido.'),
+      ),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+    );
+  } catch (e, st) {
+    debugPrint('Complete Google registration error: $e');
+    debugPrint('Complete Google registration stack: $st');
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al completar el registro: $e'),
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _loading = false);
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

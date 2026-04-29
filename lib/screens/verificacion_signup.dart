@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/models/user_role.dart';
@@ -12,6 +10,7 @@ import 'package:flutter_application_1/screens/sign_login.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/verification_professional.dart';
 import 'package:flutter_application_1/services/auth_email.dart';
+import 'package:flutter_application_1/services/user_profile_service.dart';
 
 class VerificacionScreen extends StatefulWidget {
   final String email;
@@ -61,160 +60,170 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
       await EmailAuthService().resendVerificationEmail();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Te enviamos otro correo de verificación.')),
+        const SnackBar(
+          content: Text('Te enviamos otro correo de verificación.'),
+        ),
       );
       _startCooldown(30);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo reenviar: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo reenviar: $e')));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
   }
 
   Future<void> _routeAfterEmailVerified() async {
-  final user = FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
 
-  if (user == null) {
+    if (user == null) {
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+        (route) => false,
+      );
+      return;
+    }
+
+    await user.reload();
+
+    final refreshedUser = FirebaseAuth.instance.currentUser;
+
+    if (refreshedUser == null || !refreshedUser.emailVerified) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tu correo todavía no aparece como verificado.'),
+        ),
+      );
+      return;
+    }
+
+    final profile = await UserProfileService.instance.loadProfileAfterAuth(
+      refreshedUser.uid,
+    );
+
     if (!mounted) return;
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const SignLoginScreen()),
-      (route) => false,
+    if (profile == null) {
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se encontró el perfil del usuario.')),
+      );
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+        (route) => false,
+      );
+      return;
+    }
+
+    debugPrint('VERIFICACION UID: ${profile.uid}');
+    debugPrint('VERIFICACION ROLE: ${profile.role}');
+    debugPrint(
+      'VERIFICACION PROFESSIONAL STATUS: ${profile.professionalVerificationStatus}',
     );
-    return;
-  }
 
-  await user.reload();
+    if (!profile.profileCompleted || profile.role == null) {
+      await FirebaseAuth.instance.signOut();
 
-  final refreshedUser = FirebaseAuth.instance.currentUser;
+      if (!mounted) return;
 
-  if (refreshedUser == null || !refreshedUser.emailVerified) {
-    if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tu perfil no está completo. Inicia sesión de nuevo.'),
+        ),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Tu correo todavía no aparece como verificado.'),
-      ),
-    );
-    return;
-  }
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const SignLoginScreen()),
+        (route) => false,
+      );
+      return;
+    }
 
-  final doc = await FirebaseFirestore.instance
-      .collection('usuarios')
-      .doc(refreshedUser.uid)
-      .get();
+    if (profile.isPaciente) {
+      await AppState.instance.setRole(UserRole.paciente);
 
-  if (!mounted) return;
+      if (!mounted) return;
 
-  if (!doc.exists || doc.data() == null) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => PrincipalScreen()),
+        (route) => false,
+      );
+      return;
+    }
+
+    if (profile.isPsicologo) {
+      await AppState.instance.setRole(UserRole.psicologo);
+
+      if (!mounted) return;
+
+      if (profile.isVerifiedPsychologist) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
+          (route) => false,
+        );
+      } else {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => const VerificacionProfesionalScreen(),
+          ),
+          (route) => false,
+        );
+      }
+
+      return;
+    }
+
     await FirebaseAuth.instance.signOut();
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('No se encontró el perfil del usuario.'),
-      ),
+      const SnackBar(content: Text('Tu cuenta no tiene un rol válido.')),
     );
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const SignLoginScreen()),
       (route) => false,
     );
-    return;
   }
-
-  final data = doc.data()!;
-
-  final role = (data['role'] ?? '').toString().trim().toLowerCase();
-
-  final professionalStatus =
-      (data['professionalVerificationStatus'] ?? '')
-          .toString()
-          .trim()
-          .toLowerCase();
-
-  debugPrint('VERIFICACION ROLE: $role');
-  debugPrint('VERIFICACION PROFESSIONAL STATUS: $professionalStatus');
-
-  if (role == 'paciente') {
-    await AppState.instance.setRole(UserRole.paciente);
-
-    if (!mounted) return;
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => PrincipalScreen()),
-      (route) => false,
-    );
-    return;
-  }
-
-  if (role == 'psicologo') {
-    await AppState.instance.setRole(UserRole.psicologo);
-
-    if (!mounted) return;
-
-    if (professionalStatus == 'verified') {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
-        (route) => false,
-      );
-    } else {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const VerificacionProfesionalScreen()),
-        (route) => false,
-      );
-    }
-
-    return;
-  }
-
-  await FirebaseAuth.instance.signOut();
-
-  if (!mounted) return;
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Tu cuenta no tiene un rol válido.'),
-    ),
-  );
-
-  Navigator.of(context).pushAndRemoveUntil(
-    MaterialPageRoute(builder: (_) => const SignLoginScreen()),
-    (route) => false,
-  );
-}
 
   Future<void> _checkVerified() async {
-  setState(() => _checking = true);
+    setState(() => _checking = true);
 
-  try {
-    final ok = await EmailAuthService().refreshVerificationStatus();
+    try {
+      final ok = await EmailAuthService().refreshVerificationStatus();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (ok) {
-      await _routeAfterEmailVerified();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aún no se ha verificado. Revisa tu correo.'),
-        ),
-      );
+      if (ok) {
+        await _routeAfterEmailVerified();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Aún no se ha verificado. Revisa tu correo.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo comprobar: $e')));
+    } finally {
+      if (mounted) setState(() => _checking = false);
     }
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No se pudo comprobar: $e')),
-    );
-  } finally {
-    if (mounted) setState(() => _checking = false);
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +266,10 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 24,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -277,15 +289,23 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                         ),
                         const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.borde2, width: 1),
+                            border: Border.all(
+                              color: AppColors.borde2,
+                              width: 1,
+                            ),
                           ),
                           child: Text(
                             widget.email,
-                            style: TextStyles.textBlackLogin.copyWith(fontWeight: FontWeight.w600),
+                            style: TextStyles.textBlackLogin.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 18),
@@ -302,17 +322,30 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.fondo3,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                               elevation: 0,
                             ),
                             onPressed: _checking ? null : _checkVerified,
-                            child: _checking
-                                ? const SizedBox(
-                                    width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                : const Text(
-                                    'Ya verifiqué',
-                                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                                  ),
+                            child:
+                                _checking
+                                    ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                    : const Text(
+                                      'Ya verifiqué',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -323,20 +356,38 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                             Expanded(
                               child: OutlinedButton(
                                 style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                  side: BorderSide(color: AppColors.borde3, width: 1),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  side: BorderSide(
+                                    color: AppColors.borde3,
+                                    width: 1,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                 ),
-                                onPressed: (_secondsLeft > 0 || _sending) ? null : _resendEmail,
-                                child: _sending
-                                    ? const SizedBox(
-                                        width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                    : Text(
-                                        _secondsLeft > 0
-                                            ? 'Reenviar (${_secondsLeft}s)'
-                                            : 'Reenviar correo',
-                                        style: const TextStyle(fontWeight: FontWeight.w600),
-                                      ),
+                                onPressed:
+                                    (_secondsLeft > 0 || _sending)
+                                        ? null
+                                        : _resendEmail,
+                                child:
+                                    _sending
+                                        ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                        : Text(
+                                          _secondsLeft > 0
+                                              ? 'Reenviar (${_secondsLeft}s)'
+                                              : 'Reenviar correo',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                               ),
                             ),
                           ],
@@ -346,7 +397,10 @@ class _VerificacionScreenState extends State<VerificacionScreen> {
                         Center(
                           child: Text(
                             '¿Correo incorrecto? Regresa y edítalo en el registro.',
-                            style: TextStyles.textDicho.copyWith(fontSize: 13, color: Colors.black54),
+                            style: TextStyles.textDicho.copyWith(
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),

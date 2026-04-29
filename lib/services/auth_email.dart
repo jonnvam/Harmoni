@@ -1,9 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_1/services/user_profile_service.dart';
 
 class EmailAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   int _edadDesde(DateTime dob) {
     final hoy = DateTime.now();
@@ -15,45 +14,35 @@ class EmailAuthService {
     return edad;
   }
 
-  bool _isValidRole(String role) {
-    return role == 'paciente' || role == 'psicologo';
+Future<UserCredential> signUp({
+  required String nombre,
+  required String apellido,
+  required String email,
+  required String password,
+  required DateTime fechaNacimiento,
+  required String role,
+}) async {
+  final cleanEmail = email.trim().toLowerCase();
+  final cleanRole = role.trim().toLowerCase();
+
+  if (_edadDesde(fechaNacimiento) < 18) {
+    throw FirebaseAuthException(
+      code: 'underage',
+      message: 'Debes ser mayor de 18 años para registrarte.',
+    );
   }
 
-  String _professionalStatusForRole(String role) {
-    if (role == 'psicologo') {
-      return 'documents_pending';
-    }
-
-    return 'not_required';
+  if (!UserProfileService.instance.isValidRole(cleanRole)) {
+    throw FirebaseAuthException(
+      code: 'invalid-role',
+      message: 'Tipo de cuenta no válido.',
+    );
   }
 
-  Future<UserCredential> signUp({
-    required String nombre,
-    required String apellido,
-    required String email,
-    required String password,
-    required DateTime fechaNacimiento,
-    required String role,
-  }) async {
-    final cleanRole = role.trim().toLowerCase();
+  UserCredential? cred;
 
-    if (!_isValidRole(cleanRole)) {
-      throw FirebaseAuthException(
-        code: 'invalid-role',
-        message: 'Tipo de cuenta no válido.',
-      );
-    }
-
-    if (_edadDesde(fechaNacimiento) < 18) {
-      throw FirebaseAuthException(
-        code: 'underage',
-        message: 'Debes ser mayor de 18 años para registrarte.',
-      );
-    }
-
-    final cleanEmail = email.trim().toLowerCase();
-
-    final cred = await _auth.createUserWithEmailAndPassword(
+  try {
+    cred = await _auth.createUserWithEmailAndPassword(
       email: cleanEmail,
       password: password,
     );
@@ -67,44 +56,32 @@ class EmailAuthService {
       );
     }
 
-    await user.updateDisplayName('$nombre $apellido');
+    await user.updateDisplayName('${nombre.trim()} ${apellido.trim()}');
 
-    await _db.collection('usuarios').doc(user.uid).set({
-      'uid': user.uid,
-      'nombre': nombre.trim(),
-      'apellido': apellido.trim(),
-      'email': cleanEmail,
-      'fechaNacimiento': Timestamp.fromDate(fechaNacimiento),
-
-      // Rol declarado durante el registro.
-      'role': cleanRole,
-      'profileCompleted': true,
-
-      // Estado de verificación profesional.
-      // Paciente: no requiere documentos.
-      // Psicólogo: queda bloqueado hasta subir y aprobar documentos.
-      'professionalVerificationStatus': _professionalStatusForRole(cleanRole),
-
-      // Campos preparados para documentos profesionales.
-      'professionalDocuments': {
-        'ineFrontUrl': null,
-        'ineBackUrl': null,
-        'cedulaUrl': null,
-        'submittedAt': null,
-        'reviewedAt': null,
-        'reviewedBy': null,
-        'rejectionReason': null,
-      },
-
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    await UserProfileService.instance.createEmailUserProfile(
+      uid: user.uid,
+      nombre: nombre,
+      apellido: apellido,
+      email: cleanEmail,
+      fechaNacimiento: fechaNacimiento,
+      role: cleanRole,
+    );
 
     await user.sendEmailVerification();
 
     return cred;
-  }
+  } catch (e) {
+    final createdUser = cred?.user ?? _auth.currentUser;
 
+    if (createdUser != null && !createdUser.emailVerified) {
+      try {
+        await createdUser.delete();
+      } catch (_) {}
+    }
+
+    rethrow;
+  }
+}
   Future<User?> login({
     required String email,
     required String password,
