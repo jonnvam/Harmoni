@@ -26,6 +26,9 @@ dependencies:
   email_otp: ^3.0.2
   firebase_storage: ^12.3.4
   flutter_dotenv: ^5.0.2
+  file_picker: ^8.1.2
+  google_mlkit_text_recognition: ^0.14.0
+  
 dependency_overrides:
   carousel_slider: 5.1.1
 
@@ -49,5 +52,5 @@ flutter:
     - assets/animations/
     # Explicitly list the Lottie file to avoid any asset resolution issues
     - assets/animations/flower.json
-    - assets/env/
+   
     - assets/env/.env
