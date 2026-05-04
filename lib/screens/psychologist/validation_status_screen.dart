@@ -7,13 +7,14 @@ class ValidationStatusScreen extends StatelessWidget {
 
   Color _estadoColor(String estado) {
     switch (estado) {
-      case 'PREVALIDADO':
-        return Colors.blue;
-      case 'PENDIENTE_VALIDACION_OFICIAL':
-        return Colors.orange;
       case 'VALIDADO_OFICIAL':
         return Colors.green;
+      case 'PREVALIDADO':
+        return Colors.blue;
+      case 'PENDIENTE_REVISION_SELFIE':
+        return Colors.orange;
       case 'RECHAZADO':
+      case 'RECHAZADO_SELFIE':
         return Colors.red;
       default:
         return Colors.grey;
@@ -22,17 +23,34 @@ class ValidationStatusScreen extends StatelessWidget {
 
   String _estadoTexto(String estado) {
     switch (estado) {
-      case 'PREVALIDADO':
-        return 'Prevalidado';
-      case 'PENDIENTE_VALIDACION_OFICIAL':
-        return 'Pendiente de revisión oficial';
       case 'VALIDADO_OFICIAL':
         return 'Validado oficialmente';
+      case 'PREVALIDADO':
+        return 'Prevalidado';
+      case 'PENDIENTE_REVISION_SELFIE':
+        return 'Pendiente de revisión';
       case 'RECHAZADO':
+      case 'RECHAZADO_SELFIE':
         return 'Rechazado';
       default:
         return 'Sin verificar';
     }
+  }
+
+  String _descripcion(String estado, bool puedeEjercer) {
+    if (estado == 'VALIDADO_OFICIAL' && puedeEjercer) {
+      return 'Validación completa. Ya puedes ejercer dentro de la app.';
+    }
+    if (estado == 'PREVALIDADO') {
+      return 'Tus documentos fueron validados. Falta completar la selfie desde la pantalla de verificación.';
+    }
+    if (estado == 'PENDIENTE_REVISION_SELFIE') {
+      return 'La comparación facial requiere revisión manual.';
+    }
+    if (estado == 'RECHAZADO' || estado == 'RECHAZADO_SELFIE') {
+      return 'No se pudo completar la validación.';
+    }
+    return 'Aún no has completado el proceso.';
   }
 
   @override
@@ -41,9 +59,7 @@ class ValidationStatusScreen extends StatelessWidget {
 
     if (uid == null) {
       return const Scaffold(
-        body: Center(
-          child: Text('Inicia sesión para ver tu estado.'),
-        ),
+        body: Center(child: Text('Inicia sesión para ver tu estado.')),
       );
     }
 
@@ -75,15 +91,20 @@ class ValidationStatusScreen extends StatelessWidget {
 
           final estado = data['estadoValidacion'] ?? 'SIN_VERIFICAR';
           final puedeEjercer = data['puedeEjercer'] ?? false;
-          final nombre = data['nombreCompletoIne'] ?? '';
-          final cedula = data['cedulaIngresada'] ?? '';
-          final carrera = data['carreraBuholegal'] ?? '';
           final motivo = data['motivoRechazo'] ?? '';
+          final nombreIne = data['nombreCompletoIne'] ?? '';
+          final nombreBuho = data['nombreBuholegal'] ?? '';
+          final cedula = data['cedulaBuholegal'] ?? '';
+          final carrera = data['carreraBuholegal'] ?? '';
+          final selfieRealizada = data['selfieRealizada'] ?? false;
+          final livenessPassed = data['livenessPassed'] ?? false;
+          final faceMatchPassed = data['faceMatchPassed'] ?? false;
+          final faceMatchScore = data['faceMatchScore'] ?? 0.0;
+          final modelo = data['modeloFaceMatch'] ?? '';
 
           return Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: ListView(
               children: [
                 Container(
                   width: double.infinity,
@@ -105,22 +126,31 @@ class ValidationStatusScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        puedeEjercer
-                            ? 'Puedes ejercer dentro de la app.'
-                            : 'Aún no puedes ejercer dentro de la app.',
-                      ),
+                      Text(_descripcion(estado, puedeEjercer)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                Text('Nombre INE: $nombre'),
+                Text('Nombre INE: $nombreIne'),
                 const SizedBox(height: 8),
-                Text('Cédula detectada: $cedula'),
+                Text('Nombre Búho Legal: $nombreBuho'),
                 const SizedBox(height: 8),
-                Text('Carrera Búho Legal: $carrera'),
-                if (motivo.toString().isNotEmpty) ...[
-                  const SizedBox(height: 12),
+                Text('Cédula: $cedula'),
+                const SizedBox(height: 8),
+                Text('Carrera: $carrera'),
+                const SizedBox(height: 16),
+                Text('Selfie realizada: ${selfieRealizada ? "Sí" : "No"}'),
+                const SizedBox(height: 8),
+                Text('Prueba de vida: ${livenessPassed ? "Aprobada" : "Pendiente"}'),
+                const SizedBox(height: 8),
+                Text('Face match: ${faceMatchPassed ? "Aprobado" : "No aprobado"}'),
+                const SizedBox(height: 8),
+                Text('Score facial: $faceMatchScore'),
+                const SizedBox(height: 8),
+                Text('Modelo: $modelo'),
+                if ((estado == 'RECHAZADO' || estado == 'RECHAZADO_SELFIE') &&
+                    motivo.toString().isNotEmpty) ...[
+                  const SizedBox(height: 16),
                   Text(
                     'Motivo: $motivo',
                     style: const TextStyle(color: Colors.red),

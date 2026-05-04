@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,7 +6,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+
+import 'selfie_verification_screen.dart';
 import 'validation_status_screen.dart';
 
 class VerificacionProfesionalScreen extends StatefulWidget {
@@ -19,6 +23,9 @@ class VerificacionProfesionalScreen extends StatefulWidget {
 class _VerificacionProfesionalScreenState
     extends State<VerificacionProfesionalScreen> {
   final _picker = ImagePicker();
+
+  static const String _apiValidacionUrl =
+      'http://192.168.1.73:3000/validar-cedula';
 
   XFile? _ineFront;
   XFile? _ineBack;
@@ -72,9 +79,9 @@ class _VerificacionProfesionalScreenState
     }
 
     return {
-      'nombreIne': partes.sublist(0, partes.length - 2).join(' '),
-      'apellidoPaternoIne': partes[partes.length - 2],
-      'apellidoMaternoIne': partes[partes.length - 1],
+      'apellidoPaternoIne': partes[0],
+      'apellidoMaternoIne': partes[1],
+      'nombreIne': partes.sublist(2).join(' '),
     };
   }
 
@@ -85,6 +92,83 @@ class _VerificacionProfesionalScreenState
     if (ine.isEmpty || cedula.isEmpty) return false;
 
     return cedula.contains(ine) || ine.contains(cedula);
+  }
+
+  Future<Map<String, dynamic>?> _validarConBuhoLegal({
+    required String uid,
+    required String cedula,
+    required String nombreCompletoIne,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(_apiValidacionUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'uid': uid,
+          'cedula': cedula,
+          'nombreCompletoIne': nombreCompletoIne,
+        }),
+      );
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode != 200 || data['ok'] != true) {
+        debugPrint('Error API Búho: $data');
+        return null;
+      }
+
+      return data['resultado'] as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Error conectando API Búho: $e');
+      return null;
+    }
+  }
+
+  Future<void> _reiniciarVerificacion(String uid) async {
+    await FirebaseFirestore.instance
+        .collection('verificacionesProfesionales')
+        .doc(uid)
+        .set({
+      'estadoValidacion': 'SIN_VERIFICAR',
+      'puedeEjercer': false,
+      'requiereRevisionManual': true,
+      'motivoRechazo': '',
+      'selfieRealizada': false,
+      'livenessPassed': false,
+      'faceMatchPassed': false,
+      'faceMatchScore': 0.0,
+      'modeloFaceMatch': '',
+      'fechaActualizacion': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await FirebaseFirestore.instance
+        .collection('usuariosPsicologos')
+        .doc(uid)
+        .set({
+      'estadoValidacion': 'SIN_VERIFICAR',
+      'puedeEjercer': false,
+      'verificationUpdatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    if (!mounted) return;
+
+    setState(() {
+      _ineFront = null;
+      _ineBack = null;
+      _cedulaFrente = null;
+      _cedulaReverso = null;
+      _cedulaFrentePdf = null;
+      _cedulaReversoPdf = null;
+      _textoIneDetectado = '';
+      _textoCedulaFrenteDetectado = '';
+      _textoCedulaReversoDetectado = '';
+      _nombreCompletoIne = '';
+      _cedulaDetectada = '';
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Verificación reiniciada.')),
+    );
   }
 
   void _limpiarArchivo(String tipo) {
@@ -119,7 +203,6 @@ class _VerificacionProfesionalScreenState
     final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
     final recognizedText = await textRecognizer.processImage(inputImage);
-
     await textRecognizer.close();
 
     return recognizedText.text;
@@ -128,19 +211,44 @@ class _VerificacionProfesionalScreenState
   String _extraerNombreDesdeIne(String texto) {
     final lineas = texto
         .split('\n')
-        .map((linea) => linea.trim())
+        .map((linea) => _normalizarTexto(linea))
         .where((linea) => linea.isNotEmpty)
         .toList();
 
     final indiceNombre = lineas.indexWhere(
-      (linea) => linea.toUpperCase().contains('NOMBRE'),
+      (linea) => linea == 'NOMBRE' || linea.contains('NOMBRE'),
     );
 
-    if (indiceNombre != -1 && indiceNombre + 1 < lineas.length) {
-      return _normalizarTexto(lineas[indiceNombre + 1]);
+    if (indiceNombre == -1) return '';
+
+    final posibles = <String>[];
+
+    for (int i = indiceNombre + 1;
+        i < lineas.length && posibles.length < 4;
+        i++) {
+      final linea = lineas[i];
+
+      if (linea.contains('DOMICILIO') ||
+          linea.contains('CLAVE') ||
+          linea.contains('CURP') ||
+          linea.contains('FECHA') ||
+          linea.contains('SEXO') ||
+          linea.contains('ESTADO') ||
+          linea.contains('MUNICIPIO') ||
+          linea.contains('SECCION') ||
+          linea.contains('LOCALIDAD') ||
+          linea.contains('EMISION') ||
+          linea.contains('VIGENCIA')) {
+        break;
+      }
+
+      if (RegExp(r'\d').hasMatch(linea)) continue;
+      if (linea.length < 3) continue;
+
+      posibles.add(linea);
     }
 
-    return '';
+    return posibles.join(' ').trim();
   }
 
   Future<void> _pickIneFront() async {
@@ -298,15 +406,32 @@ class _VerificacionProfesionalScreenState
   }
 
   String _cedulaFrenteSubtitle() {
-    if (_cedulaFrentePdf != null) return _cedulaFrentePdf!.path.split('\\').last;
+    if (_cedulaFrentePdf != null) {
+      return _cedulaFrentePdf!.path.split('\\').last;
+    }
     if (_cedulaFrente != null) return _cedulaFrente!.name;
     return 'Sin archivo seleccionado';
   }
 
   String _cedulaReversoSubtitle() {
-    if (_cedulaReversoPdf != null) return _cedulaReversoPdf!.path.split('\\').last;
+    if (_cedulaReversoPdf != null) {
+      return _cedulaReversoPdf!.path.split('\\').last;
+    }
     if (_cedulaReverso != null) return _cedulaReverso!.name;
     return 'Sin archivo seleccionado';
+  }
+
+  Future<void> _abrirSelfieConFaceMatch() async {
+    if (_ineFront == null) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SelfieVerificationScreen(
+          ineFrontPath: _ineFront!.path,
+        ),
+      ),
+    );
   }
 
   Future<void> _submit() async {
@@ -333,6 +458,24 @@ class _VerificacionProfesionalScreenState
       return;
     }
 
+    if (_nombreCompletoIne.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo detectar el nombre de la INE.'),
+        ),
+      );
+      return;
+    }
+
+    if (_cedulaDetectada.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo detectar la cédula profesional.'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _sending = true);
 
     try {
@@ -346,24 +489,31 @@ class _VerificacionProfesionalScreenState
       final textoCedulaCompleto =
           '$_textoCedulaFrenteDetectado $_textoCedulaReversoDetectado';
 
-      final coincideNombre = _coincidenNombres(
+      final coincideNombreLocal = _coincidenNombres(
         _nombreCompletoIne,
         textoCedulaCompleto,
       );
 
-      final coincideCedula = _cedulaDetectada.isNotEmpty;
+      final coincideCedulaLocal = _cedulaDetectada.isNotEmpty;
 
-      String estadoValidacion = 'RECHAZADO';
-      bool requiereRevisionManual = true;
-      String motivoRechazo = '';
+      String estadoLocal = 'RECHAZADO';
+      bool requiereRevisionManualLocal = true;
+      String motivoRechazoLocal =
+          'No se pudo confirmar coincidencia entre INE y cédula mediante OCR.';
 
-      if (coincideNombre && coincideCedula) {
-        estadoValidacion = 'PREVALIDADO';
-        requiereRevisionManual = false;
-      } else {
-        motivoRechazo =
-            'No se pudo confirmar coincidencia entre INE y cédula mediante OCR.';
+      if (coincideNombreLocal && coincideCedulaLocal) {
+        estadoLocal = 'PREVALIDADO';
+        requiereRevisionManualLocal = false;
+        motivoRechazoLocal = '';
       }
+
+      final resultadoBuho = await _validarConBuhoLegal(
+        uid: uid,
+        cedula: _cedulaDetectada,
+        nombreCompletoIne: _nombreCompletoIne,
+      );
+
+      final estadoFinal = resultadoBuho?['estadoValidacion'] ?? estadoLocal;
 
       await FirebaseFirestore.instance
           .collection('verificacionesProfesionales')
@@ -383,12 +533,30 @@ class _VerificacionProfesionalScreenState
         'ocrCedulaReversoRealizado': _textoCedulaReversoDetectado.isNotEmpty,
         'tipoCedulaFrente': tipoCedulaFrente,
         'tipoCedulaReverso': tipoCedulaReverso,
-        'coincideNombre': coincideNombre,
-        'coincideCedula': coincideCedula,
-        'estadoValidacion': estadoValidacion,
+        'coincideNombre':
+            resultadoBuho?['coincideNombre'] ?? coincideNombreLocal,
+        'coincideCedula':
+            resultadoBuho?['coincideCedula'] ?? coincideCedulaLocal,
+        'esPsicologia': resultadoBuho?['esPsicologia'] ?? false,
+        'nombreBuholegal': resultadoBuho?['nombreBuholegal'] ?? '',
+        'cedulaBuholegal': resultadoBuho?['cedulaBuholegal'] ?? '',
+        'carreraBuholegal': resultadoBuho?['carreraBuholegal'] ?? '',
+        'institucionBuholegal':
+            resultadoBuho?['institucionBuholegal'] ?? '',
+        'fuentePrevalidacion':
+            resultadoBuho?['fuentePrevalidacion'] ?? 'OCR_LOCAL',
+        'estadoValidacion': estadoFinal,
         'puedeEjercer': false,
-        'requiereRevisionManual': requiereRevisionManual,
-        'motivoRechazo': motivoRechazo,
+        'requiereRevisionManual': resultadoBuho?['requiereRevisionManual'] ??
+            requiereRevisionManualLocal,
+        'motivoRechazo': resultadoBuho == null
+            ? 'No se pudo validar con Búho Legal. Se usó validación local OCR.'
+            : (resultadoBuho['motivoRechazo'] ?? motivoRechazoLocal),
+        'selfieRealizada': false,
+        'livenessPassed': false,
+        'faceMatchPassed': false,
+        'faceMatchScore': 0.0,
+        'modeloFaceMatch': '',
         'fechaActualizacion': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -396,7 +564,7 @@ class _VerificacionProfesionalScreenState
           .collection('usuariosPsicologos')
           .doc(uid)
           .set({
-        'estadoValidacion': estadoValidacion,
+        'estadoValidacion': estadoFinal,
         'puedeEjercer': false,
         'nombreLegal': _nombreCompletoIne,
         'nombreFuente': 'INE_OCR',
@@ -405,9 +573,13 @@ class _VerificacionProfesionalScreenState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Estado: $estadoValidacion')),
-      );
+      if (estadoFinal == 'PREVALIDADO') {
+        await _abrirSelfieConFaceMatch();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Estado: $estadoFinal')),
+        );
+      }
     } catch (e) {
       debugPrint('Verification submit error: $e');
 
@@ -421,100 +593,185 @@ class _VerificacionProfesionalScreenState
     }
   }
 
+  Widget _formularioDocumentos() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Sube tus documentos para verificación',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+          _DocTile(
+            title: 'INE frente',
+            subtitle: _ineFront?.name ?? 'Sin archivo seleccionado',
+            onPick: _pickIneFront,
+            onClear: () => _limpiarArchivo('ineFront'),
+          ),
+          if (_nombreCompletoIne.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Nombre detectado: $_nombreCompletoIne',
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          _DocTile(
+            title: 'INE reverso',
+            subtitle: _ineBack?.name ?? 'Sin archivo seleccionado',
+            onPick: _pickIneBack,
+            onClear: () => _limpiarArchivo('ineBack'),
+          ),
+          const SizedBox(height: 12),
+          _DocTile(
+            title: 'Cédula profesional frente',
+            subtitle: _cedulaFrenteSubtitle(),
+            onPick: _pickCedulaFrente,
+            onClear: () => _limpiarArchivo('cedulaFrente'),
+          ),
+          if (_cedulaDetectada.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Cédula detectada: $_cedulaDetectada',
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          _DocTile(
+            title: 'Cédula profesional reverso',
+            subtitle: _cedulaReversoSubtitle(),
+            onPick: _pickCedulaReverso,
+            onClear: () => _limpiarArchivo('cedulaReverso'),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _sending ? null : _submit,
+              child: Text(_sending ? 'Enviando...' : 'Enviar'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ValidationStatusScreen(),
+                  ),
+                );
+              },
+              child: const Text('Ver estado de validación'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) {
+      return const Scaffold(
+        body: Center(child: Text('Inicia sesión para continuar.')),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Verificacion profesional'),
+        title: const Text('Verificación profesional'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 0,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Sube tus documentos para verificacion',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              _DocTile(
-                title: 'INE frente',
-                subtitle: _ineFront?.name ?? 'Sin archivo seleccionado',
-                onPick: _pickIneFront,
-                onClear: () => _limpiarArchivo('ineFront'),
-              ),
-              if (_nombreCompletoIne.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Nombre detectado: $_nombreCompletoIne',
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              _DocTile(
-                title: 'INE reverso',
-                subtitle: _ineBack?.name ?? 'Sin archivo seleccionado',
-                onPick: _pickIneBack,
-                onClear: () => _limpiarArchivo('ineBack'),
-              ),
-              const SizedBox(height: 12),
-              _DocTile(
-                title: 'Cédula profesional frente',
-                subtitle: _cedulaFrenteSubtitle(),
-                onPick: _pickCedulaFrente,
-                onClear: () => _limpiarArchivo('cedulaFrente'),
-              ),
-              if (_cedulaDetectada.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Cédula detectada: $_cedulaDetectada',
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              _DocTile(
-                title: 'Cédula profesional reverso',
-                subtitle: _cedulaReversoSubtitle(),
-                onPick: _pickCedulaReverso,
-                onClear: () => _limpiarArchivo('cedulaReverso'),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _sending ? null : _submit,
-                  child: Text(_sending ? 'Enviando...' : 'Enviar'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ValidationStatusScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text('Ver estado de validación'),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('verificacionesProfesionales')
+              .doc(uid)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final exists = snapshot.hasData && snapshot.data!.exists;
+            final data = exists
+                ? snapshot.data!.data() as Map<String, dynamic>
+                : <String, dynamic>{};
+
+            final estado = data['estadoValidacion'] ?? 'SIN_VERIFICAR';
+            final motivo = data['motivoRechazo'] ?? '';
+
+            if (estado == 'RECHAZADO' || estado == 'RECHAZADO_SELFIE') {
+              return _EstadoSimple(
+                icon: Icons.cancel,
+                color: Colors.red,
+                title: 'Verificación rechazada',
+                message: motivo.toString().isNotEmpty
+                    ? motivo.toString()
+                    : 'Los datos enviados no pudieron ser validados.',
+                buttonText: 'Intentar nuevamente',
+                onPressed: () async {
+                  await _reiniciarVerificacion(uid);
+                },
+              );
+            }
+
+            if (estado == 'PREVALIDADO') {
+              return _EstadoSimple(
+                icon: Icons.verified,
+                color: Colors.blue,
+                title: 'Documentos prevalidados',
+                message:
+                    'Tus documentos fueron validados con Búho Legal. Ahora finaliza con selfie.',
+                buttonText: 'Ir a estado',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ValidationStatusScreen(),
+                    ),
+                  );
+                },
+              );
+            }
+
+            if (estado == 'PENDIENTE_REVISION_SELFIE') {
+              return const _EstadoSimple(
+                icon: Icons.pending_actions,
+                color: Colors.orange,
+                title: 'Revisión pendiente',
+                message:
+                    'La comparación facial requiere revisión manual antes de validar oficialmente el perfil.',
+              );
+            }
+
+            if (estado == 'VALIDADO_OFICIAL') {
+              return const _EstadoSimple(
+                icon: Icons.check_circle,
+                color: Colors.green,
+                title: 'Validación completada',
+                message:
+                    'Tu perfil profesional ya fue validado oficialmente.',
+              );
+            }
+
+            return _formularioDocumentos();
+          },
         ),
       ),
     );
@@ -567,6 +824,65 @@ class _DocTile extends StatelessWidget {
               onPressed: onPick,
               child: Text(tieneArchivo ? 'Cambiar' : 'Subir'),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EstadoSimple extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String message;
+  final String? buttonText;
+  final VoidCallback? onPressed;
+
+  const _EstadoSimple({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.message,
+    this.buttonText,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 72, color: color),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, color: Colors.black87),
+            ),
+            if (buttonText != null && onPressed != null) ...[
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: onPressed,
+                  child: Text(buttonText!),
+                ),
+              ),
+            ],
           ],
         ),
       ),
