@@ -25,7 +25,7 @@ class _VerificacionProfesionalScreenState
   final _picker = ImagePicker();
 
   static const String _apiValidacionUrl =
-      'http://192.168.1.73:3000/validar-cedula';
+      'https://harmoni-production-27ae.up.railway.app;
 
   XFile? _ineFront;
   XFile? _ineBack;

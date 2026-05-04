@@ -169,7 +169,5 @@ app.post("/validar-cedula", async (req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("Servidor corriendo en:");
-  console.log(`Local: http://localhost:${PORT}`);
-  console.log(`Red: http://192.168.1.73:${PORT}`);
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });
