@@ -71,8 +71,10 @@ class _SelfieVerificationScreenState extends State<SelfieVerificationScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+
       setState(() {
         _loading = false;
+        _processing = false;
         _message = 'No se pudo iniciar la validación facial: $e';
       });
     }
@@ -80,13 +82,21 @@ class _SelfieVerificationScreenState extends State<SelfieVerificationScreen> {
 
   Future<Face> _detectarUnRostro(File file, String origen) async {
     final detector = _faceDetector;
-    if (detector == null) throw Exception('Detector facial no inicializado.');
+
+    if (detector == null) {
+      throw Exception('Detector facial no inicializado.');
+    }
 
     final inputImage = InputImage.fromFile(file);
     final faces = await detector.processImage(inputImage);
 
-    if (faces.isEmpty) throw Exception('No se detectó rostro en $origen.');
-    if (faces.length > 1) throw Exception('Se detectó más de un rostro en $origen.');
+    if (faces.isEmpty) {
+      throw Exception('No se detectó rostro en $origen.');
+    }
+
+    if (faces.length > 1) {
+      throw Exception('Se detectó más de un rostro en $origen.');
+    }
 
     return faces.first;
   }
@@ -97,15 +107,33 @@ class _SelfieVerificationScreenState extends State<SelfieVerificationScreen> {
     required double headY,
   }) {
     double score = 0.0;
+
     if (leftEye > 0.35) score += 0.35;
     if (rightEye > 0.35) score += 0.35;
     if (headY.abs() < 20) score += 0.30;
+
     return double.parse(score.clamp(0.0, 1.0).toStringAsFixed(2));
   }
 
   Future<void> _takeSelfieAndValidate() async {
     final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) return;
+
+    if (controller == null || !controller.value.isInitialized) {
+      setState(() {
+        _message = 'La cámara aún no está lista.';
+      });
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      setState(() {
+        _processing = false;
+        _message = 'Sesión expirada. Vuelve a iniciar sesión.';
+      });
+      return;
+    }
 
     setState(() {
       _processing = true;
@@ -140,7 +168,8 @@ class _SelfieVerificationScreenState extends State<SelfieVerificationScreen> {
       if (!livenessPassed) {
         setState(() {
           _processing = false;
-          _message = 'No pasó prueba de vida. Mira al frente y abre bien los ojos.';
+          _message =
+              'No pasó prueba de vida. Mira al frente y abre bien los ojos.';
         });
         return;
       }
@@ -186,6 +215,7 @@ class _SelfieVerificationScreenState extends State<SelfieVerificationScreen> {
       }
 
       await _guardarResultadoFaceMatch(
+        uid: user.uid,
         estadoValidacion: estadoValidacion,
         puedeEjercer: puedeEjercer,
         requiereRevisionManual: requiereRevisionManual,
@@ -200,9 +230,23 @@ class _SelfieVerificationScreenState extends State<SelfieVerificationScreen> {
       );
 
       if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            estadoValidacion == 'VALIDADO_OFICIAL'
+                ? 'Rostro validado correctamente.'
+                : 'Resultado: $estadoValidacion',
+          ),
+        ),
+      );
+
       Navigator.pop(context, true);
     } catch (e) {
+      debugPrint('ERROR FACE MATCH: $e');
+
       if (!mounted) return;
+
       setState(() {
         _processing = false;
         _message = 'Error en face match: $e';
@@ -211,6 +255,7 @@ class _SelfieVerificationScreenState extends State<SelfieVerificationScreen> {
   }
 
   Future<void> _guardarResultadoFaceMatch({
+    required String uid,
     required String estadoValidacion,
     required bool puedeEjercer,
     required bool requiereRevisionManual,
@@ -223,9 +268,6 @@ class _SelfieVerificationScreenState extends State<SelfieVerificationScreen> {
     required double rightEyeOpenProbability,
     required double headEulerAngleY,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) throw Exception('No hay usuario autenticado.');
-
     await FirebaseFirestore.instance
         .collection('verificacionesProfesionales')
         .doc(uid)
@@ -315,8 +357,13 @@ class _SelfieVerificationScreenState extends State<SelfieVerificationScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
-                          onPressed: _processing ? null : _takeSelfieAndValidate,
-                          child: Text(_processing ? 'Comparando...' : 'Tomar selfie y comparar'),
+                          onPressed:
+                              _processing ? null : _takeSelfieAndValidate,
+                          child: Text(
+                            _processing
+                                ? 'Comparando...'
+                                : 'Tomar selfie y comparar',
+                          ),
                         ),
                       ),
                     ],

@@ -24,9 +24,9 @@ class _VerificacionProfesionalScreenState
     extends State<VerificacionProfesionalScreen> {
   final _picker = ImagePicker();
 
-  static const String _apiValidacionUrl =
-      'https://harmoni-production-27ae.up.railway.app;
-
+ static const String _apiValidacionUrl =
+    'https://harmoni-production-27ae.up.railway.app/validar-cedula';
+    
   XFile? _ineFront;
   XFile? _ineBack;
   XFile? _cedulaFrente;
