@@ -12,6 +12,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:flutter_application_1/services/goals_firestore_service.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 class MetasScreen extends StatefulWidget {
   const MetasScreen({super.key});
@@ -26,6 +28,7 @@ class _MetasScreenState extends State<MetasScreen> {
   double _dragDy = 0.0;
   bool _swipingHorizontally = false;
   bool _horizontalExitLeft = false;
+  bool _lockScrollForDeck = false;
 
   @override
   void initState() {
@@ -48,6 +51,15 @@ class _MetasScreenState extends State<MetasScreen> {
     _dragDy = 0;
   }
 
+  void _setDeckScrollLock(bool value) {
+    if (!mounted) return;
+    if (_lockScrollForDeck == value) return;
+
+    setState(() {
+      _lockScrollForDeck = value;
+    });
+  }
+
   void _onDragUpdate(DragUpdateDetails details) {
     setState(() {
       _dragDx += details.delta.dx;
@@ -57,25 +69,22 @@ class _MetasScreenState extends State<MetasScreen> {
 
   Future<void> _startGoal(Goal goal) async {
     _manager.startGoal(goal);
+
     if (!mounted) return;
 
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      final col = FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(uid)
-          .collection('metas');
+    try {
+      await GoalsFirestoreService.instance.startRecommendedGoal(goal);
 
-      final docId = goal.titulo.trim().toLowerCase();
-      await col.doc(docId).set({
-        'titulo': goal.titulo,
-        'descripcion': goal.descripcion,
-        'estado': 'en_progreso',
-        'creada': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      if (!mounted) return;
+
+      _showStartedMessage(goal.titulo);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo iniciar la meta: $e')));
     }
-
-    _showStartedMessage(goal.titulo);
   }
 
   void _onDragEnd(DragEndDetails details, Goal topGoal) {
@@ -98,6 +107,7 @@ class _MetasScreenState extends State<MetasScreen> {
       }
     }
     setState(_resetDrag);
+    _setDeckScrollLock(false);
   }
 
   void _showStartedMessage(String titulo) {
@@ -122,6 +132,57 @@ class _MetasScreenState extends State<MetasScreen> {
     );
   }
 
+  String _formatGoalDate(dynamic value) {
+    if (value == null) return 'Sin fecha límite';
+
+    DateTime? date;
+
+    if (value is Timestamp) {
+      date = value.toDate();
+    } else if (value is DateTime) {
+      date = value;
+    }
+
+    if (date == null) return 'Sin fecha límite';
+
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
+
+  String _priorityLabel(String value) {
+    switch (value.toLowerCase()) {
+      case 'baja':
+        return 'Baja';
+      case 'alta':
+        return 'Alta';
+      case 'media':
+      default:
+        return 'Media';
+    }
+  }
+
+  String _sourceLabel(String value) {
+    switch (value.toLowerCase()) {
+      case 'recommended':
+        return 'Recomendada';
+      case 'manual':
+        return 'Manual';
+      default:
+        return 'No especificado';
+    }
+  }
+
+  String _statusLabel(String value) {
+    switch (value.toLowerCase()) {
+      case 'completada':
+        return 'Completada';
+      case 'en_progreso':
+      default:
+        return 'En progreso';
+    }
+  }
+
   Widget _buildDeck() {
     final active = _manager.activeGoals;
     if (active.isEmpty) {
@@ -134,12 +195,16 @@ class _MetasScreenState extends State<MetasScreen> {
             SizedBox(
               height: 40,
               width: 40,
-              child: SvgPicture.asset('assets/images/metas/direct.svg',
-                  fit: BoxFit.contain),
+              child: SvgPicture.asset(
+                'assets/images/metas/direct.svg',
+                fit: BoxFit.contain,
+              ),
             ),
             const SizedBox(height: 12),
-            const Text('No hay metas recomendadas ahora',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300)),
+            const Text(
+              'No hay metas recomendadas ahora',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300),
+            ),
             const SizedBox(height: 8),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
@@ -161,9 +226,10 @@ class _MetasScreenState extends State<MetasScreen> {
     final visible = active.take(4).toList();
 
     final screenH = MediaQuery.of(context).size.height;
-    final deckHeight = screenH.clamp(640, 900) == screenH
-        ? 360.0
-        : (screenH * 0.48).clamp(340.0, 360.0);
+    final deckHeight =
+        screenH.clamp(640, 900) == screenH
+            ? 360.0
+            : (screenH * 0.48).clamp(340.0, 360.0);
     return SizedBox(
       height: deckHeight,
       child: Stack(
@@ -196,21 +262,46 @@ class _MetasScreenState extends State<MetasScreen> {
           );
 
           if (isTop) {
-            Widget gestureWrapped = GestureDetector(
+            Widget gestureWrapped = Listener(
               behavior: HitTestBehavior.translucent,
-              onPanUpdate: _swipingHorizontally ? null : _onDragUpdate,
-              onPanEnd: (d) => _onDragEnd(d, goal),
-              child: card,
+              onPointerDown: (_) {
+                _setDeckScrollLock(true);
+              },
+              onPointerUp: (_) {
+                _setDeckScrollLock(false);
+              },
+              onPointerCancel: (_) {
+                _setDeckScrollLock(false);
+              },
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanStart: (_) {
+                  _setDeckScrollLock(true);
+                },
+                onPanUpdate: _swipingHorizontally ? null : _onDragUpdate,
+                onPanEnd: (d) {
+                  _onDragEnd(d, goal);
+                  _setDeckScrollLock(false);
+                },
+                onPanCancel: () {
+                  setState(_resetDrag);
+                  _setDeckScrollLock(false);
+                },
+                child: card,
+              ),
             );
 
             if (_swipingHorizontally) {
-              final exitOffset = _horizontalExitLeft
-                  ? -MediaQuery.of(context).size.width
-                  : MediaQuery.of(context).size.width;
+              final exitOffset =
+                  _horizontalExitLeft
+                      ? -MediaQuery.of(context).size.width
+                      : MediaQuery.of(context).size.width;
               gestureWrapped = AnimatedSlide(
                 duration: const Duration(milliseconds: 180),
                 offset: Offset(
-                    exitOffset / MediaQuery.of(context).size.width, 0),
+                  exitOffset / MediaQuery.of(context).size.width,
+                  0,
+                ),
                 curve: Curves.easeIn,
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 160),
@@ -230,7 +321,10 @@ class _MetasScreenState extends State<MetasScreen> {
                 scale: scale * topScaleAdj,
                 child: Opacity(
                   opacity: isTop ? (1 - startProgress * 0.3) : 1,
-                  child: Transform.rotate(angle: rotation + dragRotation, child: card),
+                  child: Transform.rotate(
+                    angle: rotation + dragRotation,
+                    child: card,
+                  ),
                 ),
               ),
             ),
@@ -242,6 +336,7 @@ class _MetasScreenState extends State<MetasScreen> {
 
   Widget _buildNotesList() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+
     if (uid == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -249,14 +344,12 @@ class _MetasScreenState extends State<MetasScreen> {
       );
     }
 
-    final query = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(uid)
-        .collection('metas')
-        .where('estado', isEqualTo: 'en_progreso')
-        .orderBy('creada', descending: true);
+    final query = GoalsFirestoreService.instance.metasPorEstadoQuery(
+      uid: uid,
+      estado: 'en_progreso',
+    );
 
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: query.snapshots(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -265,13 +358,16 @@ class _MetasScreenState extends State<MetasScreen> {
             child: Center(child: CircularProgressIndicator()),
           );
         }
+
         if (snap.hasError) {
           return const Padding(
             padding: EdgeInsets.all(16),
             child: Text('Error al cargar metas.'),
           );
         }
+
         final docs = snap.data?.docs ?? [];
+
         if (docs.isEmpty) {
           return const Padding(
             padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -279,87 +375,168 @@ class _MetasScreenState extends State<MetasScreen> {
           );
         }
 
-                return ListView.separated(
+        return ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: docs.length,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           itemBuilder: (context, i) {
-            final d = docs[i].data() as Map<String, dynamic>? ?? {};
+            final d = docs[i].data();
+
             final titulo = (d['titulo'] ?? '').toString();
             final descripcion = (d['descripcion'] ?? '').toString();
 
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x14000000),
-                    blurRadius: 6,
-                    offset: Offset(0, 3),
+                onTap: () => _showGoalDetailsDialog(d),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x14000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 14,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          titulo,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Kantumruy Pro',
+                          ),
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          descripcion,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w300,
+                            fontFamily: 'Kantumruy Pro',
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    titulo,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      fontFamily: 'Kantumruy Pro',
-                                    ),
+                            SizedBox(
+                              width: 115,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                  side: const BorderSide(
+                                    color: Color(0xFFE2E8F0),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    descripcion,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w300,
-                                      fontFamily: 'Kantumruy Pro',
-                                    ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                    horizontal: 10,
                                   ),
-                                ],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  _showEditGoalSheet(
+                                    goalRef: docs[i].reference,
+                                    data: d,
+                                  );
+                                },
+                                icon: const Icon(Icons.edit_outlined, size: 17),
+                                label: const Text(
+                                  'Editar',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontFamily: 'Kantumruy Pro',
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+
+                            const SizedBox(width: 10),
+
                             SizedBox(
                               width: 130,
                               child: FilledButton.icon(
                                 style: FilledButton.styleFrom(
                                   backgroundColor: const Color(0xFF22C55E),
-                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                    horizontal: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                                 onPressed: () async {
-                                  final messenger = ScaffoldMessenger.of(context);
-                                  await docs[i].reference.update({'estado': 'completada'});
-                                  // Avanza flor: tick manual
-                                  GoalsManager.instance.incrementProgressTick();
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Meta marcada como completada'),
-                                      duration: Duration(seconds: 1),
-                                    ),
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
                                   );
+
+                                  try {
+                                    await GoalsFirestoreService.instance
+                                        .completeGoal(
+                                          goalRef: docs[i].reference,
+                                        );
+
+                                    GoalsManager.instance
+                                        .incrementProgressTick();
+
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Meta marcada como completada',
+                                        ),
+                                        duration: Duration(seconds: 1),
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'No se pudo completar la meta: $e',
+                                        ),
+                                      ),
+                                    );
+                                  }
                                 },
-                                icon: const Icon(Icons.check, color: Colors.white, size: 18),
-                                label: const Text('Completar', style: TextStyle(color: Colors.white)),
+                                icon: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                label: const Text(
+                                  'Completar',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             );
           },
         );
@@ -367,143 +544,148 @@ class _MetasScreenState extends State<MetasScreen> {
     );
   }
 
-// Reemplaza tu _buildCompletedChips() por este
-Widget _buildCompletedChips() {
-  final uid = FirebaseAuth.instance.currentUser?.uid;
-  if (uid == null) return const SizedBox.shrink();
+  Widget _buildCompletedChips() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
 
-  final query = FirebaseFirestore.instance
-      .collection('usuarios')
-      .doc(uid)
-      .collection('metas')
-      .where('estado', isEqualTo: 'completada')
-      .orderBy('creada', descending: true);
+    if (uid == null) return const SizedBox.shrink();
 
-  return StreamBuilder<QuerySnapshot>(
-    stream: query.snapshots(),
-    builder: (context, snap) {
-      if (snap.connectionState == ConnectionState.waiting) {
-        return const SizedBox.shrink();
-      }
-      if (snap.hasError) {
-        return const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
-          child: Text('Error al cargar metas completadas.'),
-        );
-      }
-      final docs = snap.data?.docs ?? [];
-      if (docs.isEmpty) return const SizedBox.shrink();
+    final query = GoalsFirestoreService.instance.metasPorEstadoQuery(
+      uid: uid,
+      estado: 'completada',
+    );
 
-      final recent = docs.take(3).toList();
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: query.snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 24, bottom: 8, top: 8),
-            child: Text(
-              'Completados',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+        if (snap.hasError) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24),
+            child: Text('Error al cargar metas completadas.'),
+          );
+        }
+
+        final docs = snap.data?.docs ?? [];
+
+        if (docs.isEmpty) return const SizedBox.shrink();
+
+        final recent = docs.take(3).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(left: 24, bottom: 8, top: 8),
+              child: Text(
+                'Completados',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: recent.map((d) {
-                final data = d.data() as Map<String, dynamic>? ?? {};
-                final titulo = (data['titulo'] ?? '').toString();
-                return _CompletedCircleChip(title: titulo);
-              }).toList(),
-            ),
-          ),
-          if (docs.length > 3)
-            // texto pequeño, alineado a la izquierda
             Padding(
-              padding: const EdgeInsets.only(left: 24, top: 6),
-              child: GestureDetector(
-                onTap: () => _showAllCompletedBottomSheet(docs),
-                child: const Text(
-                  'ver más',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w300,
-                    color: Colors.black54,
-                    decoration: TextDecoration.underline,
-                    decorationThickness: 1,
-                  ),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children:
+                    recent.map((d) {
+                      final data = d.data();
+                      final titulo = (data['titulo'] ?? '').toString();
+                      return _CompletedCircleChip(title: titulo);
+                    }).toList(),
               ),
             ),
-        ],
-      );
-    },
-  );
-}
-
-// Agrega este helper debajo (abre un bottom sheet con todos los chips)
-void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
-  showModalBottomSheet(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    builder: (ctx) {
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(left: 8, bottom: 8),
-                child: Text(
-                  'Metas completadas',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-              ),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: docs.map((d) {
-                        final data = d.data() as Map<String, dynamic>? ?? {};
-                        final titulo = (data['titulo'] ?? '').toString();
-                        return _CompletedCircleChip(title: titulo);
-                      }).toList(),
+            if (docs.length > 3)
+              Padding(
+                padding: const EdgeInsets.only(left: 24, top: 6),
+                child: GestureDetector(
+                  onTap: () => _showAllCompletedBottomSheet(docs),
+                  child: const Text(
+                    'ver más',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w300,
+                      color: Colors.black54,
+                      decoration: TextDecoration.underline,
+                      decorationThickness: 1,
                     ),
                   ),
                 ),
               ),
-            ],
+          ],
+        );
+      },
+    );
+  }
+
+  // Agrega este helper debajo (abre un bottom sheet con todos los chips)
+  void _showAllCompletedBottomSheet(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 8, bottom: 8),
+                  child: Text(
+                    'Metas completadas',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children:
+                            docs.map((d) {
+                              final data = d.data();
+                              final titulo = (data['titulo'] ?? '').toString();
+                              return _CompletedCircleChip(title: titulo);
+                            }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 
   // ---- BottomSheet agregar nota ----
   void _showAddNoteSheet() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Debes iniciar sesión.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Debes iniciar sesión.')));
       return;
     }
 
-  final tituloCtrl = TextEditingController();
-  final descCtrl = TextEditingController();
-  DateTime? fechaLimite;
-  String prioridad = 'media';
+    final tituloCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    DateTime? fechaLimite;
+    String prioridad = 'media';
 
     showModalBottomSheet(
       context: context,
@@ -528,11 +710,14 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Nueva meta',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Kantumruy Pro')),
+                    const Text(
+                      'Nueva meta',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Kantumruy Pro',
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     ContainerLogin(
                       width: double.infinity,
@@ -576,10 +761,13 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                               final picked = await showDatePicker(
                                 context: ctx,
                                 initialDate: now,
-                                firstDate: now.subtract(const Duration(days: 0)),
+                                firstDate: now.subtract(
+                                  const Duration(days: 0),
+                                ),
                                 lastDate: now.add(const Duration(days: 365)),
                               );
-                              if (picked != null) setModal(() => fechaLimite = picked);
+                              if (picked != null)
+                                setModal(() => fechaLimite = picked);
                             },
                             icon: const Icon(Icons.calendar_today, size: 18),
                             label: Text(
@@ -592,7 +780,13 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text('Prioridad', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    const Text(
+                      'Prioridad',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 10,
@@ -612,27 +806,39 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                         onPressed: () async {
                           final titulo = tituloCtrl.text.trim();
                           final descripcion = descCtrl.text.trim();
+
                           if (titulo.isEmpty || descripcion.isEmpty) {
                             messenger.showSnackBar(
-                              const SnackBar(content: Text('Completa título y descripción.')),
+                              const SnackBar(
+                                content: Text('Completa título y descripción.'),
+                              ),
                             );
                             return;
                           }
-                          await FirebaseFirestore.instance
-                              .collection('usuarios')
-                              .doc(uid)
-                              .collection('metas')
-                              .add({
-                            'titulo': titulo,
-                            'descripcion': descripcion,
-                            'creada': FieldValue.serverTimestamp(),
-                            'estado': 'en_progreso',
-                            if (fechaLimite != null) 'fechaLimite': Timestamp.fromDate(fechaLimite!),
-                            'prioridad': prioridad,
-                          });
-                          if (!context.mounted) return;
-                          Navigator.of(ctx).pop();
-                          messenger.showSnackBar(const SnackBar(content: Text('Meta agregada')));
+
+                          try {
+                            await GoalsFirestoreService.instance
+                                .createManualGoal(
+                                  titulo: titulo,
+                                  descripcion: descripcion,
+                                  prioridad: prioridad,
+                                  fechaLimite: fechaLimite,
+                                );
+
+                            if (!context.mounted) return;
+
+                            Navigator.of(ctx).pop();
+
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('Meta agregada')),
+                            );
+                          } catch (e) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('No se pudo agregar la meta: $e'),
+                              ),
+                            );
+                          }
                         },
                         icon: const Icon(Icons.check),
                         label: const Text('Guardar'),
@@ -648,6 +854,438 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
     );
   }
 
+  void _showEditGoalSheet({
+    required DocumentReference<Map<String, dynamic>> goalRef,
+    required Map<String, dynamic> data,
+  }) {
+    final tituloCtrl = TextEditingController(
+      text: (data['titulo'] ?? '').toString(),
+    );
+
+    final descCtrl = TextEditingController(
+      text: (data['descripcion'] ?? '').toString(),
+    );
+
+    DateTime? fechaLimite;
+    final rawFecha = data['fechaLimite'];
+
+    if (rawFecha is Timestamp) {
+      fechaLimite = rawFecha.toDate();
+    }
+
+    String prioridad = (data['prioridad'] ?? 'media').toString();
+
+    if (!['baja', 'media', 'alta'].contains(prioridad)) {
+      prioridad = 'media';
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        final messenger = ScaffoldMessenger.of(context);
+
+        return StatefulBuilder(
+          builder: (ctx, setModal) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+                top: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Editar meta',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Kantumruy Pro',
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    ContainerLogin(
+                      width: double.infinity,
+                      height: 53,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: TextField(
+                          controller: tituloCtrl,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Título',
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: TextField(
+                        controller: descCtrl,
+                        maxLines: 5,
+                        decoration: const InputDecoration(
+                          contentPadding: EdgeInsets.all(12),
+                          border: InputBorder.none,
+                          hintText: 'Descripción',
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final now = DateTime.now();
+
+                              final picked = await showDatePicker(
+                                context: ctx,
+                                initialDate: fechaLimite ?? now,
+                                firstDate: now,
+                                lastDate: now.add(const Duration(days: 365)),
+                              );
+
+                              if (picked != null) {
+                                setModal(() => fechaLimite = picked);
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_today, size: 18),
+                            label: Text(
+                              fechaLimite == null
+                                  ? 'Fecha límite opcional'
+                                  : '${fechaLimite!.day.toString().padLeft(2, '0')}/${fechaLimite!.month.toString().padLeft(2, '0')}/${fechaLimite!.year}',
+                            ),
+                          ),
+                        ),
+
+                        if (fechaLimite != null) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            tooltip: 'Quitar fecha',
+                            onPressed: () {
+                              setModal(() => fechaLimite = null);
+                            },
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    const Text(
+                      'Prioridad',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    Wrap(
+                      spacing: 10,
+                      children: [
+                        for (final p in ['baja', 'media', 'alta'])
+                          ChoiceChip(
+                            label: Text(p[0].toUpperCase() + p.substring(1)),
+                            selected: prioridad == p,
+                            selectedColor: const Color(0xFFEEF2FF),
+                            onSelected: (_) {
+                              setModal(() => prioridad = p);
+                            },
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                            ),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Cancelar'),
+                          ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () async {
+                              final titulo = tituloCtrl.text.trim();
+                              final descripcion = descCtrl.text.trim();
+
+                              if (titulo.isEmpty || descripcion.isEmpty) {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Completa título y descripción.',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              try {
+                                await GoalsFirestoreService.instance.updateGoal(
+                                  goalRef: goalRef,
+                                  titulo: titulo,
+                                  descripcion: descripcion,
+                                  prioridad: prioridad,
+                                  fechaLimite: fechaLimite,
+                                );
+
+                                if (!context.mounted) return;
+
+                                Navigator.of(ctx).pop();
+
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Meta actualizada'),
+                                  ),
+                                );
+                              } catch (e) {
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'No se pudo actualizar la meta: $e',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.save_outlined, size: 18),
+                            label: const Text('Guardar'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showGoalDetailsDialog(Map<String, dynamic> data) {
+    final titulo = (data['titulo'] ?? 'Sin título').toString();
+    final descripcion = (data['descripcion'] ?? 'Sin descripción').toString();
+    final prioridad = _priorityLabel((data['prioridad'] ?? 'media').toString());
+    final fechaLimite = _formatGoalDate(data['fechaLimite']);
+    final estado = _statusLabel((data['estado'] ?? 'en_progreso').toString());
+    final origen = _sourceLabel((data['source'] ?? '').toString());
+
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.25),
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 22,
+                  offset: Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFEEF2FF),
+                      ),
+                      child: const Icon(
+                        Icons.flag_outlined,
+                        color: AppColors.primary,
+                        size: 22,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    const Expanded(
+                      child: Text(
+                        'Detalle de meta',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontFamily: 'Kantumruy Pro',
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+
+                    InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFF8FAFC),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 20,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 23,
+                    height: 1.1,
+                    fontFamily: 'Kantumruy Pro',
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Text(
+                  descripcion,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.35,
+                    fontFamily: 'Kantumruy Pro',
+                    fontWeight: FontWeight.w300,
+                    color: Colors.black87,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                _GoalDetailRow(
+                  icon: Icons.priority_high_rounded,
+                  label: 'Prioridad',
+                  value: prioridad,
+                ),
+
+                const SizedBox(height: 10),
+
+                _GoalDetailRow(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Fecha límite',
+                  value: fechaLimite,
+                ),
+
+                const SizedBox(height: 10),
+
+                _GoalDetailRow(
+                  icon: Icons.timeline_rounded,
+                  label: 'Estado',
+                  value: estado,
+                ),
+
+                const SizedBox(height: 10),
+
+                _GoalDetailRow(
+                  icon: Icons.auto_awesome_outlined,
+                  label: 'Origen',
+                  value: origen,
+                ),
+
+                const SizedBox(height: 22),
+
+                InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    width: double.infinity,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 147, 148, 235),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1A6366F1),
+                          blurRadius: 12,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Cerrar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -656,6 +1294,10 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
       body: Stack(
         children: [
           SingleChildScrollView(
+            physics:
+                _lockScrollForDeck
+                    ? const NeverScrollableScrollPhysics()
+                    : const BouncingScrollPhysics(),
             child: Column(
               children: [
                 const DropMenu(),
@@ -680,15 +1322,28 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                             ),
                             const SizedBox(width: 8),
                             ConstrainedBox(
-                              constraints: const BoxConstraints(minWidth: 44, maxWidth: 140),
+                              constraints: const BoxConstraints(
+                                minWidth: 44,
+                                maxWidth: 140,
+                              ),
                               child: OutlinedButton.icon(
                                 onPressed: _showAddNoteSheet,
                                 icon: const Icon(Icons.add, size: 16),
-                                label: const Text('Agregar', style: TextStyle(fontSize: 14)),
+                                label: const Text(
+                                  'Agregar',
+                                  style: TextStyle(fontSize: 14),
+                                ),
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  side: const BorderSide(
+                                    color: Color(0xFFE2E8F0),
+                                  ),
                                   foregroundColor: const Color(0xFF111827),
                                 ),
                               ),
@@ -704,7 +1359,10 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                         padding: EdgeInsets.only(bottom: 8, top: 8),
                         child: Text(
                           'Metas por completar',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
                       _buildNotesList(),
@@ -731,7 +1389,11 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -746,7 +1408,11 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -772,11 +1438,18 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => Progreso()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => Progreso()),
+                      );
                     },
                   ),
                   RadialMenuItem(
@@ -784,13 +1457,19 @@ void _showAllCompletedBottomSheet(List<QueryDocumentSnapshot> docs) {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const Psicologos()),
+                        MaterialPageRoute(
+                          builder: (context) => const Psicologos(),
+                        ),
                       );
                     },
                   ),
@@ -822,7 +1501,11 @@ class _GoalCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         color: Colors.white,
         boxShadow: const [
-          BoxShadow(color: Color(0x22000000), blurRadius: 12, offset: Offset(0, 6)),
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
         ],
       ),
       child: ClipRRect(
@@ -891,6 +1574,73 @@ class _GoalCard extends StatelessWidget {
   }
 }
 
+class _GoalDetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _GoalDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFFEEF2FF),
+            ),
+            child: Icon(icon, size: 18, color: AppColors.primary),
+          ),
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontFamily: 'Kantumruy Pro',
+                fontWeight: FontWeight.w400,
+                color: Colors.black54,
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 14,
+                fontFamily: 'Kantumruy Pro',
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CompletedCircleChip extends StatelessWidget {
   final String title;
   const _CompletedCircleChip({required this.title});
@@ -934,7 +1684,11 @@ class _CompletedCircleChip extends StatelessWidget {
               spreadRadius: 1,
               offset: Offset(0, 4),
             ),
-            BoxShadow(color: Colors.white, blurRadius: 4, offset: Offset(-2, -2)),
+            BoxShadow(
+              color: Colors.white,
+              blurRadius: 4,
+              offset: Offset(-2, -2),
+            ),
           ],
         ),
         alignment: Alignment.center,

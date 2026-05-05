@@ -11,6 +11,9 @@ import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_application_1/screens/assessment/phq_gad_test_screen.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_1/services/assessment_service.dart';
+import 'package:flutter_application_1/screens/second_principal_screen.dart';
 
 class PrincipalScreen extends StatefulWidget {
   const PrincipalScreen({super.key});
@@ -24,13 +27,74 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   bool showStep3 = false;
   bool showStep4 = false;
 
+  bool _loadingAssessmentStatus = true;
+  bool _initialAssessmentCompleted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialAssessmentStatus();
+  }
+
+  Future<void> _loadInitialAssessmentStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (!mounted) return;
+
+      setState(() {
+        _loadingAssessmentStatus = false;
+        _initialAssessmentCompleted = false;
+      });
+
+      return;
+    }
+
+    try {
+      final completed = await AssessmentService.instance
+          .hasCompletedInitialAssessment(user.uid);
+
+      await AppState.instance.setTestCompleted(completed);
+
+      if (!mounted) return;
+
+      setState(() {
+        _initialAssessmentCompleted = completed;
+        _loadingAssessmentStatus = false;
+      });
+    } catch (e) {
+      debugPrint('INITIAL ASSESSMENT STATUS ERROR: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _initialAssessmentCompleted = false;
+        _loadingAssessmentStatus = false;
+      });
+    }
+  }
+
   void _guardedNavigate(Widget screen) {
-    if (!AppState.instance.isTestCompleted) {
+    if (_loadingAssessmentStatus) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+        const SnackBar(
+          content: Text('Estamos verificando tu evaluación inicial.'),
+        ),
       );
       return;
     }
+
+    if (!_initialAssessmentCompleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Completa el test inicial para desbloquear esta sección.',
+          ),
+        ),
+      );
+      return;
+    }
+
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
@@ -49,7 +113,10 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                   padding: EdgeInsets.only(top: 20, left: 45),
                   child: Row(
                     children: [
-                      HolaNombre(style: TextStyles.textInicioName, prefix: "Hola",),
+                      HolaNombre(
+                        style: TextStyles.textInicioName,
+                        prefix: "Hola",
+                      ),
                     ],
                   ),
                 ),
@@ -81,7 +148,9 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                           child: Column(
                             children: [
                               Text(
-                                "Comienza tu estudio \ninicial",
+                                _initialAssessmentCompleted
+                                    ? "Evaluación inicial\ncompletada"
+                                    : "Comienza tu estudio \ninicial",
                                 style: TextStyles.textInicioC1,
                               ),
                             ],
@@ -93,11 +162,52 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                             SizedBox(
                               height: 35,
                               child: CircularElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
+                                onPressed: () async {
+                                  if (_loadingAssessmentStatus) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Estamos verificando tu evaluación inicial.',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  if (_initialAssessmentCompleted) {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) =>
+                                                const SecondPrincipalScreen(),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  await Navigator.push<bool>(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const PhqGadTestScreen()),
+                                    MaterialPageRoute(
+                                      builder: (_) => const PhqGadTestScreen(),
+                                    ),
                                   );
+
+                                  await _loadInitialAssessmentStatus();
+
+                                  if (!mounted) return;
+
+                                  if (_initialAssessmentCompleted ||
+                                      AppState.instance.isTestCompleted) {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) =>
+                                                const SecondPrincipalScreen(),
+                                      ),
+                                    );
+                                  }
                                 },
                                 child: SvgPicture.asset(
                                   "assets/images/export.svg",
@@ -111,81 +221,100 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                  const SizedBox(height: 40),
+                const SizedBox(height: 40),
 
-                  // ====== Carousel de temas recomendados (mejorado diseño + autoplay R->L) ======
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(left: 6, bottom: 8),
-                          child: Text('Temas recomendados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                        ),
-                        const SizedBox(height: 6),
-
-                        CarouselSlider.builder(
-                          itemCount: 4,
-                          itemBuilder: (context, index, realIdx) {
-                            // build slides: 0=Depresión,1=Ansiedad,2=Insomnio,3=Hora de escribir
-                            if (index == 3) {
-                              return TopicCard(
-                                title: 'Hora de escribir',
-                                subtitle: 'Abre tu diario y escribe una nota',
-                                icon: Icons.edit,
-                                backgroundColor: const Color(0xFFE0E7FF),
-                                onTap: () => _guardedNavigate(DiarioScreen()),
-                              );
-                            }
-
-                            final data = [
-                              {
-                                'title': 'Depresión',
-                                'subtitle': 'Síntomas, señales y cuándo pedir ayuda',
-                                'icon': Icons.mood_bad,
-                                'color': const Color(0xFFE0E7FF),
-                                'topic': 'Depresión'
-                              },
-                              {
-                                'title': 'Ansiedad',
-                                'subtitle': 'Técnicas para calmar y manejar ataques',
-                                'icon': Icons.self_improvement,
-                                'color': const Color(0xFFE0E7FF),
-                                'topic': 'Ansiedad'
-                              },
-                              {
-                                'title': 'Insomnio',
-                                'subtitle': 'Rutinas y hábitos para mejorar el sueño',
-                                'icon': Icons.bedtime,
-                                'color': const Color(0xFFE0E7FF),
-                                'topic': 'Insomnio'
-                              },
-                            ];
-
-                            final item = data[index];
-                            return TopicCard(
-                              title: item['title'] as String,
-                              subtitle: item['subtitle'] as String,
-                              icon: item['icon'] as IconData,
-                              backgroundColor: item['color'] as Color,
-                              onTap: () => _guardedNavigate(IaScreen(initialTopic: item['topic'] as String)),
-                            );
-                          },
-                          options: CarouselOptions(
-                            height: 140,
-                            viewportFraction: 0.8,
-                            enlargeCenterPage: true,
-                            autoPlay: true,
-                            autoPlayInterval: const Duration(seconds: 4),
-                            autoPlayAnimationDuration: const Duration(milliseconds: 700),
-                            reverse: true, // move right-to-left
-                            enableInfiniteScroll: true,
+                // ====== Carousel de temas recomendados (mejorado diseño + autoplay R->L) ======
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(left: 6, bottom: 8),
+                        child: Text(
+                          'Temas recomendados',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      CarouselSlider.builder(
+                        itemCount: 4,
+                        itemBuilder: (context, index, realIdx) {
+                          // build slides: 0=Depresión,1=Ansiedad,2=Insomnio,3=Hora de escribir
+                          if (index == 3) {
+                            return TopicCard(
+                              title: 'Hora de escribir',
+                              subtitle: 'Abre tu diario y escribe una nota',
+                              icon: Icons.edit,
+                              backgroundColor: const Color(0xFFE0E7FF),
+                              onTap: () => _guardedNavigate(DiarioScreen()),
+                            );
+                          }
+
+                          final data = [
+                            {
+                              'title': 'Depresión',
+                              'subtitle':
+                                  'Síntomas, señales y cuándo pedir ayuda',
+                              'icon': Icons.mood_bad,
+                              'color': const Color(0xFFE0E7FF),
+                              'topic': 'Depresión',
+                            },
+                            {
+                              'title': 'Ansiedad',
+                              'subtitle':
+                                  'Técnicas para calmar y manejar ataques',
+                              'icon': Icons.self_improvement,
+                              'color': const Color(0xFFE0E7FF),
+                              'topic': 'Ansiedad',
+                            },
+                            {
+                              'title': 'Insomnio',
+                              'subtitle':
+                                  'Rutinas y hábitos para mejorar el sueño',
+                              'icon': Icons.bedtime,
+                              'color': const Color(0xFFE0E7FF),
+                              'topic': 'Insomnio',
+                            },
+                          ];
+
+                          final item = data[index];
+                          return TopicCard(
+                            title: item['title'] as String,
+                            subtitle: item['subtitle'] as String,
+                            icon: item['icon'] as IconData,
+                            backgroundColor: item['color'] as Color,
+                            onTap:
+                                () => _guardedNavigate(
+                                  IaScreen(
+                                    initialTopic: item['topic'] as String,
+                                  ),
+                                ),
+                          );
+                        },
+                        options: CarouselOptions(
+                          height: 140,
+                          viewportFraction: 0.8,
+                          enlargeCenterPage: true,
+                          autoPlay: true,
+                          autoPlayInterval: const Duration(seconds: 4),
+                          autoPlayAnimationDuration: const Duration(
+                            milliseconds: 700,
+                          ),
+                          reverse: true, // move right-to-left
+                          enableInfiniteScroll: true,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
               ],
             ),
           ),
@@ -234,15 +363,21 @@ class TopicCard extends StatelessWidget {
   final Color? backgroundColor;
   final IconData? icon;
 
-  const TopicCard({required this.title, required this.subtitle, required this.onTap, this.backgroundColor, this.icon, Key? key}) : super(key: key);
+  const TopicCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.backgroundColor,
+    this.icon,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final bool colored = backgroundColor != null;
     // Determine if background is light to choose readable foreground colors
-    final bool lightBg = colored
-        ? (backgroundColor!.computeLuminance() > 0.5)
-        : false;
+    final bool lightBg =
+        colored ? (backgroundColor!.computeLuminance() > 0.5) : false;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -254,7 +389,13 @@ class TopicCard extends StatelessWidget {
           color: colored ? backgroundColor : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFFE6E8F0)),
-          boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 4))],
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,15 +406,35 @@ class TopicCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: colored && !lightBg ? Colors.white24 : Colors.transparent,
+                      color:
+                          colored && !lightBg
+                              ? Colors.white24
+                              : Colors.transparent,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: colored ? (lightBg ? AppColors.primary : Colors.white) : AppColors.primary, size: 20),
+                    child: Icon(
+                      icon,
+                      color:
+                          colored
+                              ? (lightBg ? AppColors.primary : Colors.white)
+                              : AppColors.primary,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 8),
                 ],
                 Expanded(
-                  child: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: colored ? (lightBg ? Colors.black : Colors.white) : Colors.black)),
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color:
+                          colored
+                              ? (lightBg ? Colors.black : Colors.white)
+                              : Colors.black,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -281,7 +442,14 @@ class TopicCard extends StatelessWidget {
             Expanded(
               child: Text(
                 subtitle,
-                style: TextStyle(fontSize: 13, color: colored ? (lightBg ? Colors.black54 : Colors.white70) : Colors.black54, fontWeight: FontWeight.w300),
+                style: TextStyle(
+                  fontSize: 13,
+                  color:
+                      colored
+                          ? (lightBg ? Colors.black54 : Colors.white70)
+                          : Colors.black54,
+                  fontWeight: FontWeight.w300,
+                ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -289,7 +457,16 @@ class TopicCard extends StatelessWidget {
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.bottomRight,
-              child: Text('Ver', style: TextStyle(color: colored ? (lightBg ? AppColors.primary : Colors.white) : AppColors.primary, fontWeight: FontWeight.w700)),
+              child: Text(
+                'Ver',
+                style: TextStyle(
+                  color:
+                      colored
+                          ? (lightBg ? AppColors.primary : Colors.white)
+                          : AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),

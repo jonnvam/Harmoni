@@ -15,6 +15,8 @@ import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/verification_professional.dart';
 import 'package:flutter_application_1/screens/completar_registro_google_screen.dart';
 import 'package:flutter_application_1/services/user_profile_service.dart';
+import 'package:flutter_application_1/screens/second_principal_screen.dart';
+import 'package:flutter_application_1/services/assessment_service.dart';
 
 class SignLoginScreen extends StatefulWidget {
   const SignLoginScreen({super.key});
@@ -104,11 +106,29 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
     if (profile.isPaciente) {
       await AppState.instance.setRole(UserRole.paciente);
 
+      bool completed = false;
+
+      try {
+        completed = await AssessmentService.instance
+            .hasCompletedInitialAssessment(user.uid);
+      } catch (e) {
+        debugPrint('LOGIN ASSESSMENT STATUS ERROR: $e');
+        completed = false;
+      }
+
+      await AppState.instance.setTestCompleted(completed);
+
       if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => PrincipalScreen()),
+        MaterialPageRoute(
+          builder:
+              (_) =>
+                  completed
+                      ? const SecondPrincipalScreen()
+                      : const PrincipalScreen(),
+        ),
       );
       return;
     }

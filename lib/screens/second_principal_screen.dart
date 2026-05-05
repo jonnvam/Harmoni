@@ -13,6 +13,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_application_1/state/app_state.dart';
+import 'package:flutter_application_1/services/user_profile_service.dart';
+import 'package:flutter_application_1/screens/assessment/assessment_detail_screen.dart';
+import 'package:flutter_application_1/services/goals_firestore_service.dart';
+import 'package:flutter_application_1/services/diary_firestore_service.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -29,151 +33,195 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
   void _guardedNavigate(Widget screen) {
     if (!AppState.instance.isTestCompleted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+        const SnackBar(
+          content: Text(
+            'Completa el test inicial para desbloquear esta sección.',
+          ),
+        ),
       );
       return;
     }
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
-Future<void> _openMoodModal(
-  BuildContext parentContext,
-  String emotionLabel,
-  String emotionIconAsset,
-) async {
-  final controller = TextEditingController();                // lo que le causó esa emoción
-  final titleCtrl   = TextEditingController(text: emotionLabel); // título por defecto = emoción
+  CollectionReference<Map<String, dynamic>>? _notesCol() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
 
-  await showModalBottomSheet(
-    context: parentContext,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (ctx) {
-      return Padding(
-        padding: EdgeInsets.only(
-          left: 16, right: 16, top: 16,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: titleCtrl,
-              decoration: InputDecoration(
-                labelText: 'Título',
-                hintText: 'Ponle un nombre a tu nota',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                isDense: true,
+    return DiaryFirestoreService.instance.notesCol(uid);
+  }
+
+  Future<void> _openMoodModal(
+    BuildContext parentContext,
+    String emotionLabel,
+    String emotionIconAsset,
+  ) async {
+    final controller = TextEditingController(); // lo que le causó esa emoción
+    final titleCtrl = TextEditingController(
+      text: emotionLabel,
+    ); // título por defecto = emoción
+
+    await showModalBottomSheet(
+      context: parentContext,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Título',
+                  hintText: 'Ponle un nombre a tu nota',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  isDense: true,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                SvgPicture.asset(emotionIconAsset, width: 36, height: 36),
-                const SizedBox(width: 12),
-                Text(
-                  '¿Qué te hizo sentir $emotionLabel?',
-                  style: const TextStyle(
-                    fontFamily: 'Kantumruy Pro',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  SvgPicture.asset(emotionIconAsset, width: 36, height: 36),
+                  const SizedBox(width: 12),
+                  Text(
+                    '¿Qué te hizo sentir $emotionLabel?',
+                    style: const TextStyle(
+                      fontFamily: 'Kantumruy Pro',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Escribe aquí (opcional)...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'Escribe aquí (opcional)...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Cancelar'),
-                ),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: () async {
-                    final col = _notesCol();
-                    if (col == null) {
-                      ScaffoldMessenger.of(parentContext).showSnackBar(
-                        const SnackBar(content: Text('Debes iniciar sesión.')),
-                      );
-                      return;
-                    }
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ///cambio en estilo de boton
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final lower = emotionLabel.toLowerCase();
 
-                    // 1) (opcional) seguir guardando en tu “EmotionJournal” local
-                    final lower = emotionLabel.toLowerCase();
-                    EmotionType? t;
-                    if (lower.contains('feliz')) {t = EmotionType.happy;}
-                    else if (lower.contains('triste')) {t = EmotionType.sad;}
-                    else if (lower.contains('enojad')) {t = EmotionType.angry;}
-                    else if (lower.contains('sorpres') || lower.contains('sorprendid')) {t = EmotionType.surprised;}
-                    else if (lower.contains('miedo')) {t = EmotionType.fear;}
-                    if (t != null) {
-                      await EmotionJournal.instance.saveEmotion(t);
-                    }
+                      EmotionType? t;
 
-                    // 2) Guardar **en Firestore** → usuarios/{uid}/notas
-                    final titulo = titleCtrl.text.trim().isEmpty ? emotionLabel : titleCtrl.text.trim();
-                    final causa  = controller.text.trim();
-                    final texto  = causa.isEmpty
-                        ? 'Hoy me sentí $emotionLabel.'
-                        : 'Hoy me sentí $emotionLabel: $causa';
+                      if (lower.contains('feliz')) {
+                        t = EmotionType.happy;
+                      } else if (lower.contains('triste')) {
+                        t = EmotionType.sad;
+                      } else if (lower.contains('enojad')) {
+                        t = EmotionType.angry;
+                      } else if (lower.contains('sorpres') ||
+                          lower.contains('sorprendid')) {
+                        t = EmotionType.surprised;
+                      } else if (lower.contains('miedo')) {
+                        t = EmotionType.fear;
+                      }
 
-                    try {
-                      await col.add({
-                        'titulo'     : titulo,
-                        'texto'      : texto,
-                        'tipo'       : 'texto',        // para tu DiarioScreen
-                        'emocion'    : emotionLabel,   // útil para filtros
-                        'icono'      : emotionIconAsset,
-                        'createdAt'     : FieldValue.serverTimestamp(),
-                      });
+                      if (t != null) {
+                        await EmotionJournal.instance.saveEmotion(t);
+                      }
 
-                      if (!parentContext.mounted) return;
-                      Navigator.of(ctx).pop();
-                      ScaffoldMessenger.of(parentContext).showSnackBar(
-                        const SnackBar(content: Text('Estado de ánimo guardado.')),
-                      );
+                      final titulo =
+                          titleCtrl.text.trim().isEmpty
+                              ? emotionLabel
+                              : titleCtrl.text.trim();
 
-                      // Ir al diario (que ya lee de Firestore/notas)
-                      await Navigator.push(
-                        parentContext,
-                        MaterialPageRoute(builder: (_) => const DiarioScreen()),
-                      );
-                    } catch (e) {
-                      if (!parentContext.mounted) return;
-                      ScaffoldMessenger.of(parentContext).showSnackBar(
-                        SnackBar(content: Text('No se pudo guardar: $e')),
-                      );
-                    }
-                  },
-                  child: const Text('Guardar'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+                      final causa = controller.text.trim();
+
+                      final texto =
+                          causa.isEmpty
+                              ? 'Hoy me sentí $emotionLabel.'
+                              : 'Hoy me sentí $emotionLabel: $causa';
+
+                      try {
+                        await DiaryFirestoreService.instance.addTextNote(
+                          titulo: titulo,
+                          texto: texto,
+                          emocion: emotionLabel,
+                          icono: emotionIconAsset,
+                        );
+
+                        if (!parentContext.mounted) return;
+
+                        Navigator.of(ctx).pop();
+
+                        ScaffoldMessenger.of(parentContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('Estado de ánimo guardado.'),
+                          ),
+                        );
+
+                        await Navigator.push(
+                          parentContext,
+                          MaterialPageRoute(
+                            builder: (_) => const DiarioScreen(),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!parentContext.mounted) return;
+
+                        ScaffoldMessenger.of(parentContext).showSnackBar(
+                          SnackBar(content: Text('No se pudo guardar: $e')),
+                        );
+                      }
+                    },
+                    child: const Text('Guardar'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -221,7 +269,12 @@ Future<void> _openMoodModal(
                         EmotionButton(
                           text: "Feliz",
                           icon: "assets/images/emotions/Feliz.svg",
-                          onTap: () => _openMoodModal(context, 'Feliz', 'assets/images/emotions/Feliz.svg'),
+                          onTap:
+                              () => _openMoodModal(
+                                context,
+                                'Feliz',
+                                'assets/images/emotions/Feliz.svg',
+                              ),
                         ),
                       ],
                     ),
@@ -231,7 +284,12 @@ Future<void> _openMoodModal(
                         EmotionButton(
                           text: "Triste",
                           icon: "assets/images/emotions/Triste.svg",
-                          onTap: () => _openMoodModal(context, 'Triste', 'assets/images/emotions/Triste.svg'),
+                          onTap:
+                              () => _openMoodModal(
+                                context,
+                                'Triste',
+                                'assets/images/emotions/Triste.svg',
+                              ),
                         ),
                       ],
                     ),
@@ -240,7 +298,12 @@ Future<void> _openMoodModal(
                         EmotionButton(
                           text: "Enojado",
                           icon: "assets/images/emotions/Enojado.svg",
-                          onTap: () => _openMoodModal(context, 'Enojado', 'assets/images/emotions/Enojado.svg'),
+                          onTap:
+                              () => _openMoodModal(
+                                context,
+                                'Enojado',
+                                'assets/images/emotions/Enojado.svg',
+                              ),
                         ),
                       ],
                     ),
@@ -255,7 +318,12 @@ Future<void> _openMoodModal(
                         EmotionButton(
                           text: "Sorpresa",
                           icon: "assets/images/emotions/Sorpresa.svg",
-                          onTap: () => _openMoodModal(context, 'Sorprendido', 'assets/images/emotions/Sorpresa.svg'),
+                          onTap:
+                              () => _openMoodModal(
+                                context,
+                                'Sorprendido',
+                                'assets/images/emotions/Sorpresa.svg',
+                              ),
                         ),
                       ],
                     ),
@@ -265,7 +333,12 @@ Future<void> _openMoodModal(
                         EmotionButton(
                           text: "Miedo",
                           icon: "assets/images/emotions/Miedo.svg",
-                          onTap: () => _openMoodModal(context, 'Miedo', 'assets/images/emotions/Miedo.svg'),
+                          onTap:
+                              () => _openMoodModal(
+                                context,
+                                'Miedo',
+                                'assets/images/emotions/Miedo.svg',
+                              ),
                         ),
                       ],
                     ),
@@ -340,13 +413,22 @@ Future<void> _openMoodModal(
 
                 // ====== Carousel de temas recomendados (Depresión, Ansiedad, etc.) ======
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Padding(
                         padding: EdgeInsets.only(left: 6, bottom: 8),
-                        child: Text('Temas recomendados', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        child: Text(
+                          'Temas recomendados',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                       SizedBox(
                         height: 120,
@@ -356,20 +438,32 @@ Future<void> _openMoodModal(
                             const SizedBox(width: 6),
                             _TopicCard(
                               title: 'Depresión',
-                              subtitle: 'Síntomas, señales y cuándo pedir ayuda',
-                              onTap: () => _guardedNavigate(IaScreen(initialTopic: 'Depresión')),
+                              subtitle:
+                                  'Síntomas, señales y cuándo pedir ayuda',
+                              onTap:
+                                  () => _guardedNavigate(
+                                    IaScreen(initialTopic: 'Depresión'),
+                                  ),
                             ),
                             const SizedBox(width: 10),
                             _TopicCard(
                               title: 'Ansiedad',
-                              subtitle: 'Técnicas para calmar y manejar ataques',
-                              onTap: () => _guardedNavigate(IaScreen(initialTopic: 'Ansiedad')),
+                              subtitle:
+                                  'Técnicas para calmar y manejar ataques',
+                              onTap:
+                                  () => _guardedNavigate(
+                                    IaScreen(initialTopic: 'Ansiedad'),
+                                  ),
                             ),
                             const SizedBox(width: 10),
                             _TopicCard(
                               title: 'Insomnio',
-                              subtitle: 'Rutinas y hábitos para mejorar el sueño',
-                              onTap: () => _guardedNavigate(IaScreen(initialTopic: 'Insomnio')),
+                              subtitle:
+                                  'Rutinas y hábitos para mejorar el sueño',
+                              onTap:
+                                  () => _guardedNavigate(
+                                    IaScreen(initialTopic: 'Insomnio'),
+                                  ),
                             ),
                             const SizedBox(width: 6),
                           ],
@@ -378,6 +472,10 @@ Future<void> _openMoodModal(
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 30),
+                // ====== Resultado de cuestionario inicial (si ya lo hizo) ======
+                const _AssessmentSummaryCard(),
 
                 const SizedBox(height: 30),
 
@@ -430,19 +528,20 @@ Future<void> _openMoodModal(
 
 // ====== LISTA Firestore “en progreso” con botón de completar ======
 class _FirestoreInProgressList extends StatelessWidget {
+  const _FirestoreInProgressList();
+
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+
     if (uid == null) return const SizedBox.shrink();
 
-    final query = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(uid)
-        .collection('metas')
-        .where('estado', isEqualTo: 'en_progreso')
-        .orderBy('creada', descending: true);
+    final query = GoalsFirestoreService.instance.metasPorEstadoQuery(
+      uid: uid,
+      estado: 'en_progreso',
+    );
 
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: query.snapshots(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
@@ -451,13 +550,16 @@ class _FirestoreInProgressList extends StatelessWidget {
             child: Center(child: CircularProgressIndicator()),
           );
         }
+
         if (snap.hasError) {
           return const Padding(
             padding: EdgeInsets.all(16),
             child: Text('Error al cargar metas en progreso.'),
           );
         }
+
         final docs = snap.data?.docs ?? [];
+
         if (docs.isEmpty) return const SizedBox.shrink();
 
         return Column(
@@ -472,13 +574,18 @@ class _FirestoreInProgressList extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
+
             ...docs.map((doc) {
-              final d = doc.data() as Map<String, dynamic>? ?? {};
+              final d = doc.data();
+
               final titulo = (d['titulo'] ?? '').toString();
               final descripcion = (d['descripcion'] ?? '').toString();
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 6,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -509,25 +616,68 @@ class _FirestoreInProgressList extends StatelessWidget {
                         fontWeight: FontWeight.w300,
                       ),
                     ),
-                    trailing: IconButton(
-                      tooltip: 'Marcar como completada',
-                      icon: const Icon(Icons.check_circle, color: Colors.green),
-                      onPressed: () async {
-                        await doc.reference.update({'estado': 'completada'});
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('¡Meta completada!'),
-                              duration: Duration(seconds: 1),
-                            ),
-                          );
-                        }
-                      },
+                    trailing: SizedBox(
+                      width: 130,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF22C55E),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+
+                          try {
+                            await GoalsFirestoreService.instance.completeGoal(
+                              goalRef: doc.reference,
+                            );
+
+                            if (!context.mounted) return;
+
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('¡Meta completada!'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'No se pudo completar la meta: $e',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Completar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontFamily: 'Kantumruy Pro',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               );
-            }).toList(),
+            }),
+
             const SizedBox(height: 20),
           ],
         );
@@ -542,8 +692,8 @@ class _FirestoreFlowerProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+
     if (uid == null) {
-      // Sin sesión: flor en 0
       return const AnimatedFlower(
         assetPath: 'assets/animations/flower.json',
         showOverlayRing: true,
@@ -553,24 +703,22 @@ class _FirestoreFlowerProgress extends StatelessWidget {
       );
     }
 
-    final metasCol = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(uid)
-        .collection('metas');
-
-    // Un solo stream a toda la colección; contamos en memoria.
-    return StreamBuilder<QuerySnapshot>(
-      stream: metasCol.snapshots(),
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: GoalsFirestoreService.instance.allGoalsStream(uid),
       builder: (context, snap) {
         double fraction = 0.0;
+
         if (snap.hasData) {
           final all = snap.data!.docs;
           final total = all.length;
+
           if (total > 0) {
-            final completed = all.where((d) {
-              final m = d.data() as Map<String, dynamic>? ?? {};
-              return (m['estado'] ?? '') == 'completada';
-            }).length;
+            final completed =
+                all.where((d) {
+                  final m = d.data();
+                  return (m['estado'] ?? '') == 'completada';
+                }).length;
+
             fraction = completed / total;
           }
         }
@@ -592,7 +740,11 @@ class _TopicCard extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
-  const _TopicCard({required this.title, required this.subtitle, required this.onTap});
+  const _TopicCard({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -607,17 +759,30 @@ class _TopicCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFFE6E8F0)),
-          boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 4))],
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 6),
             Expanded(
               child: Text(
                 subtitle,
-                style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w300),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w300,
+                ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -625,7 +790,13 @@ class _TopicCard extends StatelessWidget {
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.bottomRight,
-              child: Text('Ver', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+              child: Text(
+                'Ver',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
@@ -634,11 +805,277 @@ class _TopicCard extends StatelessWidget {
   }
 }
 
-CollectionReference<Map<String, dynamic>>? _notesCol() {
-  final uid = FirebaseAuth.instance.currentUser?.uid;
-  if (uid == null) return null;
-  return FirebaseFirestore.instance
-      .collection('usuarios')
-      .doc(uid)
-      .collection('notas');
+///widget para el resumen de evaluación inicial (PHQ-9 y GAD-7)
+class _AssessmentSummaryCard extends StatelessWidget {
+  const _AssessmentSummaryCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) {
+      return const SizedBox.shrink();
+    }
+
+    final patientRef = FirebaseFirestore.instance
+        .collection(UserProfileService.collectionUsuariosPacientes)
+        .doc(uid);
+
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: patientRef.get(),
+      builder: (context, patientSnap) {
+        if (patientSnap.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (patientSnap.hasError) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'No se pudieron cargar tus resultados.',
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+
+        final patientData = patientSnap.data?.data();
+
+        if (patientData == null) {
+          return const SizedBox.shrink();
+        }
+
+        final initialAssessment = patientData['initialAssessment'];
+
+        if (initialAssessment is! Map ||
+            initialAssessment['completed'] != true ||
+            initialAssessment['latestAssessmentId'] == null) {
+          return const SizedBox.shrink();
+        }
+
+        final assessmentId = initialAssessment['latestAssessmentId'].toString();
+
+        final assessmentRef = patientRef
+            .collection('assessments')
+            .doc(assessmentId);
+
+        return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          future: assessmentRef.get(),
+          builder: (context, assessmentSnap) {
+            if (assessmentSnap.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (assessmentSnap.hasError) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'No se pudieron cargar los detalles de tu evaluación.',
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }
+
+            final data = assessmentSnap.data?.data();
+
+            if (data == null) {
+              return const SizedBox.shrink();
+            }
+
+            final phq9 = data['phq9'] as Map<String, dynamic>? ?? {};
+            final gad7 = data['gad7'] as Map<String, dynamic>? ?? {};
+
+            final phqScore = phq9['score'] ?? 0;
+            final gadScore = gad7['score'] ?? 0;
+
+            final phqLabel =
+                (phq9['severityLabelEs'] ?? 'Sin clasificar').toString();
+            final gadLabel =
+                (gad7['severityLabelEs'] ?? 'Sin clasificar').toString();
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Tu evaluación inicial',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    const Text(
+                      'Resumen privado de tus resultados PHQ-9 y GAD-7.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontFamily: 'Kantumruy Pro',
+                        color: Colors.black54,
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _AssessmentScoreBox(
+                            title: 'PHQ-9',
+                            score: '$phqScore / 27',
+                            label: phqLabel,
+                            subtitle: 'Depresión',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _AssessmentScoreBox(
+                            title: 'GAD-7',
+                            score: '$gadScore / 21',
+                            label: gadLabel,
+                            subtitle: 'Ansiedad',
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Text(
+                        'Estos resultados son privados. Solo se compartirán con un psicólogo si das tu consentimiento explícito.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'Kantumruy Pro',
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => AssessmentDetailScreen(
+                                    assessmentId: assessmentId,
+                                  ),
+                            ),
+                          );
+                        },
+                        child: const Text('Ver detalles'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _AssessmentScoreBox extends StatelessWidget {
+  final String title;
+  final String score;
+  final String label;
+  final String subtitle;
+
+  const _AssessmentScoreBox({
+    required this.title,
+    required this.score,
+    required this.label,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 118),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // clave
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 12,
+              fontFamily: 'Kantumruy Pro',
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 18), // reemplaza al Spacer
+          Text(
+            score,
+            style: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
