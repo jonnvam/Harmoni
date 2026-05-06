@@ -46,3 +46,5 @@ app.*.map.json
 
 # Environment file
 .env
+
+functions/.env
