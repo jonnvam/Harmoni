@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'selfie_verification_screen.dart';
 import 'validation_status_screen.dart';
+import 'home_screen.dart';
 
 class VerificacionProfesionalScreen extends StatefulWidget {
   const VerificacionProfesionalScreen({super.key});
@@ -25,7 +26,7 @@ class _VerificacionProfesionalScreenState
   final _picker = ImagePicker();
 
   static const String _apiValidacionUrl =
-      'https://harmoni-production-27ae.up.railway.app;
+      'https://harmoni-production-27ae.up.railway.app';
 
   XFile? _ineFront;
   XFile? _ineBack;
@@ -36,6 +37,7 @@ class _VerificacionProfesionalScreenState
   File? _cedulaReversoPdf;
 
   bool _sending = false;
+  bool _redirectingToHome = false;
 
   String _textoIneDetectado = '';
   String _textoCedulaFrenteDetectado = '';
@@ -679,6 +681,23 @@ class _VerificacionProfesionalScreenState
     );
   }
 
+  void _redirectToPsychologistHome() {
+  if (_redirectingToHome) return;
+
+  _redirectingToHome = true;
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const PsychologistHomeScreen(),
+      ),
+      (route) => false,
+    );
+  });
+}
+
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -761,12 +780,13 @@ class _VerificacionProfesionalScreenState
             }
 
             if (estado == 'VALIDADO_OFICIAL') {
+              _redirectToPsychologistHome();
+
               return const _EstadoSimple(
                 icon: Icons.check_circle,
                 color: Colors.green,
                 title: 'Validación completada',
-                message:
-                    'Tu perfil profesional ya fue validado oficialmente.',
+                message: 'Tu perfil profesional ya fue validado oficialmente.',
               );
             }
 
