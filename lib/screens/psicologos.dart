@@ -12,6 +12,7 @@ import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/state/app_state.dart';
+import 'package:flutter_application_1/screens/mis_citas_screen.dart';
 
 class Psicologos extends StatefulWidget {
   const Psicologos({super.key});
@@ -214,6 +215,10 @@ class _PsicologosState extends State<Psicologos> {
                   padding: EdgeInsets.only(top: 30, left: 24, right: 24),
                 ),
                 const SizedBox(height: 10),
+
+                const SizedBox(height: 14),
+                const _MyAppointmentsShortcut(),
+                const SizedBox(height: 16),
 
                 // Search + filtros (estilo moderno)
                 Padding(
@@ -1101,4 +1106,82 @@ void _openPreview(BuildContext context, Psychologist p) {
       );
     },
   );
+}
+
+class _MyAppointmentsShortcut extends StatelessWidget {
+  const _MyAppointmentsShortcut();
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const MisCitasScreen()),
+        );
+      },
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEEF2FF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.calendar_month_rounded,
+                color: AppColors.fondo3,
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mis citas',
+                    style: TextStyle(
+                      fontFamily: 'Kantumruy Pro',
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Consulta el estado de tus solicitudes.',
+                    style: TextStyle(
+                      fontFamily: 'Kantumruy Pro',
+                      fontSize: 12,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Icon(Icons.chevron_right_rounded, color: Colors.black38),
+          ],
+        ),
+      ),
+    );
+  }
 }

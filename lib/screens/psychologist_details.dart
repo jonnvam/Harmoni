@@ -2,126 +2,126 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/psychologist.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_1/services/appointments_service.dart';
 
 class PsychologistDetailsScreen extends StatelessWidget {
   final Psychologist psychologist;
   const PsychologistDetailsScreen({super.key, required this.psychologist});
 
   @override
-Widget build(BuildContext context) {
-  final p = psychologist;
+  Widget build(BuildContext context) {
+    final p = psychologist;
 
-  return Scaffold(
-    backgroundColor: Colors.white,
-    floatingActionButton: FloatingActionButton.extended(
-      onPressed: () => _openBookingSheet(context, p),
-      backgroundColor: AppColors.fondo3,
-      label: const Text(
-        'Reservar',
-        style: TextStyle(
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-          fontFamily: 'Kantumruy Pro',
+    return Scaffold(
+      backgroundColor: Colors.white,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openBookingSheet(context, p),
+        backgroundColor: AppColors.fondo3,
+        label: const Text(
+          'Reservar',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            fontFamily: 'Kantumruy Pro',
+          ),
         ),
+        icon: const Icon(Icons.calendar_today_rounded, color: Colors.white),
       ),
-      icon: const Icon(Icons.calendar_today_rounded, color: Colors.white),
-    ),
-    body: SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _BackButtonCircle(onTap: () => Navigator.pop(context)),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BackButtonCircle(onTap: () => Navigator.pop(context)),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            _ProfileHeaderCard(psychologist: p),
+              _ProfileHeaderCard(psychologist: p),
 
-            const SizedBox(height: 18),
+              const SizedBox(height: 18),
 
-            _InfoSection(
-              title: 'Descripción profesional',
-              icon: Icons.description_rounded,
-              child: Text(
-                p.descripcionProfesional.trim().isEmpty
-                    ? 'Este profesional aún no agregó una descripción.'
-                    : p.descripcionProfesional,
-                style: const TextStyle(
-                  fontSize: 15,
-                  height: 1.4,
-                  color: Colors.black87,
-                  fontFamily: 'Kantumruy Pro',
-                ),
-              ),
-            ),
-
-            _InfoSection(
-              title: 'Especialidades',
-              icon: Icons.psychology_rounded,
-              child: _ChipWrap(items: p.specialties),
-            ),
-
-            _InfoSection(
-              title: 'Modalidades de atención',
-              icon: Icons.video_call_rounded,
-              child: _ChipWrap(items: p.modalidades),
-            ),
-
-            _InfoSection(
-              title: 'Enfoque terapéutico',
-              icon: Icons.lightbulb_rounded,
-              child: _ChipWrap(items: p.enfoquesTerapia),
-            ),
-
-            _InfoSection(
-              title: 'Población que atiende',
-              icon: Icons.groups_rounded,
-              child: _ChipWrap(items: p.atiendeA),
-            ),
-
-            if (p.aniosExperiencia != null)
               _InfoSection(
-                title: 'Experiencia',
-                icon: Icons.workspace_premium_rounded,
+                title: 'Descripción profesional',
+                icon: Icons.description_rounded,
                 child: Text(
-                  p.aniosExperiencia == 1
-                      ? '1 año de experiencia'
-                      : '${p.aniosExperiencia} años de experiencia',
+                  p.descripcionProfesional.trim().isEmpty
+                      ? 'Este profesional aún no agregó una descripción.'
+                      : p.descripcionProfesional,
                   style: const TextStyle(
                     fontSize: 15,
-                    fontFamily: 'Kantumruy Pro',
+                    height: 1.4,
                     color: Colors.black87,
-                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Kantumruy Pro',
                   ),
                 ),
               ),
 
-            _FeeCard(psychologist: p),
+              _InfoSection(
+                title: 'Especialidades',
+                icon: Icons.psychology_rounded,
+                child: _ChipWrap(items: p.specialties),
+              ),
 
-            const SizedBox(height: 120),
-          ],
+              _InfoSection(
+                title: 'Modalidades de atención',
+                icon: Icons.video_call_rounded,
+                child: _ChipWrap(items: p.modalidades),
+              ),
+
+              _InfoSection(
+                title: 'Enfoque terapéutico',
+                icon: Icons.lightbulb_rounded,
+                child: _ChipWrap(items: p.enfoquesTerapia),
+              ),
+
+              _InfoSection(
+                title: 'Población que atiende',
+                icon: Icons.groups_rounded,
+                child: _ChipWrap(items: p.atiendeA),
+              ),
+
+              if (p.aniosExperiencia != null)
+                _InfoSection(
+                  title: 'Experiencia',
+                  icon: Icons.workspace_premium_rounded,
+                  child: Text(
+                    p.aniosExperiencia == 1
+                        ? '1 año de experiencia'
+                        : '${p.aniosExperiencia} años de experiencia',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontFamily: 'Kantumruy Pro',
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+              _FeeCard(psychologist: p),
+
+              const SizedBox(height: 120),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _openBookingSheet(BuildContext context, Psychologist p) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) => BookingSheet(psychologist: p),
     );
   }
 }
 
 // Eliminado: _AvatarBlock ya no es necesario con el header card centrado.
-
 
 class _TagChip extends StatelessWidget {
   final String text;
@@ -136,20 +136,26 @@ class _TagChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg ?? const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(999),
-  border: Border.all(color: (color ?? const Color(0xFF6B7280)).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: (color ?? const Color(0xFF6B7280)).withValues(alpha: 0.3),
+        ),
       ),
-      child: Text(text, style: TextStyle(color: color ?? const Color(0xFF374151), fontSize: 12, fontWeight: FontWeight.w600)),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color ?? const Color(0xFF374151),
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
 
-
 class _BackButtonCircle extends StatelessWidget {
   final VoidCallback onTap;
 
-  const _BackButtonCircle({
-    required this.onTap,
-  });
+  const _BackButtonCircle({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -180,9 +186,7 @@ class _BackButtonCircle extends StatelessWidget {
 class _ProfileHeaderCard extends StatelessWidget {
   final Psychologist psychologist;
 
-  const _ProfileHeaderCard({
-    required this.psychologist,
-  });
+  const _ProfileHeaderCard({required this.psychologist});
 
   @override
   Widget build(BuildContext context) {
@@ -209,19 +213,21 @@ class _ProfileHeaderCard extends StatelessWidget {
           CircleAvatar(
             radius: 50,
             backgroundColor: const Color(0xFFF2EEFF),
-            backgroundImage: (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
-                ? NetworkImage(p.avatarUrl!)
-                : (p.avatarAsset != null && p.avatarAsset!.isNotEmpty)
+            backgroundImage:
+                (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
+                    ? NetworkImage(p.avatarUrl!)
+                    : (p.avatarAsset != null && p.avatarAsset!.isNotEmpty)
                     ? AssetImage(p.avatarAsset!) as ImageProvider
                     : null,
-            child: (p.avatarUrl == null &&
-                    (p.avatarAsset == null || p.avatarAsset!.isEmpty))
-                ? const Icon(
-                    Icons.person_rounded,
-                    size: 50,
-                    color: AppColors.fondo3,
-                  )
-                : null,
+            child:
+                (p.avatarUrl == null &&
+                        (p.avatarAsset == null || p.avatarAsset!.isEmpty))
+                    ? const Icon(
+                      Icons.person_rounded,
+                      size: 50,
+                      color: AppColors.fondo3,
+                    )
+                    : null,
           ),
 
           const SizedBox(height: 14),
@@ -319,9 +325,7 @@ class _InfoSection extends StatelessWidget {
 class _ChipWrap extends StatelessWidget {
   final List<String> items;
 
-  const _ChipWrap({
-    required this.items,
-  });
+  const _ChipWrap({required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -339,25 +343,26 @@ class _ChipWrap extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: items.map((item) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEEF2FF),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: const Color(0xFFDCE4FF)),
-          ),
-          child: Text(
-            item,
-            style: const TextStyle(
-              fontSize: 13,
-              fontFamily: 'Kantumruy Pro',
-              fontWeight: FontWeight.w700,
-              color: AppColors.fondo3,
-            ),
-          ),
-        );
-      }).toList(),
+      children:
+          items.map((item) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF2FF),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: const Color(0xFFDCE4FF)),
+              ),
+              child: Text(
+                item,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontFamily: 'Kantumruy Pro',
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.fondo3,
+                ),
+              ),
+            );
+          }).toList(),
     );
   }
 }
@@ -365,9 +370,7 @@ class _ChipWrap extends StatelessWidget {
 class _FeeCard extends StatelessWidget {
   final Psychologist psychologist;
 
-  const _FeeCard({
-    required this.psychologist,
-  });
+  const _FeeCard({required this.psychologist});
 
   @override
   Widget build(BuildContext context) {
@@ -391,11 +394,7 @@ class _FeeCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.payments_rounded,
-            color: AppColors.fondo3,
-            size: 26,
-          ),
+          const Icon(Icons.payments_rounded, color: AppColors.fondo3, size: 26),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -418,6 +417,7 @@ class _FeeCard extends StatelessWidget {
 
 class BookingSheet extends StatefulWidget {
   final Psychologist psychologist;
+
   const BookingSheet({super.key, required this.psychologist});
 
   @override
@@ -425,182 +425,683 @@ class BookingSheet extends StatefulWidget {
 }
 
 class _BookingSheetState extends State<BookingSheet> {
-  int _selectedDay = 0; // 0 = hoy, 1 = mañana
-  double _timeValue = 10; // hora base 8..20 → 10 ~ 10am
-  String _payment = 'Debit Card';
+  final _motivoCtrl = TextEditingController();
 
-  String _formatHour(double v) {
-    final hour = 8 + v.round();
+  List<AppointmentSlot> _slots = [];
+  AppointmentSlot? _selectedSlot;
+  String? _selectedModalidad;
+  String _selectedPaymentMethod = 'transferencia';
+
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSlots();
+  }
+
+  @override
+  void dispose() {
+    _motivoCtrl.dispose();
+    super.dispose();
+  }
+
+  String _paymentMethodLabel(String method) {
+    switch (method) {
+      case 'efectivo':
+        return 'Efectivo';
+      case 'transferencia':
+        return 'Transferencia';
+      case 'pago_digital':
+        return 'Pago digital';
+      default:
+        return method;
+    }
+  }
+
+  Future<void> _loadSlots() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final slots = await AppointmentsService.instance.loadAvailableSlots(
+        psychologistUid: widget.psychologist.id,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _slots = slots;
+        _selectedSlot = slots.isNotEmpty ? slots.first : null;
+        _selectedModalidad =
+            slots.isNotEmpty && slots.first.modalidades.isNotEmpty
+                ? slots.first.modalidades.first
+                : null;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  String _dayLabel(DateTime date) {
+    const days = [
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+      'Domingo',
+    ];
+
+    const months = [
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
+    ];
+
+    return '${days[date.weekday - 1]}, ${date.day} de ${months[date.month - 1]}';
+  }
+
+  String _hourLabel(DateTime date) {
+    final hour = date.hour;
+    final minute = date.minute;
     final isPM = hour >= 12;
     final h12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    return '${h12.toString().padLeft(2, '0')}:00 ${isPM ? 'PM' : 'AM'}';
+
+    return '${h12.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} ${isPM ? 'PM' : 'AM'}';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16,
-        right: 16,
-        top: 16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('Reservando cita para', style: TextStyles.textBlackLogin.copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
-              const Spacer(),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ],
-          ),
-          Text(widget.psychologist.name, style: TextStyles.tituloBienvenida.copyWith(fontSize: 22, fontWeight: FontWeight.w900)),
+  String _modalidadLabel(String modalidad) {
+    switch (modalidad) {
+      case 'online':
+        return 'En línea';
+      case 'presencial':
+        return 'Presencial';
+      default:
+        return modalidad;
+    }
+  }
 
-          const SizedBox(height: 16),
+  Map<String, List<AppointmentSlot>> _groupSlotsByDay() {
+    final grouped = <String, List<AppointmentSlot>>{};
 
-          // Día cards
-          Row(
-            children: [
-              _DayCard(
-                title: 'Hoy',
-                subtitle: _dayAndMonth(DateTime.now()),
-                slots: 12,
-                selected: _selectedDay == 0,
-                onTap: () => setState(() => _selectedDay = 0),
-              ),
-              const SizedBox(width: 12),
-              _DayCard(
-                title: 'Mañana',
-                subtitle: _dayAndMonth(DateTime.now().add(const Duration(days: 1))),
-                slots: 9,
-                selected: _selectedDay == 1,
-                onTap: () => setState(() => _selectedDay = 1),
-              ),
-            ],
-          ),
+    for (final slot in _slots) {
+      final key =
+          DateTime(
+            slot.inicio.year,
+            slot.inicio.month,
+            slot.inicio.day,
+          ).toIso8601String();
 
-          const SizedBox(height: 16),
-          Text('Elige hora', style: TextStyles.textBlackLogin.copyWith(fontWeight: FontWeight.w700)),
-          Row(
-            children: [
-              const Text('8:00 AM'),
-              Expanded(
-                child: Slider(
-                  min: 0,
-                  max: 12,
-                  divisions: 12,
-                  value: _timeValue,
-                  activeColor: AppColors.fondo3,
-                  onChanged: (v) => setState(() => _timeValue = v),
+      grouped.putIfAbsent(key, () => []);
+      grouped[key]!.add(slot);
+    }
+
+    return grouped;
+  }
+
+  Future<void> _requestAppointment() async {
+    final slot = _selectedSlot;
+    final modalidad = _selectedModalidad;
+    final motivo = _motivoCtrl.text.trim();
+
+    if (slot == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona un horario disponible.')),
+      );
+      return;
+    }
+
+    if (modalidad == null || modalidad.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona una modalidad.')),
+      );
+      return;
+    }
+
+    if (motivo.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Escribe un motivo de consulta un poco más claro.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    try {
+      await AppointmentsService.instance.requestAppointment(
+        psychologistUid: widget.psychologist.id,
+        psychologistName: widget.psychologist.name,
+        slot: slot,
+        modalidad: modalidad,
+        motivoConsulta: motivo,
+        precio: widget.psychologist.price,
+        moneda: widget.psychologist.moneda,
+        metodoPago: _selectedPaymentMethod,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(18, 0, 18, 95),
+            backgroundColor: AppColors.fondo3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white, size: 22),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Solicitud de cita enviada.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Kantumruy Pro',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              ),
-              const Text('8:00 PM'),
-            ],
-          ),
-          Text(_formatHour(_timeValue), style: TextStyles.textBlackLogin.copyWith(fontSize: 16, fontWeight: FontWeight.w600)),
-
-          const SizedBox(height: 16),
-          Text('Método de pago', style: TextStyles.textBlackLogin.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: _payment,
-            items: const [
-              DropdownMenuItem(value: 'Debit Card', child: Text('Tarjeta de Débito')),
-              DropdownMenuItem(value: 'Credit Card', child: Text('Tarjeta de Crédito')),
-              DropdownMenuItem(value: 'Cash', child: Text('Efectivo')),
-            ],
-            onChanged: (v) => setState(() => _payment = v ?? 'Debit Card'),
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-          ),
-
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.fondo3,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              onPressed: () async {
-                // Persistir la cita básica para conectar con panel del psicólogo
-                final user = FirebaseAuth.instance.currentUser;
-                final now = DateTime.now();
-                final base = _selectedDay == 0 ? now : now.add(const Duration(days: 1));
-                final hour = 8 + _timeValue.round();
-                final date = DateTime(base.year, base.month, base.day, hour);
-                await FirebaseFirestore.instance.collection('appointments').add({
-                  'psychId': widget.psychologist.id,
-                  'psychName': widget.psychologist.name,
-                  'patientId': user?.uid,
-                  'patientName': user?.displayName ?? 'Paciente',
-                  'dateTime': Timestamp.fromDate(date),
-                  'status': 'pendiente',
-                  'createdAt': FieldValue.serverTimestamp(),
-                });
-                if (!mounted) return;
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Reserva confirmada')),
-                );
-              },
-              child: const Text('CONFIRMAR', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+              ],
             ),
           ),
+        );
+    } catch (e) {
+      if (!mounted) return;
 
-          const SizedBox(height: 10),
-        ],
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se pudo solicitar la cita. Es posible que ese horario ya haya sido tomado.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
-
-  String _dayAndMonth(DateTime d) {
-    const months = [
-      'January','February','March','April','May','June','July','August','September','October','November','December'
-    ];
-    return '${d.day} ${months[d.month - 1]}';
-  }
-}
-
-class _DayCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final int slots;
-  final bool selected;
-  final VoidCallback onTap;
-  const _DayCard({required this.title, required this.subtitle, required this.slots, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = selected ? const Color(0xFF6366F1) : const Color(0xFFE5E7EB);
-    final bg = selected ? const Color(0xFFEFF6FF) : Colors.white;
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
+    final grouped = _groupSlotsByDay();
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.88,
+      minChildSize: 0.55,
+      maxChildSize: 0.95,
+      builder: (_, scrollController) {
+        return SingleChildScrollView(
+          controller: scrollController,
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 12,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: selected ? const Color(0xFF111827) : Colors.black87)),
-              const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(color: Colors.black54)),
-              const SizedBox(height: 8),
-              Text('$slots Espacios disponibles', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Reservar cita',
+                      style: TextStyles.tituloBienvenida.copyWith(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 4),
+
+              Text(
+                widget.psychologist.name,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54,
+                  fontFamily: 'Kantumruy Pro',
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_error != null)
+                _BookingEmptyState(
+                  icon: Icons.error_outline_rounded,
+                  title: 'No se pudo cargar la disponibilidad',
+                  message: 'Intenta nuevamente en unos momentos.',
+                  actionText: 'Reintentar',
+                  onAction: _loadSlots,
+                )
+              else if (_slots.isEmpty)
+                const _BookingEmptyState(
+                  icon: Icons.event_busy_rounded,
+                  title: 'Sin horarios disponibles',
+                  message:
+                      'Este psicólogo aún no tiene horarios disponibles para los próximos días.',
+                )
+              else ...[
+                const _BookingSectionTitle(
+                  icon: Icons.schedule_rounded,
+                  title: 'Selecciona un horario',
+                ),
+
+                const SizedBox(height: 10),
+
+                ...grouped.entries.map((entry) {
+                  final slots = entry.value;
+                  final day = slots.first.inicio;
+
+                  return _DaySlotsGroup(
+                    dayLabel: _dayLabel(day),
+                    slots: slots,
+                    selectedSlot: _selectedSlot,
+                    hourLabel: _hourLabel,
+                    onSelect: (slot) {
+                      setState(() {
+                        _selectedSlot = slot;
+                        _selectedModalidad =
+                            slot.modalidades.isNotEmpty
+                                ? slot.modalidades.first
+                                : null;
+                      });
+                    },
+                  );
+                }),
+
+                const SizedBox(height: 16),
+
+                const _BookingSectionTitle(
+                  icon: Icons.video_call_rounded,
+                  title: 'Modalidad',
+                ),
+
+                const SizedBox(height: 10),
+
+                if (_selectedSlot != null)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:
+                        _selectedSlot!.modalidades.map((modalidad) {
+                          final selected = modalidad == _selectedModalidad;
+
+                          return ChoiceChip(
+                            label: Text(_modalidadLabel(modalidad)),
+                            selected: selected,
+                            selectedColor: const Color(0xFFEEF2FF),
+                            backgroundColor: Colors.white,
+                            side: BorderSide(
+                              color:
+                                  selected
+                                      ? AppColors.fondo3
+                                      : const Color(0xFFE2E8F0),
+                            ),
+                            labelStyle: TextStyle(
+                              color:
+                                  selected ? AppColors.fondo3 : Colors.black54,
+                              fontFamily: 'Kantumruy Pro',
+                              fontWeight:
+                                  selected ? FontWeight.w800 : FontWeight.w500,
+                            ),
+                            onSelected: (_) {
+                              setState(() {
+                                _selectedModalidad = modalidad;
+                              });
+                            },
+                          );
+                        }).toList(),
+                  ),
+
+                const SizedBox(height: 16),
+
+                const _BookingSectionTitle(
+                  icon: Icons.edit_note_rounded,
+                  title: 'Motivo de consulta',
+                ),
+
+                const SizedBox(height: 10),
+
+                TextField(
+                  controller: _motivoCtrl,
+                  maxLines: 4,
+                  maxLength: 300,
+                  decoration: InputDecoration(
+                    hintText:
+                        'Describe brevemente el motivo por el que deseas agendar.',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(color: AppColors.fondo3),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                const _BookingSectionTitle(
+                  icon: Icons.payments_rounded,
+                  title: 'Método de pago',
+                ),
+
+                const SizedBox(height: 10),
+
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children:
+                      ['transferencia', 'efectivo', 'pago_digital'].map((
+                        method,
+                      ) {
+                        final selected = method == _selectedPaymentMethod;
+
+                        return ChoiceChip(
+                          label: Text(_paymentMethodLabel(method)),
+                          selected: selected,
+                          selectedColor: const Color(0xFFEEF2FF),
+                          backgroundColor: Colors.white,
+                          side: BorderSide(
+                            color:
+                                selected
+                                    ? AppColors.fondo3
+                                    : const Color(0xFFE2E8F0),
+                          ),
+                          labelStyle: TextStyle(
+                            color: selected ? AppColors.fondo3 : Colors.black54,
+                            fontFamily: 'Kantumruy Pro',
+                            fontWeight:
+                                selected ? FontWeight.w800 : FontWeight.w500,
+                          ),
+                          onSelected: (_) {
+                            setState(() {
+                              _selectedPaymentMethod = method;
+                            });
+                          },
+                        );
+                      }).toList(),
+                ),
+
+                const SizedBox(height: 8),
+
+                const Text(
+                  'El pago se acordará o confirmará después de que el psicólogo acepte la cita. No ingreses datos bancarios dentro de la app.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    color: Colors.black54,
+                    fontFamily: 'Kantumruy Pro',
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.fondo3,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    onPressed: _saving ? null : _requestAppointment,
+                    child: Text(
+                      _saving ? 'Enviando...' : 'Enviar solicitud',
+                      style: const TextStyle(
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+class _BookingSectionTitle extends StatelessWidget {
+  final IconData icon;
+  final String title;
+
+  const _BookingSectionTitle({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.fondo3, size: 19),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontFamily: 'Kantumruy Pro',
+            fontWeight: FontWeight.w800,
+            color: Colors.black87,
+          ),
         ),
+      ],
+    );
+  }
+}
+
+class _DaySlotsGroup extends StatelessWidget {
+  final String dayLabel;
+  final List<AppointmentSlot> slots;
+  final AppointmentSlot? selectedSlot;
+  final String Function(DateTime date) hourLabel;
+  final ValueChanged<AppointmentSlot> onSelect;
+
+  const _DaySlotsGroup({
+    required this.dayLabel,
+    required this.slots,
+    required this.selectedSlot,
+    required this.hourLabel,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            dayLabel,
+            style: const TextStyle(
+              fontSize: 14,
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children:
+                slots.map((slot) {
+                  final selected =
+                      selectedSlot?.inicio == slot.inicio &&
+                      selectedSlot?.fin == slot.fin;
+
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: () => onSelect(slot),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        color:
+                            selected ? const Color(0xFFEEF2FF) : Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color:
+                              selected
+                                  ? AppColors.fondo3
+                                  : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Text(
+                        '${hourLabel(slot.inicio)} - ${hourLabel(slot.fin)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'Kantumruy Pro',
+                          fontWeight: FontWeight.w800,
+                          color: selected ? AppColors.fondo3 : Colors.black54,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookingEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionText;
+  final VoidCallback? onAction;
+
+  const _BookingEmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionText,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 42, color: Colors.black38),
+
+          const SizedBox(height: 10),
+
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              fontFamily: 'Kantumruy Pro',
+              color: Colors.black54,
+            ),
+          ),
+
+          if (actionText != null && onAction != null) ...[
+            const SizedBox(height: 14),
+            OutlinedButton(onPressed: onAction, child: Text(actionText!)),
+          ],
+        ],
       ),
     );
   }

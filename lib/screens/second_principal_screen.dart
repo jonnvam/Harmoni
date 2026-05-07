@@ -17,6 +17,7 @@ import 'package:flutter_application_1/services/user_profile_service.dart';
 import 'package:flutter_application_1/screens/assessment/assessment_detail_screen.dart';
 import 'package:flutter_application_1/services/goals_firestore_service.dart';
 import 'package:flutter_application_1/services/diary_firestore_service.dart';
+import 'package:flutter_application_1/screens/mis_citas_screen.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -349,67 +350,14 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                 const _FirestoreFlowerProgress(),
                 const SizedBox(height: 70),
 
-                ContainerC1(
-                  width: 300,
-                  alignment: Alignment.centerLeft,
-                  height: 170,
-                  child: Row(
-                    children: [
-                      Column(
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(left: 15, top: 8),
-                            child: Text(
-                              "Proxima Cita",
-                              style: TextStyle(
-                                fontFamily: 'Kantumruy Pro',
-                                fontSize: 24,
-                                fontWeight: FontWeight.w200,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                "Hoy \n13:00-13:30",
-                                style: TextStyles.textHora,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20, top: 25),
-                        child: Column(
-                          children: [
-                            Container(
-                              height: 117,
-                              width: 110,
-                              decoration: ShapeDecoration(
-                                shape: RoundedRectangleBorder(
-                                  side: const BorderSide(
-                                    width: 3,
-                                    color: Color(0xFF6366F1),
-                                  ),
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                              ),
-                              child: Image.asset(
-                                "assets/images/carousel/psicologo.jpg",
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                /// es esta parte esta el enlace a las citas del paciente
+
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: _QuickAppointmentCard(),
                 ),
 
-                const SizedBox(height: 18),
+                const SizedBox(height: 22),
 
                 // ====== Carousel de temas recomendados (Depresión, Ansiedad, etc.) ======
                 Padding(
@@ -1075,6 +1023,90 @@ class _AssessmentScoreBox extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickAppointmentCard extends StatelessWidget {
+  const _QuickAppointmentCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const MisCitasScreen()),
+        );
+      },
+      child: Ink(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEF2FF),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFDCE4FF)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0F000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.event_note_rounded,
+                color: AppColors.fondo3,
+                size: 26,
+              ),
+            ),
+
+            const SizedBox(width: 14),
+
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mis citas',
+                    style: TextStyle(
+                      fontFamily: 'Kantumruy Pro',
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Revisa tus solicitudes y citas confirmadas.',
+                    style: TextStyle(
+                      fontFamily: 'Kantumruy Pro',
+                      fontSize: 12.5,
+                      height: 1.25,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: AppColors.fondo3,
+            ),
+          ],
+        ),
       ),
     );
   }
