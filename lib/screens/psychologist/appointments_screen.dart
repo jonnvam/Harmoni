@@ -712,6 +712,87 @@ class _MiniInfoChip extends StatelessWidget {
   }
 }
 
+class _AppointmentsSkeleton extends StatelessWidget {
+  const _AppointmentsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      itemCount: 4,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            height: 74,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AppointmentsStateMessage extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionText;
+  final VoidCallback? onAction;
+
+  const _AppointmentsStateMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionText,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 42, color: Colors.black38),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Kantumruy Pro',
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                fontFamily: 'Kantumruy Pro',
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: onAction,
+              child: Text(actionText),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;

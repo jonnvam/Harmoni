@@ -707,63 +707,75 @@ class _SignLoginScreenState extends State<SignLoginScreen> {
         ),
         const SizedBox(height: 16),
         Align(
-          alignment: Alignment.center,
-          child: AuthButton(
-            texto: 'Login',
-            isPressed: true,
-            onPressed: () async {
-              final email = _emailInCtrl.text.trim();
-              final pass = _passInCtrl.text;
+            alignment: Alignment.center,
+            child: AuthButton(
+              texto: 'Login',
+              isPressed: true,
+              onPressed: () async {
+                final email = _emailInCtrl.text.trim();
+                final pass = _passInCtrl.text;
 
-              if (email.isEmpty || pass.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Ingresa email y contraseña.')),
-                );
-                return;
-              }
-
-              try {
-                final user = await EmailAuthService().login(
-                  email: email,
-                  password: pass,
-                );
-
-                if (!mounted || user == null) return;
-
-                await _routeAfterAuth(user);
-              } on FirebaseAuthException catch (e) {
-                if (e.code == 'email-not-verified') {
-                  if (!mounted) return;
-
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => VerificacionScreen(email: email),
-                    ),
-                  );
-                } else {
-                  if (!mounted) return;
-
+                if (email.isEmpty || pass.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(e.message ?? 'No se pudo iniciar sesión.'),
+                    const SnackBar(content: Text('Ingresa email y contraseña.')),
+                  );
+                  return;
+                }
+
+                // Guardamos el messenger antes del await para que sea seguro usarlo después
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(context);
+
+                try {
+                  final user = await EmailAuthService().login(
+                    email: email,
+                    password: pass,
+                  );
+
+                  // Verificamos si el widget sigue en el árbol
+                  if (!mounted) return;
+
+                  if (user == null) {
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('No se pudo obtener la información del usuario.')),
+                    );
+                    return;
+                  }
+
+                  // Función de Jacque para redirigir según el rol
+                  await _routeAfterAuth(user);
+
+                } on FirebaseAuthException catch (e) {
+                  if (!mounted) return;
+
+                  if (e.code == 'email-not-verified') {
+                    navigator.pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => VerificacionScreen(email: email),
+                      ),
+                    );
+                  } else {
+                    // Usamos la referencia segura al messenger
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(e.message ?? 'No se pudo iniciar sesión.'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Login error: $e');
+
+                  if (!mounted) return;
+
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Error inesperado al iniciar sesión.'),
                     ),
                   );
                 }
-              } catch (e) {
-                debugPrint('Login error: $e');
-
-                if (!mounted) return;
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Error inesperado al iniciar sesión.'),
-                  ),
-                );
-              }
-            },
+              },
+            ),
           ),
-        ),
         const SizedBox(height: 16),
         Align(
           alignment: Alignment.center,

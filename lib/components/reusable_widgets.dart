@@ -850,7 +850,9 @@ class _AvatarShell extends StatelessWidget {
 
 // Menu cuando se toca el Avatar
 class DropMenu extends StatefulWidget {
-  const DropMenu({super.key});
+  final Widget Function(VoidCallback onTap)? avatarBuilder;
+
+  const DropMenu({super.key, this.avatarBuilder});
 
   @override
   State<DropMenu> createState() => _DropMenuState();
@@ -994,7 +996,9 @@ class _DropMenuState extends State<DropMenu> {
               child: InkWell(
                 onTap: _toggleMenu,
                 customBorder: const CircleBorder(),
-                child: _UserAvatar(radius: 30, onTap: _toggleMenu),
+                child:
+                    widget.avatarBuilder?.call(_toggleMenu) ??
+                    _UserAvatar(radius: 30, onTap: _toggleMenu),
               ),
             ),
           ),

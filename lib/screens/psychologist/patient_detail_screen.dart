@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PatientDetailScreen extends StatelessWidget {
   final String patientId;
@@ -36,24 +37,35 @@ class PatientDetailScreen extends StatelessWidget {
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
-                        .collection('appointments')
-                        .where('psychId', isEqualTo: uid)
-                        .where('patientId', isEqualTo: patientId)
-                        .orderBy('dateTime', descending: true)
+                        .collection('citas')
+                        .where('psicologoId', isEqualTo: uid)
+                        .where('pacienteId', isEqualTo: patientId)
+                        .orderBy('fecha', descending: true)
                         .snapshots(),
                     builder: (context, snap) {
                       if (snap.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const _HistorySkeleton();
+                      }
+                      if (snap.hasError) {
+                        return const _HistoryStateMessage(
+                          icon: Icons.error_outline,
+                          title: 'No se pudo cargar el historial',
+                          message: 'Intenta de nuevo en unos momentos.',
+                        );
                       }
                       final docs = snap.data?.docs ?? [];
                       if (docs.isEmpty) {
-                        return const Center(child: Text('Sin historial aún'));
+                        return const _HistoryStateMessage(
+                          icon: Icons.history_toggle_off,
+                          title: 'Sin historial aún',
+                          message: 'Las citas aparecerán aquí cuando existan.',
+                        );
                       }
 
                       final lastConfirmed = docs
                           .map((d) => d.data() as Map<String, dynamic>? ?? {})
-                          .where((d) => (d['status'] ?? '').toString() == 'confirmada')
-                          .map((d) => d['dateTime'])
+                          .where((d) => (d['estado'] ?? '').toString() == 'confirmada')
+                          .map((d) => d['fecha'])
                           .whereType<Timestamp>()
                           .map((t) => t.toDate())
                           .fold<DateTime?>(null, (prev, cur) => prev == null || cur.isAfter(prev) ? cur : prev);
@@ -74,8 +86,8 @@ class PatientDetailScreen extends StatelessWidget {
                               separatorBuilder: (_, __) => const SizedBox(height: 10),
                               itemBuilder: (context, i) {
                                 final data = docs[i].data() as Map<String, dynamic>? ?? {};
-                                final date = (data['dateTime'] as Timestamp?)?.toDate();
-                                final status = (data['status'] ?? 'pendiente').toString();
+                                final date = (data['fecha'] as Timestamp?)?.toDate();
+                                final status = (data['estado'] ?? 'pendiente').toString();
                                 return _AppointmentRow(
                                   date: date,
                                   status: status,
@@ -169,6 +181,70 @@ class _AppointmentRow extends StatelessWidget {
             border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Text(status, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700, fontFamily: 'Kantumruy Pro')),
+        ),
+      ),
+    );
+  }
+}
+
+class _HistorySkeleton extends StatelessWidget {
+  const _HistorySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      itemCount: 4,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            height: 68,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HistoryStateMessage extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+
+  const _HistoryStateMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 42, color: Colors.black38),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyles.textEditar.copyWith(fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              style: TextStyles.textDicho.copyWith(color: Colors.black54),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

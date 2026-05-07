@@ -11,6 +11,8 @@ class PsychologistDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = psychologist;
+  Widget build(BuildContext context) {
+    final p = psychologist;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -191,13 +193,15 @@ class _ProfileHeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = psychologist;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: const [
           BoxShadow(
@@ -210,8 +214,9 @@ class _ProfileHeaderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // ====== Avatar Section ======
           CircleAvatar(
-            radius: 50,
+            radius: isMobile ? 48 : 52,
             backgroundColor: const Color(0xFFF2EEFF),
             backgroundImage:
                 (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
@@ -230,43 +235,52 @@ class _ProfileHeaderCard extends StatelessWidget {
                     : null,
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
+          // ====== Name Section ======
           Text(
             p.name,
             textAlign: TextAlign.center,
             style: TextStyles.tituloBienvenida.copyWith(
-              fontSize: 24,
+              fontSize: isMobile ? 22 : 26,
               fontWeight: FontWeight.w900,
               height: 1.1,
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
+          // ====== Specialties Section ======
           Text(
             p.specialties.isEmpty ? 'Psicología' : p.specialties.join(' • '),
             textAlign: TextAlign.center,
             style: TextStyles.textDicho.copyWith(
               fontSize: 14,
               color: Colors.black54,
+              height: 1.3,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              ...p.modalidades.map((m) => _TagChip(text: m)),
-              _TagChip(
-                text: '\$${p.price} ${p.moneda} / sesión',
-                color: AppColors.fondo3,
-                bg: const Color(0xFFEEF2FF),
-              ),
-            ],
+          // ====== Chips Section (Modalidades + Precio) ======
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                ...p.modalidades.map((m) => _TagChip(text: m)),
+                _TagChip(
+                  text: '\$${p.price} ${p.moneda}',
+                  color: AppColors.fondo3,
+                  bg: const Color(0xFFEEF2FF),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -378,21 +392,32 @@ class _FeeCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(top: 4),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.fondo3.withValues(alpha: 0.08),
+            AppColors.fondo3.withValues(alpha: 0.04),
+          ],
+        ),
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AppColors.fondo3.withValues(alpha: 0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: AppColors.fondo3.withValues(alpha: 0.1),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.payments_rounded, color: AppColors.fondo3, size: 26),
           const SizedBox(width: 12),

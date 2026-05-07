@@ -13,6 +13,7 @@ import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
+import 'package:flutter_application_1/utils/navigation_helper.dart';
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_application_1/services/diary_firestore_service.dart';
 
@@ -603,13 +604,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/house.svg",
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const SecondPrincipalScreen(),
-                          ),
-                        ),
+                    onTap: () => navigateToHome(context),
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",

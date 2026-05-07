@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:flutter_application_1/services/user_profile_service.dart';
 import 'package:flutter_application_1/services/auth_google.dart';
+import 'package:flutter_application_1/utils/navigation_helper.dart';
 
 class AjustesPerfil extends StatefulWidget {
   const AjustesPerfil({super.key});
@@ -549,12 +550,7 @@ class _AjustesPerfilState extends State<AjustesPerfil> {
                 currentIconAsset: "assets/images/icon/house.svg",
                 ringColor: Colors.transparent,
                 onCenterDoubleTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SecondPrincipalScreen(),
-                    ),
-                  );
+                  navigateToHome(context);
                 },
                 items: [
                   RadialMenuItem(

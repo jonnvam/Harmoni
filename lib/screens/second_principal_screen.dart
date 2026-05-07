@@ -17,6 +17,11 @@ import 'package:flutter_application_1/services/user_profile_service.dart';
 import 'package:flutter_application_1/screens/assessment/assessment_detail_screen.dart';
 import 'package:flutter_application_1/services/goals_firestore_service.dart';
 import 'package:flutter_application_1/services/diary_firestore_service.dart';
+import 'package:flutter_application_1/widgets/psychologist_card.dart';
+import 'package:flutter_application_1/models/psychologist.dart';
+import 'package:flutter_application_1/services/public_psychologists_service.dart';
+import 'package:flutter_application_1/screens/psychologist_details.dart';
+import 'package:flutter_application_1/services/appointment_service.dart';
 import 'package:flutter_application_1/screens/mis_citas_screen.dart';
 
 class SecondPrincipalScreen extends StatefulWidget {
@@ -350,6 +355,10 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                 const _FirestoreFlowerProgress(),
                 const SizedBox(height: 70),
 
+                // ====== Psicólogo asignado o disponible ======
+                _PsychologistCardSection(),
+
+                const SizedBox(height: 18),
                 /// es esta parte esta el enlace a las citas del paciente
 
                 const Padding(
@@ -949,6 +958,239 @@ class _AssessmentSummaryCard extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// Widget que renderiza un PsychologistCard con datos desde Firestore
+/// Estados: loading (skeleton), empty, error, success
+class _PsychologistCardSection extends StatefulWidget {
+  const _PsychologistCardSection();
+
+  @override
+  State<_PsychologistCardSection> createState() =>
+      _PsychologistCardSectionState();
+}
+
+class _PsychologistCardSectionState extends State<_PsychologistCardSection> {
+  late Future<Psychologist?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _fetchAssignedPsychologist();
+  }
+
+  Future<Psychologist?> _fetchAssignedPsychologist() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return null;
+
+    final doc = await AppointmentService.instance.getAssignedPsychologist(uid);
+    if (doc == null || doc.data() == null) return null;
+
+    final data = doc.data()!;
+    return _psychologistFromDoc(doc.id, data);
+  }
+
+  Psychologist _psychologistFromDoc(
+    String id,
+    Map<String, dynamic> data,
+  ) {
+    final displayName = (data['displayName'] ?? '').toString().trim();
+    final nombre = (data['nombre'] ?? '').toString().trim();
+    final apellido = (data['apellido'] ?? '').toString().trim();
+
+    final fullName = [nombre, apellido]
+        .where((value) => value.isNotEmpty)
+        .join(' ')
+        .trim();
+
+    final name =
+        displayName.isNotEmpty ? displayName : (fullName.isNotEmpty ? fullName : 'Psicologo');
+
+    final specialtyRaw = data['specialty'] ?? data['especialidad'];
+    final specialtiesList = specialtyRaw is List
+        ? specialtyRaw.map((e) => e.toString()).where((e) => e.isNotEmpty).toList()
+        : <String>[];
+    final specialtyText =
+        specialtiesList.isNotEmpty ? specialtiesList : <String>[(specialtyRaw ?? 'Psicologia').toString()];
+
+    final avatarUrl = (data['photoUrl'] ?? data['avatarUrl'] ?? data['foto'] ?? data['fotoUrl'])
+        .toString()
+        .trim();
+
+    final priceValue = data['price'] ?? data['honorariosSesion'];
+    final price = priceValue is num ? priceValue.toInt() : 0;
+
+    final availability = data['availability'];
+    final isAvailable = availability is bool ? availability : false;
+
+    return Psychologist(
+      id: id,
+      name: name,
+      rating: 0,
+      price: price,
+      specialties: specialtyText,
+      moneda: (data['moneda'] ?? 'MXN').toString(),
+      avatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
+      isAvailable: isAvailable,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Psychologist?>(
+      future: _future,
+      builder: (context, snapshot) {
+        // LOADING state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return PsychologistCard(
+            name: 'Cargando...',
+            specialty: '',
+            onTap: () {},
+            isLoading: true,
+          );
+        }
+
+        // ERROR state
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red.shade700),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No se pudieron cargar los psicólogos.',
+                    style: TextStyle(
+                      color: Colors.red.shade700,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Kantumruy Pro',
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _future = _fetchAssignedPsychologist();
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade700,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Reintentar',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // EMPTY state
+        if (!snapshot.hasData || snapshot.data == null) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.person_outline,
+                    size: 48,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Sin psicólogo asignado',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Kantumruy Pro',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Busca y encuentra un psicólogo que se adapte a tus necesidades.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      fontFamily: 'Kantumruy Pro',
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const Psicologos()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.search, color: Colors.white),
+                    label: const Text(
+                      'Buscar psicólogos',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // SUCCESS state
+        final psychologist = snapshot.data!;
+
+        return PsychologistCard(
+          photoUrl: psychologist.avatarUrl,
+          name: psychologist.name,
+          specialty: psychologist.specialties.join(', '),
+          rating: psychologist.rating > 0 ? psychologist.rating : null,
+          price: psychologist.price > 0 ? psychologist.price : null,
+          isAvailable: psychologist.isAvailable,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PsychologistDetailsScreen(
+                  psychologist: psychologist,
                 ),
               ),
             );
