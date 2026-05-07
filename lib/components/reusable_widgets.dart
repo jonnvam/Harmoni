@@ -36,6 +36,21 @@ String _initialsFrom({
       .toUpperCase();
 }
 
+Stream<DocumentSnapshot<Map<String, dynamic>>> _currentUserProfileStream(
+  String uid,
+) {
+  final role = AppState.instance.role;
+
+  final db = FirebaseFirestore.instance;
+
+  if (role == UserRole.psicologo) {
+    return db.collection('usuariosPsicologos').doc(uid).snapshots();
+  }
+
+  // Por defecto, paciente.
+  return db.collection('usuariosPacientes').doc(uid).snapshots();
+}
+
 class CarouselAssets {
   static const List<String> images = [
     'assets/images/carousel/t1.jpg',
@@ -633,12 +648,8 @@ class HolaNombre extends StatelessWidget {
         }
 
         // Escucha el doc del usuario en Firestore
-        final docRef = FirebaseFirestore.instance
-            .collection('usuarios')
-            .doc(user.uid);
-
         return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          stream: docRef.snapshots(),
+          stream: _currentUserProfileStream(user.uid),
           builder: (ctx, snapDoc) {
             String? nombreFirestore;
             if (snapDoc.hasData && snapDoc.data!.data() != null) {
@@ -763,11 +774,8 @@ class _UserAvatar extends StatelessWidget {
     }
 
     // Escuchamos Firestore para nombre/apellido/foto
-    final docRef = FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(user.uid);
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: docRef.snapshots(),
+      stream: _currentUserProfileStream(user.uid),
       builder: (context, snap) {
         final data = snap.data?.data();
         final nombre = data?['nombre'] as String?;
@@ -967,17 +975,17 @@ class _DropMenuState extends State<DropMenu> {
         children: [
           (AppState.instance.role != UserRole.psicologo)
               ? IconButtonWithPadding(
-                  onPressed: () {
-                    // Navegar correctamente a la pantalla de emergencia
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EmergenciaScreen(),
-                      ),
-                    );
-                  },
-                  svgAssetPath: "assets/images/alarm.svg",
-                )
+                onPressed: () {
+                  // Navegar correctamente a la pantalla de emergencia
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EmergenciaScreen(),
+                    ),
+                  );
+                },
+                svgAssetPath: "assets/images/alarm.svg",
+              )
               : const SizedBox.shrink(),
           const Spacer(),
           Padding(
@@ -1245,24 +1253,36 @@ class _RadialCircleButton extends StatelessWidget {
     // Wrap the provided onTap with a guard: patients who have not completed the
     // initial PHQ/GAD test should be prompted to take it before navigating.
     void handleTap() {
-      final isLocked = !AppState.instance.isTestCompleted && AppState.instance.role == UserRole.paciente;
+      final isLocked =
+          !AppState.instance.isTestCompleted &&
+          AppState.instance.role == UserRole.paciente;
       if (isLocked) {
         showDialog<void>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Completa el test inicial'),
-            content: const Text('Para usar el menú primero debes completar el test inicial (PHQ/GAD). ¿Deseas hacerlo ahora?'),
-            actions: [
-              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancelar')),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PhqGadTestScreen()));
-                },
-                child: const Text('Ir al test'),
+          builder:
+              (ctx) => AlertDialog(
+                title: const Text('Completa el test inicial'),
+                content: const Text(
+                  'Para usar el menú primero debes completar el test inicial (PHQ/GAD). ¿Deseas hacerlo ahora?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PhqGadTestScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text('Ir al test'),
+                  ),
+                ],
               ),
-            ],
-          ),
         );
         return;
       }

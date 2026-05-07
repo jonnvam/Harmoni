@@ -55,6 +55,8 @@
     <array>
       	<string>com.googleusercontent.apps.1098827157474-pjdd9si3j1at01ijhqn8vhhadtt554r6</string>
     </array>
+	<key>NSContactsUsageDescription</key>
+	<string>Harmoni necesita acceder a tus contactos para que puedas elegir contactos de emergencia.</string>
   </dict>
 </array>
 

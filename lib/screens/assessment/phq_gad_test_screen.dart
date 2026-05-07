@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/state/app_state.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_1/services/assessment_service.dart';
 
 class PhqGadTestScreen extends StatefulWidget {
   const PhqGadTestScreen({super.key});
@@ -37,6 +39,7 @@ class _PhqGadTestScreenState extends State<PhqGadTestScreen> {
   final List<int?> _phqAnswers = List<int?>.filled(9, null);
   final List<int?> _gadAnswers = List<int?>.filled(7, null);
   int _step = 0; // 0 = PHQ, 1 = GAD
+  bool _saving = false;
 
   static const _choices = [
     'Nunca (0)',
@@ -53,14 +56,54 @@ class _PhqGadTestScreenState extends State<PhqGadTestScreen> {
   int _sum(List<int?> xs) => xs.fold(0, (a, b) => a + (b ?? 0));
 
   Future<void> _finish() async {
+  final user = FirebaseAuth.instance.currentUser;
+  final messenger = ScaffoldMessenger.of(context);
+
+  if (user == null) {
+    if (!mounted) return;
+
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('No hay una sesión activa. Inicia sesión de nuevo.'),
+      ),
+    );
+    return;
+  }
+
+  setState(() => _saving = true);
+
+  try {
+    final phqAnswers = _phqAnswers.whereType<int>().toList();
+    final gadAnswers = _gadAnswers.whereType<int>().toList();
+
+    if (phqAnswers.length != 9 || gadAnswers.length != 7) {
+      throw Exception('Faltan respuestas por completar.');
+    }
+
     final phqScore = _sum(_phqAnswers);
     final gadScore = _sum(_gadAnswers);
-    // Mostrar resultados brevemente
+
+    await AssessmentService.instance.saveInitialAssessment(
+      uid: user.uid,
+      phqAnswers: phqAnswers,
+      gadAnswers: gadAnswers,
+      phqScore: phqScore,
+      gadScore: gadScore,
+    );
+
+    await AppState.instance.setTestCompleted(true);
+
+    if (!mounted) return;
+
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Resultados'),
-        content: Text('PHQ-9: $phqScore\nGAD-7: $gadScore'),
+        content: Text(
+          'PHQ-9: $phqScore\n'
+          'GAD-7: $gadScore\n\n'
+          'Tus respuestas fueron guardadas de forma privada.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -69,14 +112,30 @@ class _PhqGadTestScreenState extends State<PhqGadTestScreen> {
         ],
       ),
     );
-    // Por hacer: Guardar resultados en backend/Firestore si aplica
-    await AppState.instance.setTestCompleted(true);
+
     if (!mounted) return;
+
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const SecondPrincipalScreen()),
       (route) => false,
     );
+  } catch (e, st) {
+    debugPrint('ASSESSMENT SAVE ERROR: $e');
+    debugPrint('ASSESSMENT SAVE STACK: $st');
+
+    if (!mounted) return;
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('No se pudo guardar el test: $e'),
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _saving = false);
+    }
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +160,13 @@ class _PhqGadTestScreenState extends State<PhqGadTestScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(questions[index], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  Text(
+                    questions[index],
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   for (var val = 0; val < 4; val++)
                     RadioListTile<int>(
@@ -132,17 +197,30 @@ class _PhqGadTestScreenState extends State<PhqGadTestScreen> {
               if (_step == 1) const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.fondo3),
-                  onPressed: !_currentSectionComplete
-                      ? null
-                      : () {
-                          if (_step == 0) {
-                            setState(() => _step = 1);
-                          } else {
-                            _finish();
-                          }
-                        },
-                  child: Text(_step == 0 ? 'Siguiente' : 'Finalizar'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.fondo3,
+                  ),
+                  onPressed:
+                      (!_currentSectionComplete || _saving)
+                          ? null
+                          : () {
+                            if (_step == 0) {
+                              setState(() => _step = 1);
+                            } else {
+                              _finish();
+                            }
+                          },
+                  child:
+                      _saving
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : Text(_step == 0 ? 'Siguiente' : 'Finalizar'),
                 ),
               ),
             ],

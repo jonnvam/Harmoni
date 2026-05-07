@@ -1,20 +1,23 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:flutter_application_1/services/user_profile_service.dart';
+
 class AgeGateException implements Exception {
   final String message;
+
   AgeGateException([this.message = 'Debes ser mayor de 18 años']);
+
   @override
   String toString() => message;
 }
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: [
@@ -23,10 +26,13 @@ class AuthService {
       'https://www.googleapis.com/auth/user.birthday.read',
     ],
   );
+
   Future<UserCredential?> signUpWithGoogle(BuildContext context) async {
     try {
       await _safeDisconnect();
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
       if (googleUser == null) return null;
 
       final googleAuth = await googleUser.authentication;
@@ -35,131 +41,209 @@ class AuthService {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+
       final userCredential = await _auth.signInWithCredential(credential);
-      final user = userCredential.user!;
-      final userDoc = _db.collection('usuarios').doc(user.uid);
+      final user = userCredential.user;
 
-      DateTime? cumple = await _fetchBirthday(googleAuth.accessToken);
-      cumple ??= await _askBirthdate(context);
-      
-      if (cumple == null) {
-        await _handleUnderageOrUnknown(user, context,
-            reason: 'No proporcionaste fecha de nacimiento.');
+      if (user == null) return null;
+
+      DateTime? birthDate = await _fetchBirthday(googleAuth.accessToken);
+      birthDate ??= await _askBirthdate(context);
+
+      if (birthDate == null) {
+        await _handleInvalidAgeOrUnknown(
+          user,
+          context,
+          deleteUser: userCredential.additionalUserInfo?.isNewUser == true,
+          reason: 'No proporcionaste fecha de nacimiento.',
+        );
         return null;
       }
-      if (!_isAdult(cumple)) {
-        await _handleUnderageOrUnknown(user, context);
+
+      if (!_isAdult(birthDate)) {
+        await _handleInvalidAgeOrUnknown(
+          user,
+          context,
+          deleteUser: userCredential.additionalUserInfo?.isNewUser == true,
+        );
         return null;
       }
 
-      final nombre = user.displayName?.split(' ').first ?? '';
-      final apellido = user.displayName?.split(' ').skip(1).join(' ') ?? '';
+      debugPrint('GOOGLE SIGNUP: creando índice base para ${user.uid}');
 
-      await userDoc.set({
-        'nombre': nombre,
-        'apellido': apellido,
-        'email': user.email,
-        'foto': user.photoURL,
-        'fechaRegistro': DateTime.now(),
-        'fechaNacimiento': cumple.toIso8601String(),
-      }, SetOptions(merge: true));
+      await UserProfileService.instance.createGoogleBaseIndex(
+        user: user,
+        fechaNacimiento: birthDate,
+      );
+
+      debugPrint('GOOGLE SIGNUP: índice base creado');
 
       return userCredential;
-    } catch (e) {
-      debugPrint('Error en registro con Google: $e');
+    } catch (e, st) {
+      debugPrint('GOOGLE SIGNUP ERROR: $e');
+      debugPrint('GOOGLE SIGNUP STACK: $st');
       return null;
     }
   }
 
   Future<UserCredential?> signInWithGoogle(BuildContext context) async {
     try {
-      final GoogleSignInAccount? existing = await _googleSignIn.signInSilently();
-      final GoogleSignInAccount? googleUser = existing ?? await _googleSignIn.signIn();
+      final GoogleSignInAccount? existing =
+          await _googleSignIn.signInSilently();
+
+      final GoogleSignInAccount? googleUser =
+          existing ?? await _googleSignIn.signIn();
+
       if (googleUser == null) return null;
 
       final googleAuth = await googleUser.authentication;
+
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+
       final userCredential = await _auth.signInWithCredential(credential);
-      final user = userCredential.user!;
-      final userDoc = _db.collection('usuarios').doc(user.uid);
+      final user = userCredential.user;
 
-      await userDoc.set({
-        'nombre': user.displayName?.split(' ').first ?? '',
-        'apellido': user.displayName?.split(' ').skip(1).join(' ') ?? '',
-        'email': user.email,
-        'foto': user.photoURL,
-      }, SetOptions(merge: true));
+      if (user == null) return null;
 
-      DateTime? cumple = await _fetchBirthday(googleAuth.accessToken);
-      cumple ??= await _askBirthdate(context);
+      final profile = await UserProfileService.instance.loadProfileAfterAuth(
+        user.uid,
+      );
 
-      if (cumple == null) {
-        await _handleUnderageOrUnknown(user, context,
-            reason: 'No proporcionaste fecha de nacimiento.');
-        return null;
+      if (profile == null) {
+        DateTime? birthDate = await _fetchBirthday(googleAuth.accessToken);
+        birthDate ??= await _askBirthdate(context);
+
+        if (birthDate == null) {
+          await _handleInvalidAgeOrUnknown(
+            user,
+            context,
+            deleteUser: userCredential.additionalUserInfo?.isNewUser == true,
+            reason: 'No proporcionaste fecha de nacimiento.',
+          );
+          return null;
+        }
+
+        if (!_isAdult(birthDate)) {
+          await _handleInvalidAgeOrUnknown(
+            user,
+            context,
+            deleteUser: userCredential.additionalUserInfo?.isNewUser == true,
+          );
+          return null;
+        }
+
+        debugPrint('GOOGLE LOGIN: no había perfil, creando índice base');
+
+        await UserProfileService.instance.createGoogleBaseIndex(
+          user: user,
+          fechaNacimiento: birthDate,
+        );
+      } else {
+        debugPrint('GOOGLE LOGIN: perfil encontrado para ${user.uid}');
       }
-      if (!_isAdult(cumple)) {
-        await _handleUnderageOrUnknown(user, context);
-        return null;
-      }
-
-      await userDoc.set({
-        'fechaNacimiento': cumple.toIso8601String(),
-      }, SetOptions(merge: true));
 
       return userCredential;
-    } catch (e) {
-      debugPrint('Error al iniciar sesión con Google: $e');
+    } catch (e, st) {
+      debugPrint('GOOGLE LOGIN ERROR: $e');
+      debugPrint('GOOGLE LOGIN STACK: $st');
       return null;
     }
   }
 
+  Future<void> completeGoogleRegistration({
+    required String uid,
+    required String role,
+  }) async {
+    final user = _auth.currentUser;
+
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'not-authenticated',
+        message: 'No hay una sesión activa.',
+      );
+    }
+
+    if (user.uid != uid) {
+      throw FirebaseAuthException(
+        code: 'uid-mismatch',
+        message: 'La sesión actual no coincide con el usuario.',
+      );
+    }
+
+    await UserProfileService.instance.completeGoogleRegistration(
+      user: user,
+      role: role,
+    );
+  }
+
   Future<void> signOut() async {
-    await _safeDisconnect();
+    try {
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('Google signOut error: $e');
+    }
+
     await _auth.signOut();
   }
 
   Future<void> _safeDisconnect() async {
     try {
-      await _googleSignIn.disconnect(); 
+      await _googleSignIn.disconnect();
     } catch (_) {
-      await _googleSignIn.signOut();  
+      await _googleSignIn.signOut();
     }
   }
 
   Future<DateTime?> _fetchBirthday(String? accessToken) async {
     if (accessToken == null) return null;
+
     try {
       final uri = Uri.parse(
-          'https://people.googleapis.com/v1/people/me?personFields=birthdays');
-      final r = await http.get(uri, headers: {
-        'Authorization': 'Bearer $accessToken',
-      });
-      if (r.statusCode != 200) return null;
+        'https://people.googleapis.com/v1/people/me?personFields=birthdays',
+      );
 
-      final data = jsonDecode(r.body);
-      final list = data['birthdays'];
-      if (list == null || list is! List || list.isEmpty) return null;
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $accessToken'},
+      );
 
-      Map<String, dynamic>? best;
-      for (final b in list) {
-        if (b is Map && b['date'] is Map && b['date']['year'] != null) {
-          best = Map<String, dynamic>.from(b['date']);
+      if (response.statusCode != 200) return null;
+
+      final data = jsonDecode(response.body);
+      final birthdays = data['birthdays'];
+
+      if (birthdays == null || birthdays is! List || birthdays.isEmpty) {
+        return null;
+      }
+
+      Map<String, dynamic>? bestDate;
+
+      for (final birthday in birthdays) {
+        if (birthday is Map &&
+            birthday['date'] is Map &&
+            birthday['date']['year'] != null) {
+          bestDate = Map<String, dynamic>.from(birthday['date']);
           break;
         }
       }
-      best ??= (list.first['date'] is Map) ? Map<String, dynamic>.from(list.first['date']) : null;
-      if (best == null) return null;
 
-      final y = best['year'];
-      final m = best['month'];
-      final d = best['day'];
-      if (y == null || m == null || d == null) return null;
+      bestDate ??=
+          birthdays.first['date'] is Map
+              ? Map<String, dynamic>.from(birthdays.first['date'])
+              : null;
 
-      return DateTime(y, m, d);
+      if (bestDate == null) return null;
+
+      final year = bestDate['year'];
+      final month = bestDate['month'];
+      final day = bestDate['day'];
+
+      if (year == null || month == null || day == null) return null;
+
+      return DateTime(year, month, day);
     } catch (_) {
       return null;
     }
@@ -167,71 +251,100 @@ class AuthService {
 
   Future<DateTime?> _askBirthdate(BuildContext context) async {
     DateTime? selected;
+
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text('Completa tu información'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Selecciona tu fecha de nacimiento:'),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime(2000, 1, 1),
-                  firstDate: DateTime(1900, 1, 1),
-                  lastDate: DateTime.now(),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Completa tu información'),
+            content: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Selecciona tu fecha de nacimiento:'),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime(2000, 1, 1),
+                          firstDate: DateTime(1900, 1, 1),
+                          lastDate: DateTime.now(),
+                        );
+
+                        if (picked != null) {
+                          setDialogState(() {
+                            selected = picked;
+                          });
+                        }
+                      },
+                      child: Text(
+                        selected == null
+                            ? 'Elegir fecha'
+                            : '${selected!.day.toString().padLeft(2, '0')}/${selected!.month.toString().padLeft(2, '0')}/${selected!.year}',
+                      ),
+                    ),
+                  ],
                 );
-                if (picked != null) selected = picked;
               },
-              child: const Text('Elegir fecha'),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  selected = null;
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Guardar'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
     );
+
     return selected;
   }
 
   bool _isAdult(DateTime birth) {
     final now = DateTime.now();
+
     int age = now.year - birth.year;
+
     if (now.month < birth.month ||
         (now.month == birth.month && now.day < birth.day)) {
       age--;
     }
+
     return age >= 18;
   }
 
-  Future<void> _handleUnderageOrUnknown(
+  Future<void> _handleInvalidAgeOrUnknown(
     User user,
     BuildContext context, {
+    required bool deleteUser,
     String? reason,
   }) async {
-    try {
-      await user.delete();
-    } catch (_) {
+    if (deleteUser) {
+      try {
+        await user.delete();
+      } catch (e) {
+        debugPrint('No se pudo borrar usuario Google recién creado: $e');
+      }
     }
+
     await _safeDisconnect();
     await _auth.signOut();
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(reason ?? 'Debes ser mayor de 18 años para usar la app.'),
+          content: Text(
+            reason ?? 'Debes ser mayor de 18 años para usar la app.',
+          ),
         ),
       );
     }

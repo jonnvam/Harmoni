@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+//Este servicio ya no se usa ignorarlo 
 class NotesService {
   static final NotesService instance = NotesService._();
   NotesService._();

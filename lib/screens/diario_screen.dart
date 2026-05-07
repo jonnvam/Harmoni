@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,6 +14,7 @@ import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_application_1/state/app_state.dart';
+import 'package:flutter_application_1/services/diary_firestore_service.dart';
 
 class DiarioScreen extends StatefulWidget {
   const DiarioScreen({super.key});
@@ -39,13 +39,11 @@ class _DiarioScreenState extends State<DiarioScreen> {
 
   /// Referencia a la subcolección de notas del usuario actual.
   CollectionReference<Map<String, dynamic>>? _notesCol() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return null;
-    return FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(uid)
-        .collection('notas');
-  }
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return null;
+
+  return DiaryFirestoreService.instance.notesCol(uid);
+}
 
   /// Sube una imagen a Storage y devuelve su URL pública.
   Future<String> _uploadImageToStorage({
@@ -53,88 +51,108 @@ class _DiarioScreenState extends State<DiarioScreen> {
     required String docId,
     required File file,
   }) async {
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('usuarios')
-        .child(uid)
-        .child('diario')
-        .child('$docId.jpg');
-    await ref.putFile(file);
-    return await ref.getDownloadURL();
+    return DiaryFirestoreService.instance.uploadDiaryImage(
+      uid: uid,
+      docId: docId,
+      file: file,
+    );
   }
 
   /// Agregar nota de texto.
   Future<void> _addTextNote() async {
-    final col = _notesCol();
-    if (col == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes iniciar sesión.')),
-      );
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Debes iniciar sesión.')));
       return;
     }
+
     final texto = _noteCtrl.text.trim();
+
     if (texto.isEmpty) {
       _textFocus.requestFocus();
       return;
     }
-    final titulo = _titleCtrl.text.trim().isEmpty ? 'Nota' : _titleCtrl.text.trim();
 
-    await col.add({
-      'titulo': titulo,
-      'texto': texto,
-      'tipo': 'texto',
-      'imageUrl': null,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final titulo =
+        _titleCtrl.text.trim().isEmpty ? 'Nota' : _titleCtrl.text.trim();
 
-    _titleCtrl.clear();
-    _noteCtrl.clear();
+    try {
+      await DiaryFirestoreService.instance.addTextNote(
+        titulo: titulo,
+        texto: texto,
+      );
 
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Nota guardada')),
-    );
+      _titleCtrl.clear();
+      _noteCtrl.clear();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nota guardada')));
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo guardar la nota: $e')));
+    }
   }
 
-  /// Agregar nota con imagen (opcionalmente acompañada de texto)
+  /// Agregar nota con imagen (opcionalmente acompañada de texto).
   Future<void> _pickImage() async {
-    final col = _notesCol();
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (col == null || uid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes iniciar sesión.')),
-      );
+
+    if (uid == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Debes iniciar sesión.')));
       return;
     }
 
     final picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
 
-    // Crea doc para tener docId y luego sube la imagen con ese id
-    final tempDoc = await col.add({
-      'titulo': _titleCtrl.text.trim().isEmpty ? 'Imagen' : _titleCtrl.text.trim(),
-      'texto': _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-      'tipo': 'imagen',
-      'imageUrl': null,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    DocumentReference<Map<String, dynamic>>? tempDoc;
 
     try {
-      final url = await _uploadImageToStorage(
+      tempDoc = await DiaryFirestoreService.instance.createImagePlaceholder(
+        titulo:
+            _titleCtrl.text.trim().isEmpty ? 'Imagen' : _titleCtrl.text.trim(),
+        texto: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+      );
+
+      final url = await DiaryFirestoreService.instance.uploadDiaryImage(
         uid: uid,
         docId: tempDoc.id,
         file: File(picked.path),
       );
-      await tempDoc.update({'imageUrl': url});
+
+      await DiaryFirestoreService.instance.attachImageToNote(
+        noteRef: tempDoc,
+        imageUrl: url,
+      );
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Imagen guardada en tu diario')),
       );
     } catch (e) {
-      // Si falla la subida, borra el doc vacío
-      await tempDoc.delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al subir imagen')),
-      );
+      if (tempDoc != null) {
+        try {
+          await tempDoc.delete();
+        } catch (_) {}
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al subir imagen: $e')));
     } finally {
       _titleCtrl.clear();
       _noteCtrl.clear();
@@ -166,110 +184,145 @@ class _DiarioScreenState extends State<DiarioScreen> {
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
-            left: 16, right: 16, top: 16, bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
           ),
-          child: StatefulBuilder(builder: (ctx, setModal) {
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Editar nota', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: titleCtrl,
-                    decoration: const InputDecoration(labelText: 'Título', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: textCtrl,
-                    maxLines: 4,
-                    decoration: const InputDecoration(labelText: 'Contenido', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      FilledButton.icon(
-                        onPressed: () async {
-                          final picked = await _picker.pickImage(source: ImageSource.gallery);
-                          if (picked != null) {
-                            final file = File(picked.path);
-                            final url = await _uploadImageToStorage(uid: uid, docId: docId, file: file);
-                            setModal(() => newImageUrl = url);
-                          }
-                        },
-                        icon: const Icon(Icons.image),
-                        label: const Text('Agregar / reemplazar imagen'),
-                      ),
-                      const SizedBox(width: 8),
-                      if (newImageUrl != null)
-                        TextButton.icon(
-                          onPressed: () => setModal(() => newImageUrl = null),
-                          icon: const Icon(Icons.close),
-                          label: const Text('Quitar imagen'),
-                        ),
-                    ],
-                  ),
-                  if (newImageUrl != null) ...[
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        newImageUrl!,
-                        height: 140,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+          child: StatefulBuilder(
+            builder: (ctx, setModal) {
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Editar nota',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          // borra doc (y opcionalmente la imagen en storage)
-                          await col.doc(docId).delete();
-                          if ((newImageUrl ?? imageUrl) != null) {
-                            try {
-                              await FirebaseStorage.instance
-                                  .refFromURL(newImageUrl ?? imageUrl!)
-                                  .delete();
-                            } catch (_) {}
-                          }
-                          if (!mounted) return;
-                          Navigator.of(ctx).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nota eliminada')),
-                          );
-                        },
-                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                        label: const Text('Eliminar'),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: titleCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Título',
+                        border: OutlineInputBorder(),
                       ),
-                      const Spacer(),
-                      FilledButton(
-                        onPressed: () async {
-                          await col.doc(docId).update({
-                            'titulo': titleCtrl.text.trim().isEmpty ? (titulo ?? 'Nota') : titleCtrl.text.trim(),
-                            'texto': textCtrl.text.trim().isEmpty ? null : textCtrl.text.trim(),
-                            'tipo': (newImageUrl != null)
-                                ? 'imagen'
-                                : (tipo == 'imagen' && newImageUrl == null ? 'texto' : tipo),
-                            'imageUrl': newImageUrl,
-                          });
-                          if (!mounted) return;
-                          Navigator.of(ctx).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Cambios guardados')),
-                          );
-                        },
-                        child: const Text('Guardar cambios'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: textCtrl,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Contenido',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () async {
+                            final picked = await _picker.pickImage(
+                              source: ImageSource.gallery,
+                            );
+                            if (picked != null) {
+                              final file = File(picked.path);
+                              final url = await _uploadImageToStorage(
+                                uid: uid,
+                                docId: docId,
+                                file: file,
+                              );
+                              setModal(() => newImageUrl = url);
+                            }
+                          },
+                          icon: const Icon(Icons.image),
+                          label: const Text('Agregar / reemplazar imagen'),
+                        ),
+                        const SizedBox(width: 8),
+                        if (newImageUrl != null)
+                          TextButton.icon(
+                            onPressed: () => setModal(() => newImageUrl = null),
+                            icon: const Icon(Icons.close),
+                            label: const Text('Quitar imagen'),
+                          ),
+                      ],
+                    ),
+                    if (newImageUrl != null) ...[
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          newImageUrl!,
+                          height: 140,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) =>
+                                  const Icon(Icons.image_not_supported),
+                        ),
                       ),
                     ],
-                  ),
-                ],
-              ),
-            );
-          }),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            await DiaryFirestoreService.instance.deleteNote(
+                              docId: docId,
+                              imageUrl: newImageUrl ?? imageUrl,
+                            );
+                            if (!mounted) return;
+                            Navigator.of(ctx).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Nota eliminada')),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                          ),
+                          label: const Text('Eliminar'),
+                        ),
+                        const Spacer(),
+                        FilledButton(
+                          onPressed: () async {
+                            await DiaryFirestoreService.instance.updateNote(
+                              docId: docId,
+                              titulo:
+                                  titleCtrl.text.trim().isEmpty
+                                      ? (titulo ?? 'Nota')
+                                      : titleCtrl.text.trim(),
+                              texto:
+                                  textCtrl.text.trim().isEmpty
+                                      ? null
+                                      : textCtrl.text.trim(),
+                              tipo:
+                                  (newImageUrl != null)
+                                      ? 'imagen'
+                                      : (tipo == 'imagen' && newImageUrl == null
+                                          ? 'texto'
+                                          : tipo),
+                              imageUrl: newImageUrl,
+                            );
+                            if (!mounted) return;
+                            Navigator.of(ctx).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Cambios guardados'),
+                              ),
+                            );
+                          },
+                          child: const Text('Guardar cambios'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -287,7 +340,10 @@ class _DiarioScreenState extends State<DiarioScreen> {
               children: [
                 const DropMenu(),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -311,9 +367,9 @@ class _DiarioScreenState extends State<DiarioScreen> {
                       // Saludo + subtítulo
                       Column(
                         children: [
-                          Row(
+                          const Row(
                             children: [
-                              const Padding(
+                              Padding(
                                 padding: EdgeInsets.only(left: 20, top: 25),
                                 child: HolaNombre(
                                   style: TextStyles.textDiario,
@@ -322,8 +378,8 @@ class _DiarioScreenState extends State<DiarioScreen> {
                               ),
                             ],
                           ),
-                          Row(
-                            children: const [
+                          const Row(
+                            children: [
                               Padding(
                                 padding: EdgeInsets.only(left: 20, top: 5),
                                 child: Text(
@@ -337,20 +393,23 @@ class _DiarioScreenState extends State<DiarioScreen> {
                       ),
                       const SizedBox(height: 35),
 
-                      // Caja ¿Cómo te sientes hoy? + botones laterales (guardar texto / audio UI / imagen)
+                      // Caja ¿Cómo te sientes hoy? + botones laterales
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ContainerC2(
                             width: 290,
                             height: 95,
-                            child: Column(
-                              children: const [
+                            child: const Column(
+                              children: [
                                 Padding(
                                   padding: EdgeInsets.only(left: 8, top: 4),
                                   child: Row(
                                     children: [
-                                      Text("¿Cómo te sientes hoy?", style: TextStyles.textDiario3),
+                                      Text(
+                                        "¿Cómo te sientes hoy?",
+                                        style: TextStyles.textDiario3,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -376,25 +435,43 @@ class _DiarioScreenState extends State<DiarioScreen> {
                               width: 45,
                               height: 130,
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const SizedBox(height: 5),
                                   InkWell(
                                     onTap: _addTextNote,
-                                    child: safeSvg("assets/images/diario/edit.svg", width: 30, height: 30),
+                                    child: safeSvg(
+                                      "assets/images/diario/edit.svg",
+                                      width: 30,
+                                      height: 30,
+                                    ),
                                   ),
-                                  // Mic: solo UI (no graba, pero puedes reaprovechar para crear nota de audio si luego activas plugin)
                                   InkWell(
                                     onTap: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Grabación de audio deshabilitada por ahora.')),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Grabación de audio deshabilitada por ahora.',
+                                          ),
+                                        ),
                                       );
                                     },
-                                    child: safeSvg("assets/images/diario/microphone-2.svg", width: 30, height: 30),
+                                    child: safeSvg(
+                                      "assets/images/diario/microphone-2.svg",
+                                      width: 30,
+                                      height: 30,
+                                    ),
                                   ),
                                   InkWell(
                                     onTap: _pickImage,
-                                    child: safeSvg("assets/images/diario/gallery.svg", width: 30, height: 30),
+                                    child: safeSvg(
+                                      "assets/images/diario/gallery.svg",
+                                      width: 30,
+                                      height: 30,
+                                    ),
                                   ),
                                   const SizedBox(height: 5),
                                 ],
@@ -405,7 +482,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Título + contenido (para guardar texto o acompañar imagen)
+                      // Título + contenido
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
                         child: TextField(
@@ -413,7 +490,9 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           textInputAction: TextInputAction.next,
                           decoration: InputDecoration(
                             hintText: 'Título (opcional)',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             isDense: true,
                           ),
                         ),
@@ -427,7 +506,9 @@ class _DiarioScreenState extends State<DiarioScreen> {
                           focusNode: _textFocus,
                           decoration: InputDecoration(
                             hintText: 'Escribe una nota...',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             isDense: true,
                           ),
                         ),
@@ -444,9 +525,16 @@ class _DiarioScreenState extends State<DiarioScreen> {
                             Row(
                               children: [
                                 const SizedBox(width: 35),
-                                const Text("Tus notas", style: TextStyles.textDiario5),
+                                const Text(
+                                  "Tus notas",
+                                  style: TextStyles.textDiario5,
+                                ),
                                 const Spacer(),
-                                safeSvg("assets/images/diario/calendar.svg", width: 30, height: 30),
+                                safeSvg(
+                                  "assets/images/diario/calendar.svg",
+                                  width: 30,
+                                  height: 30,
+                                ),
                                 const SizedBox(width: 16),
                               ],
                             ),
@@ -479,11 +567,18 @@ class _DiarioScreenState extends State<DiarioScreen> {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => IaScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => IaScreen()),
+                      );
                     },
                   ),
                   RadialMenuItem(
@@ -491,26 +586,41 @@ class _DiarioScreenState extends State<DiarioScreen> {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
+                          //
                         );
                         return;
                       }
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const MetasScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MetasScreen()),
+                      );
                     },
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/house.svg",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SecondPrincipalScreen()),
-                    ),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SecondPrincipalScreen(),
+                          ),
+                        ),
                   ),
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/progreso.svg",
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                       }
                     },
@@ -520,11 +630,18 @@ class _DiarioScreenState extends State<DiarioScreen> {
                     onTap: () {
                       if (!AppState.instance.isTestCompleted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Completa el test inicial para desbloquear esta sección.')),
+                          const SnackBar(
+                            content: Text(
+                              'Completa el test inicial para desbloquear esta sección.',
+                            ),
+                          ),
                         );
                         return;
                       }
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const Psicologos()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const Psicologos()),
+                      );
                     },
                   ),
                 ],
@@ -546,17 +663,16 @@ class _MonthlyNotesStream extends StatelessWidget {
     required String? texto,
     required String tipo,
     required String? imageUrl,
-  }) onOpenEdit;
+  })
+  onOpenEdit;
 
   const _MonthlyNotesStream({required this.onOpenEdit});
 
   CollectionReference<Map<String, dynamic>>? _notesCol() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return null;
-    return FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(uid)
-        .collection('notas');
+
+    return DiaryFirestoreService.instance.notesCol(uid);
   }
 
   @override
@@ -575,22 +691,34 @@ class _MonthlyNotesStream extends StatelessWidget {
       stream: query.snapshots(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()));
+          return const SizedBox(
+            height: 120,
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
         if (snap.hasError) {
-          return const SizedBox(height: 80, child: Center(child: Text('Error al cargar notas.')));
+          return const SizedBox(
+            height: 80,
+            child: Center(child: Text('Error al cargar notas.')),
+          );
         }
         final docs = snap.data?.docs ?? [];
         if (docs.isEmpty) {
-          return const SizedBox(height: 80, child: Center(child: Text('Sin notas aún.')));
+          return const SizedBox(
+            height: 80,
+            child: Center(child: Text('Sin notas aún.')),
+          );
         }
 
         // Agrupar por mes (YYYY-MM)
-        final Map<String, List<QueryDocumentSnapshot<Map<String, dynamic>>>> groups = {};
+        final Map<String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+        groups = {};
         for (final d in docs) {
-          final ts = d.data()['createdAt'] as Timestamp?;
+          final data = d.data();
+          final ts = data['createdAt'] as Timestamp?;
           final date = ts?.toDate() ?? DateTime.now();
-          final key = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
+          final key =
+              '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
           groups.putIfAbsent(key, () => []).add(d);
         }
         final keys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
@@ -598,8 +726,18 @@ class _MonthlyNotesStream extends StatelessWidget {
         String formatMonthES(String key) {
           final d = DateTime.parse('$key-01');
           const meses = [
-            'Enero','Febrero','Marzo','Abril','Mayo','Junio',
-            'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+            'Enero',
+            'Febrero',
+            'Marzo',
+            'Abril',
+            'Mayo',
+            'Junio',
+            'Julio',
+            'Agosto',
+            'Septiembre',
+            'Octubre',
+            'Noviembre',
+            'Diciembre',
           ];
           return '${meses[d.month - 1]} ${d.year}';
         }
@@ -607,7 +745,10 @@ class _MonthlyNotesStream extends StatelessWidget {
         Widget monthHeader(String label) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           );
         }
 
@@ -626,18 +767,21 @@ class _MonthlyNotesStream extends StatelessWidget {
                   itemBuilder: (ctx, i) {
                     final d = groups[key]![i];
                     final data = d.data();
-                    final titulo = (data['titulo'] ?? '').toString();
-                    final texto = (data['texto'] ?? '')?.toString();
-                    final tipo = (data['tipo'] ?? 'texto').toString();
-                    final imageUrl = (data['imageUrl'] ?? '')?.toString();
+
+                    final titulo = (data['titulo'] as String?) ?? '';
+                    final texto = (data['texto'] as String?) ?? '';
+                    final tipo = (data['tipo'] as String?) ?? 'texto';
+                    final imageUrl = (data['imageUrl'] as String?) ?? '';
+
                     return GestureDetector(
-                      onTap: () => onOpenEdit(
-                        d.id,
-                        titulo: titulo,
-                        texto: texto,
-                        tipo: tipo,
-                        imageUrl: imageUrl?.isEmpty == true ? null : imageUrl,
-                      ),
+                      onTap:
+                          () => onOpenEdit(
+                            d.id,
+                            titulo: titulo.isEmpty ? null : titulo,
+                            texto: texto.isEmpty ? null : texto,
+                            tipo: tipo,
+                            imageUrl: imageUrl.isEmpty ? null : imageUrl,
+                          ),
                       child: ContainerDiarioWhite(
                         height: 108,
                         width: 150,
@@ -688,7 +832,8 @@ class _NoteCell extends StatelessWidget {
             child: Image.network(
               imageUrl!,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+              errorBuilder:
+                  (_, __, ___) => const Icon(Icons.image_not_supported),
             ),
           ),
           if (texto != null && texto!.isNotEmpty)
@@ -696,16 +841,24 @@ class _NoteCell extends StatelessWidget {
               texto!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Colors.black87, height: 1.2),
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black87,
+                height: 1.2,
+              ),
             ),
         ],
       );
     } else {
       content = Text(
-        texto ?? '',
+        (texto ?? ''),
         maxLines: 5,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 13, height: 1.25, color: Colors.black87),
+        style: const TextStyle(
+          fontSize: 13,
+          height: 1.25,
+          color: Colors.black87,
+        ),
       );
     }
 

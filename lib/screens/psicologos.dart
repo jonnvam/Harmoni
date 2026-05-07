@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/progreso.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
-import 'package:flutter_application_1/data/psychologists_repo.dart';
+import 'package:flutter_application_1/services/public_psychologists_service.dart';
 import 'package:flutter_application_1/models/psychologist.dart';
 import 'package:flutter_application_1/screens/psychologist_details.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
@@ -21,7 +21,7 @@ class Psicologos extends StatefulWidget {
 }
 
 class _PsicologosState extends State<Psicologos> {
-  final _repo = PsychologistsRepo.instance;
+  final _repo = PublicPsychologistsService.instance;
   final TextEditingController _searchCtrl = TextEditingController();
   Timer? _debounce;
 
@@ -465,7 +465,7 @@ class _PsicologosState extends State<Psicologos> {
         crossAxisCount: 2,
         mainAxisSpacing: 14,
         crossAxisSpacing: 14,
-        childAspectRatio: 0.70,
+        childAspectRatio: 0.62,
       ),
       itemCount: _items.length,
       itemBuilder: (context, index) {
@@ -484,116 +484,170 @@ class _PsicologosState extends State<Psicologos> {
 class _PsychCard extends StatelessWidget {
   final Psychologist p;
   final VoidCallback onTap;
+
   const _PsychCard({required this.p, required this.onTap});
 
-  @override
+  String get _specialtiesText {
+    if (p.specialties.isEmpty) return 'Psicología';
+    return p.specialties.take(2).join(' • ');
+  }
+
+  String get _modalidadesText {
+    if (p.modalidades.isEmpty) return 'Modalidad no especificada';
+    return p.modalidades.take(2).join(' • ');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFEAECEE)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0D000000),
-              blurRadius: 8,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Avatar redondo grande
-              CircleAvatar(
-                radius: 36,
-                backgroundImage:
-                    (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
-                        ? NetworkImage(p.avatarUrl!)
-                        : (p.avatarAsset != null && p.avatarAsset!.isNotEmpty)
-                        ? AssetImage(p.avatarAsset!) as ImageProvider
-                        : null,
-                child:
-                    (p.avatarUrl == null &&
-                            (p.avatarAsset == null || p.avatarAsset!.isEmpty))
-                        ? const Icon(Icons.person, size: 36)
-                        : null,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                p.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                p.specialties.take(2).join(' • '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.black54, fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.star_rounded,
-                    size: 16,
-                    color: Color(0xFFF59E0B),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    p.rating.toStringAsFixed(1),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 4,
-                    height: 4,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFCBD5E1),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '\$${p.price}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.fondo3,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                  onPressed: onTap,
-                  child: const Text('Ver Perfil'),
-                ),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFEAECEE)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0D000000),
+                blurRadius: 10,
+                offset: Offset(0, 4),
               ),
             ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 31,
+                  backgroundColor: const Color(0xFFF2EEFF),
+                  backgroundImage:
+                      (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
+                          ? NetworkImage(p.avatarUrl!)
+                          : (p.avatarAsset != null && p.avatarAsset!.isNotEmpty)
+                          ? AssetImage(p.avatarAsset!) as ImageProvider
+                          : null,
+                  child:
+                      (p.avatarUrl == null &&
+                              (p.avatarAsset == null || p.avatarAsset!.isEmpty))
+                          ? const Icon(
+                            Icons.person_rounded,
+                            size: 32,
+                            color: AppColors.fondo3,
+                          )
+                          : null,
+                ),
+
+                const SizedBox(height: 9),
+
+                Text(
+                  p.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Kantumruy Pro',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14.5,
+                    height: 1.05,
+                    color: Colors.black87,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                Text(
+                  _specialtiesText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Kantumruy Pro',
+                    color: Colors.black54,
+                    fontSize: 12,
+                  ),
+                ),
+
+                const SizedBox(height: 7),
+
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 140),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F8FD),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Text(
+                    _modalidadesText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Kantumruy Pro',
+                      fontSize: 11,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+
+                const Spacer(),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        '\$${p.price} ${p.moneda}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Kantumruy Pro',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: ElevatedButton(
+                    onPressed: onTap,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.fondo3,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Ver perfil',
+                      style: TextStyle(
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -718,7 +772,131 @@ class _CategoryPill extends StatelessWidget {
   }
 }
 
-// Eliminado: _AvatarAsset ya no se utiliza tras el rediseño de las tarjetas.
+class _ProfileInfoSection extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  const _ProfileInfoSection({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: AppColors.fondo3),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: 'Kantumruy Pro',
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileChipWrap extends StatelessWidget {
+  final List<String> items;
+
+  const _ProfileChipWrap({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return const Text(
+        'No especificado',
+        style: TextStyle(
+          fontSize: 13,
+          color: Colors.black54,
+          fontFamily: 'Kantumruy Pro',
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children:
+          items.map((item) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF2FF),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: const Color(0xFFDCE4FF)),
+              ),
+              child: Text(
+                item,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontFamily: 'Kantumruy Pro',
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.fondo3,
+                ),
+              ),
+            );
+          }).toList(),
+    );
+  }
+}
+
+class _PriceBadge extends StatelessWidget {
+  final Psychologist p;
+
+  const _PriceBadge({required this.p});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF2FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFDCE4FF)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.payments_rounded, color: AppColors.fondo3, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            '\$${p.price} ${p.moneda} / sesión',
+            style: const TextStyle(
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w800,
+              color: AppColors.fondo3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 void _openPreview(BuildContext context, Psychologist p) {
   showModalBottomSheet(
@@ -727,182 +905,199 @@ void _openPreview(BuildContext context, Psychologist p) {
     useSafeArea: true,
     backgroundColor: Colors.white,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
     builder: (ctx) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage:
-                        (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
-                            ? NetworkImage(p.avatarUrl!)
-                            : (p.avatarAsset != null &&
-                                p.avatarAsset!.isNotEmpty)
-                            ? AssetImage(p.avatarAsset!) as ImageProvider
-                            : null,
-                    child:
-                        (p.avatarUrl == null &&
-                                (p.avatarAsset == null ||
-                                    p.avatarAsset!.isEmpty))
-                            ? const Icon(Icons.person, size: 40)
-                            : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          p.name,
-                          style: TextStyles.tituloBienvenida.copyWith(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            ...List.generate(5, (i) {
-                              final full = p.rating.floor();
-                              final half = (p.rating - full) >= 0.5;
-                              if (i < full)
-                                return const Icon(
-                                  Icons.star,
-                                  color: Colors.amber,
-                                  size: 18,
-                                );
-                              if (i == full && half)
-                                return const Icon(
-                                  Icons.star_half,
-                                  color: Colors.amber,
-                                  size: 18,
-                                );
-                              return const Icon(
-                                Icons.star_border,
-                                color: Colors.amber,
-                                size: 18,
-                              );
-                            }),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${p.rating.toStringAsFixed(1)} (2,100 reseñas)',
-                              style: TextStyles.textDicho.copyWith(
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          p.specialties.join(' • '),
-                          style: TextStyles.textDicho.copyWith(fontSize: 13),
-                        ),
-                        const SizedBox(height: 8),
-                        if (p.isAvailable)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: Colors.green.shade200),
-                            ),
-                            child: const Text(
-                              'Disponible Hoy',
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                      ],
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.88,
+        minChildSize: 0.55,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) {
+          return SingleChildScrollView(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE5E7EB),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x0F000000),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
+                ),
+
+                const SizedBox(height: 10),
+
+                Row(
+                  children: [
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: const Icon(Icons.close_rounded),
                     ),
                   ],
                 ),
-                child: Row(
+
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const CircleAvatar(
-                      radius: 16,
-                      child: Icon(Icons.person, size: 16),
+                    CircleAvatar(
+                      radius: 42,
+                      backgroundColor: const Color(0xFFF2EEFF),
+                      backgroundImage:
+                          (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
+                              ? NetworkImage(p.avatarUrl!)
+                              : (p.avatarAsset != null &&
+                                  p.avatarAsset!.isNotEmpty)
+                              ? AssetImage(p.avatarAsset!) as ImageProvider
+                              : null,
+                      child:
+                          (p.avatarUrl == null &&
+                                  (p.avatarAsset == null ||
+                                      p.avatarAsset!.isEmpty))
+                              ? const Icon(
+                                Icons.person_rounded,
+                                size: 42,
+                                color: AppColors.fondo3,
+                              )
+                              : null,
                     ),
-                    const SizedBox(width: 10),
+
+                    const SizedBox(width: 16),
+
                     Expanded(
-                      child: Text(
-                        '“Excelente profesional, muy empático y con herramientas claras. Me ayudó mucho a manejar el estrés.”',
-                        style: TextStyles.textDicho.copyWith(fontSize: 13),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            p.name,
+                            style: TextStyles.tituloBienvenida.copyWith(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              height: 1.1,
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          Text(
+                            p.specialties.isEmpty
+                                ? 'Psicología'
+                                : p.specialties.join(' • '),
+                            style: TextStyles.textDicho.copyWith(fontSize: 13),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          _PriceBadge(p: p),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.fondo3,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+
+                const SizedBox(height: 18),
+
+                _ProfileInfoSection(
+                  title: 'Descripción profesional',
+                  icon: Icons.description_rounded,
+                  child: Text(
+                    p.descripcionProfesional.trim().isEmpty
+                        ? 'Este psicólogo aún no agregó una descripción profesional.'
+                        : p.descripcionProfesional,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.4,
+                      color: Colors.black87,
+                      fontFamily: 'Kantumruy Pro',
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (_) => PsychologistDetailsScreen(psychologist: p),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.arrow_forward_rounded),
-                  label: const Text('Visitar Perfil'),
                 ),
-              ),
-            ],
-          ),
-        ),
+
+                _ProfileInfoSection(
+                  title: 'Especialidades',
+                  icon: Icons.psychology_rounded,
+                  child: _ProfileChipWrap(items: p.specialties),
+                ),
+
+                _ProfileInfoSection(
+                  title: 'Modalidades',
+                  icon: Icons.video_call_rounded,
+                  child: _ProfileChipWrap(items: p.modalidades),
+                ),
+
+                _ProfileInfoSection(
+                  title: 'Enfoque terapéutico',
+                  icon: Icons.lightbulb_rounded,
+                  child: _ProfileChipWrap(items: p.enfoquesTerapia),
+                ),
+
+                _ProfileInfoSection(
+                  title: 'Población que atiende',
+                  icon: Icons.groups_rounded,
+                  child: _ProfileChipWrap(items: p.atiendeA),
+                ),
+
+                if (p.aniosExperiencia != null)
+                  _ProfileInfoSection(
+                    title: 'Experiencia',
+                    icon: Icons.workspace_premium_rounded,
+                    child: Text(
+                      p.aniosExperiencia == 1
+                          ? '1 año de experiencia'
+                          : '${p.aniosExperiencia} años de experiencia',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontFamily: 'Kantumruy Pro',
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 8),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.fondo3,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => PsychologistDetailsScreen(psychologist: p),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    label: const Text(
+                      'Visitar perfil completo',
+                      style: TextStyle(
+                        fontFamily: 'Kantumruy Pro',
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       );
     },
   );
