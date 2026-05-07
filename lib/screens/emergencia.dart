@@ -320,13 +320,13 @@ class _EmergenciaScreenState extends State<EmergenciaScreen> {
   }
 
   Future<void> _pickFromDeviceContacts() async {
-    final status = await FlutterContacts.permissions.request(
-      PermissionType.read,
-    );
+    // 1. En v2.0.0 requestPermission() devuelve un bool directamente
+    final bool isGranted = await FlutterContacts.requestPermission();
 
-    debugPrint('CONTACTS PERMISSION STATUS: $status');
+    debugPrint('CONTACTS PERMISSION STATUS: $isGranted');
 
-    if (status != PermissionStatus.granted) {
+    // Usamos 'isGranted' que es la variable definida arriba
+    if (!isGranted) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -340,8 +340,10 @@ class _EmergenciaScreenState extends State<EmergenciaScreen> {
     }
 
     try {
-      final contacts = await FlutterContacts.getAll(
-        properties: {ContactProperty.phone},
+      // 2. 'getAll' cambió a 'getContacts' en la nueva versión
+      // 'withProperties: true' trae teléfonos, nombres, etc.
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
       );
 
       final contactsWithPhones =
@@ -361,6 +363,7 @@ class _EmergenciaScreenState extends State<EmergenciaScreen> {
       await _showDeviceContactsPicker(contactsWithPhones);
     } catch (e) {
       if (!mounted) return;
+      debugPrint('Error en contactos: $e');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No se pudieron cargar tus contactos: $e')),

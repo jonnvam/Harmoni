@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/patients_screen.dart';
@@ -7,8 +8,15 @@ import 'package:flutter_application_1/screens/psychologist/availability_screen.d
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/services/psychologist_appointments_service.dart';
 
-class PsychologistAppointmentsScreen extends StatelessWidget {
+class PsychologistAppointmentsScreen extends StatefulWidget {
   const PsychologistAppointmentsScreen({super.key});
+
+  @override
+  State<PsychologistAppointmentsScreen> createState() => _PsychologistAppointmentsScreenState();
+}
+
+class _PsychologistAppointmentsScreenState extends State<PsychologistAppointmentsScreen> {
+  String _filter = 'hoy';
 
   @override
   Widget build(BuildContext context) {
