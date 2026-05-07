@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/responsive.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_application_1/screens/psychologist/patients_screen.dart'
 import 'package:flutter_application_1/screens/psychologist/availability_screen.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/services/psychologist_public_profile_service.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PsychologistHomeScreen extends StatelessWidget {
   const PsychologistHomeScreen({super.key});
@@ -17,61 +19,145 @@ class PsychologistHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              child: Column(
-                children: [
-                  const DropMenu(),
-                  MaxWidthContainer(
-                    child: _ProfessionalProfileGate(),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                DropMenu(
+                  avatarBuilder: (_) => const _PsychologistHeaderAvatar(),
+                ),
+                MaxWidthContainer(
+                  child: _ProfessionalProfileGate(),
+                ),
+              ],
+            ),
+          ),
+          // Menú circular inferior con las 3 opciones principales
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SemiCircularRadialMenu(
+                currentIconAsset: "assets/images/icon/house.svg",
+                ringColor: Colors.transparent,
+                items: [
+                  // Citas
+                  RadialMenuItem(
+                    iconAsset: "assets/images/icon/agenda.svg",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PsychologistAppointmentsScreen()),
+                    ),
+                  ),
+                  // Pacientes
+                  RadialMenuItem(
+                    iconAsset: "assets/images/icon/pacientes.svg",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PsychologistPatientsScreen()),
+                    ),
+                  ),
+                  // Disponibilidad
+                  RadialMenuItem(
+                    iconAsset: "assets/images/icon/disponi.svg",
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PsychologistAvailabilityScreen()),
+                    ),
                   ),
                 ],
               ),
             ),
-            // Menú circular inferior con las 3 opciones principales
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: SemiCircularRadialMenu(
-                  currentIconAsset: "assets/images/icon/house.svg",
-                  ringColor: Colors.transparent,
-                  items: [
-                    // Home
-                    
-                    // Citas
-                    RadialMenuItem(
-                      iconAsset: "assets/images/icon/agenda.svg",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PsychologistAppointmentsScreen()),
-                      ),
-                    ),
-                    // Pacientes
-                    RadialMenuItem(
-                      iconAsset: "assets/images/icon/pacientes.svg",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PsychologistPatientsScreen()),
-                      ),
-                    ),
-                    // Disponibilidad
-                    RadialMenuItem(
-                      iconAsset: "assets/images/icon/disponi.svg",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PsychologistAvailabilityScreen()),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+class _PsychologistHeaderAvatar extends StatelessWidget {
+  const _PsychologistHeaderAvatar();
+
+  String _initialsFrom(String? name) {
+    final clean = (name ?? '').trim();
+    if (clean.isEmpty) return 'P';
+    final parts = clean.split(RegExp(r'\s+'));
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const CircleAvatar(
+        radius: 30,
+        backgroundColor: Color.fromARGB(255, 224, 224, 224),
+        child: Text(
+          'P',
+          style: TextStyle(
+            fontSize: 20,
+            color: Color.fromARGB(255, 27, 25, 25),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+    }
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream:
+          FirebaseFirestore.instance.collection('psicologos').doc(user.uid).snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return Shimmer.fromColors(
+            baseColor: Colors.grey.shade300,
+            highlightColor: Colors.grey.shade100,
+            child: const CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.white,
+            ),
+          );
+        }
+
+        if (snap.hasError) {
+          return const CircleAvatar(
+            radius: 30,
+            backgroundColor: Color.fromARGB(255, 224, 224, 224),
+            child: Icon(Icons.error_outline, color: Colors.black54),
+          );
+        }
+
+        final data = snap.data?.data() ?? {};
+        final displayName = (data['displayName'] ?? '').toString().trim();
+        final photoUrl = (data['photoUrl'] ?? '').toString().trim();
+
+        if (photoUrl.isNotEmpty) {
+          return CircleAvatar(
+            radius: 30,
+            backgroundColor: const Color.fromARGB(255, 224, 224, 224),
+            backgroundImage: CachedNetworkImageProvider(photoUrl),
+          );
+        }
+
+        final initials = _initialsFrom(
+          displayName.isNotEmpty ? displayName : user.displayName,
+        );
+
+        return CircleAvatar(
+          radius: 30,
+          backgroundColor: const Color.fromARGB(255, 224, 224, 224),
+          child: Text(
+            initials,
+            style: const TextStyle(
+              fontSize: 20,
+              color: Color.fromARGB(255, 27, 25, 25),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -403,9 +489,9 @@ class _DashboardContent extends StatelessWidget {
         const SizedBox(height: 16),
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('appointments')
-              .where('psychId', isEqualTo: uid)
-              .orderBy('dateTime')
+              .collection('citas')
+              .where('psicologoId', isEqualTo: uid)
+              .orderBy('fecha')
               .snapshots(),
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
@@ -423,18 +509,18 @@ class _DashboardContent extends StatelessWidget {
             // Próximas confirmadas de hoy
             final todaysConfirmed = all
                 .where((d) {
-                  final ts = d['dateTime'];
+                  final ts = d['fecha'];
                   if (ts is! Timestamp) return false;
                   final dt = ts.toDate();
-                  final status = (d['status'] ?? '').toString();
+                  final status = (d['estado'] ?? '').toString();
                   return dt.isAfter(startOfDay) && dt.isBefore(endOfDay) && status == 'confirmada';
                 })
                 .toList()
-              ..sort((a, b) => (a['dateTime'] as Timestamp).toDate().compareTo((b['dateTime'] as Timestamp).toDate()));
+              ..sort((a, b) => (a['fecha'] as Timestamp).toDate().compareTo((b['fecha'] as Timestamp).toDate()));
 
             // Solicitudes pendientes (sin restricción de día)
-            final pending = all.where((d) => (d['status'] ?? '').toString() == 'pendiente').toList()
-              ..sort((a, b) => (a['dateTime'] as Timestamp).toDate().compareTo((b['dateTime'] as Timestamp).toDate()));
+            final pending = all.where((d) => (d['estado'] ?? '').toString() == 'pendiente').toList()
+              ..sort((a, b) => (a['fecha'] as Timestamp).toDate().compareTo((b['fecha'] as Timestamp).toDate()));
 
             return Column(
               children: [
@@ -443,7 +529,7 @@ class _DashboardContent extends StatelessWidget {
                   emptyText: 'No hay citas confirmadas para hoy',
                   items: todaysConfirmed.take(3).map((d) {
                     final name = (d['patientName'] ?? 'Paciente').toString();
-                    final dt = (d['dateTime'] as Timestamp).toDate();
+                    final dt = (d['fecha'] as Timestamp).toDate();
                     final hour = dt.hour.toString().padLeft(2, '0');
                     final min = dt.minute.toString().padLeft(2, '0');
                     return '$hour:$min · $name';

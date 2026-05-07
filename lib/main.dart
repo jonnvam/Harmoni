@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/sign_login.dart';
+import 'package:flutter_application_1/screens/second_principal_screen.dart';
+import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:intl/date_symbol_data_local.dart'; // 👈 necesario para locales
 import 'package:logger/logger.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -35,7 +37,12 @@ class MainApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const Scaffold(body: SignLoginScreen()),
+      home: const SignLoginScreen(),
+      routes: {
+        '/login': (_) => const SignLoginScreen(),
+        '/patient_home': (_) => const SecondPrincipalScreen(),
+        '/psychologist_home': (_) => const PsychologistHomeScreen(),
+      },
     );
 
   }

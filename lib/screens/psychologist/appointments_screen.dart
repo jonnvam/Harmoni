@@ -7,6 +7,7 @@ import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/patients_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/availability_screen.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PsychologistAppointmentsScreen extends StatefulWidget {
   const PsychologistAppointmentsScreen({super.key});
@@ -75,17 +76,32 @@ class _PsychologistAppointmentsScreenState extends State<PsychologistAppointment
                               ? const Center(child: Text('Inicia sesión para ver tus citas'))
                               : StreamBuilder<QuerySnapshot>(
                                   stream: FirebaseFirestore.instance
-                                      .collection('appointments')
-                                      .where('psychId', isEqualTo: uid)
-                                      .orderBy('dateTime')
+                                      .collection('citas')
+                                      .where('psicologoId', isEqualTo: uid)
+                                      .orderBy('fecha')
                                       .snapshots(),
                                   builder: (context, snap) {
                                     if (snap.connectionState == ConnectionState.waiting) {
-                                      return const Center(child: CircularProgressIndicator());
+                                      return const _AppointmentsSkeleton();
+                                    }
+                                    if (snap.hasError) {
+                                      return _AppointmentsStateMessage(
+                                        icon: Icons.error_outline,
+                                        title: 'No se pudieron cargar tus citas',
+                                        message: 'Intenta nuevamente en unos segundos.',
+                                        actionText: 'Reintentar',
+                                        onAction: () => setState(() {}),
+                                      );
                                     }
                                     final docs = snap.data?.docs ?? [];
                                     if (docs.isEmpty) {
-                                      return const Center(child: Text('Aún no tienes citas'));
+                                      return _AppointmentsStateMessage(
+                                        icon: Icons.event_busy,
+                                        title: 'Aún no tienes citas',
+                                        message: 'Cuando un paciente reserve, aparecerá aquí.',
+                                        actionText: 'Actualizar',
+                                        onAction: () => setState(() {}),
+                                      );
                                     }
                                     final now = DateTime.now();
                                     final startOfDay = DateTime(now.year, now.month, now.day);
@@ -93,8 +109,8 @@ class _PsychologistAppointmentsScreenState extends State<PsychologistAppointment
 
                                     final filtered = docs.where((doc) {
                                       final d = doc.data() as Map<String, dynamic>? ?? {};
-                                      final status = (d['status'] ?? 'pendiente').toString();
-                                      final date = (d['dateTime'] as Timestamp?)?.toDate();
+                                      final status = (d['estado'] ?? 'pendiente').toString();
+                                      final date = (d['fecha'] as Timestamp?)?.toDate();
                                       if (_filter == 'pendiente') return status == 'pendiente';
                                       if (_filter == 'confirmada') return status == 'confirmada';
                                       if (date == null) return false;
@@ -102,7 +118,13 @@ class _PsychologistAppointmentsScreenState extends State<PsychologistAppointment
                                     }).toList();
 
                                     if (filtered.isEmpty) {
-                                      return const Center(child: Text('Sin citas para este filtro'));
+                                      return _AppointmentsStateMessage(
+                                        icon: Icons.event_note,
+                                        title: 'Sin citas para este filtro',
+                                        message: 'Prueba con otro filtro para ver mas resultados.',
+                                        actionText: 'Ver todo',
+                                        onAction: () => setState(() => _filter = 'hoy'),
+                                      );
                                     }
 
                                     return ListView.separated(
@@ -111,9 +133,9 @@ class _PsychologistAppointmentsScreenState extends State<PsychologistAppointment
                                       itemBuilder: (context, i) {
                                         final d = filtered[i].data() as Map<String, dynamic>? ?? {};
                                         final patientName = (d['patientName'] ?? 'Paciente').toString();
-                                        final date = (d['dateTime'] as Timestamp?)?.toDate();
-                                        final status = (d['status'] ?? 'pendiente').toString();
-                                        final patientId = (d['patientId'] ?? '').toString();
+                                        final date = (d['fecha'] as Timestamp?)?.toDate();
+                                        final status = (d['estado'] ?? 'pendiente').toString();
+                                        final patientId = (d['pacienteId'] ?? '').toString();
                                         return _AppointmentTile(
                                           title: patientName,
                                           date: date,
@@ -237,7 +259,7 @@ class _AppointmentTile extends StatelessWidget {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () async {
-                        await docRef.update({'status': 'confirmada'});
+                        await docRef.update({'estado': 'confirmada'});
                         if (patientId.isNotEmpty) {
                           await FirebaseFirestore.instance
                               .collection('usuarios')
@@ -261,7 +283,7 @@ class _AppointmentTile extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        await docRef.update({'status': 'cancelada'});
+                        await docRef.update({'estado': 'cancelada'});
                         if (patientId.isNotEmpty) {
                           await FirebaseFirestore.instance
                               .collection('usuarios')
@@ -320,6 +342,87 @@ class _AppointmentTile extends StatelessWidget {
     if (!sheetContext.mounted) return;
     Navigator.pop(sheetContext);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cita reprogramada')));
+  }
+}
+
+class _AppointmentsSkeleton extends StatelessWidget {
+  const _AppointmentsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      itemCount: 4,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            height: 74,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AppointmentsStateMessage extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionText;
+  final VoidCallback? onAction;
+
+  const _AppointmentsStateMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionText,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 42, color: Colors.black38),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Kantumruy Pro',
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                fontFamily: 'Kantumruy Pro',
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: onAction,
+              child: Text(actionText),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

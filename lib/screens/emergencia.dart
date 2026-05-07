@@ -9,6 +9,7 @@ import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
 import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
+import 'package:flutter_application_1/utils/navigation_helper.dart';
 import 'package:flutter_application_1/services/emergency_contacts_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_application_1/state/app_state.dart';
@@ -1191,12 +1192,7 @@ class _EmergenciaScreenState extends State<EmergenciaScreen> {
                 currentIconAsset: "assets/images/icon/house.svg",
                 ringColor: Colors.transparent,
                 onCenterDoubleTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SecondPrincipalScreen(),
-                    ),
-                  );
+                  navigateToHome(context);
                 },
                 items: [
                   RadialMenuItem(
