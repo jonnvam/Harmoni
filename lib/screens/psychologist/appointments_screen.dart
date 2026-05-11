@@ -5,18 +5,21 @@ import 'package:flutter_application_1/core/responsive.dart';
 import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/patients_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/availability_screen.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/services/psychologist_appointments_service.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:flutter_application_1/components/appointment_access_card.dart';
 
 class PsychologistAppointmentsScreen extends StatefulWidget {
   const PsychologistAppointmentsScreen({super.key});
 
   @override
-  State<PsychologistAppointmentsScreen> createState() => _PsychologistAppointmentsScreenState();
+  State<PsychologistAppointmentsScreen> createState() =>
+      _PsychologistAppointmentsScreenState();
 }
 
-class _PsychologistAppointmentsScreenState extends State<PsychologistAppointmentsScreen> {
-  String _filter = 'hoy';
+class _PsychologistAppointmentsScreenState
+    extends State<PsychologistAppointmentsScreen> {
+  String _filter = 'todas';
 
   @override
   Widget build(BuildContext context) {
@@ -55,19 +58,54 @@ class _PsychologistAppointmentsScreenState extends State<PsychologistAppointment
                             ),
                           ),
 
+                          const SizedBox(height: 12),
+
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _FilterChip(
+                                label: 'Todas',
+                                selected: _filter == 'todas',
+                                onSelected:
+                                    () => setState(() => _filter = 'todas'),
+                              ),
+                              _FilterChip(
+                                label: 'Pendientes',
+                                selected: _filter == 'solicitada',
+                                onSelected:
+                                    () =>
+                                        setState(() => _filter = 'solicitada'),
+                              ),
+                              _FilterChip(
+                                label: 'Confirmadas',
+                                selected: _filter == 'confirmada',
+                                onSelected:
+                                    () =>
+                                        setState(() => _filter = 'confirmada'),
+                              ),
+                              _FilterChip(
+                                label: 'Historial',
+                                selected: _filter == 'historial',
+                                onSelected:
+                                    () => setState(() => _filter = 'historial'),
+                              ),
+                            ],
+                          ),
+
                           const SizedBox(height: 16),
 
                           Expanded(
                             child: StreamBuilder<
-                                List<PsychologistAppointmentModel>>(
-                              stream: PsychologistAppointmentsService.instance
-                                  .watchMyAppointments(),
+                              List<PsychologistAppointmentModel>
+                            >(
+                              stream:
+                                  PsychologistAppointmentsService.instance
+                                      .watchMyAppointments(),
                               builder: (context, snap) {
                                 if (snap.connectionState ==
                                     ConnectionState.waiting) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
+                                  return const _AppointmentsSkeleton();
                                 }
 
                                 if (snap.hasError) {
@@ -90,73 +128,109 @@ class _PsychologistAppointmentsScreenState extends State<PsychologistAppointment
                                   );
                                 }
 
-                                final solicitadas = citas
-                                    .where((c) => c.estado == 'solicitada')
-                                    .toList();
+                                final solicitadas =
+                                    citas
+                                        .where((c) => c.estado == 'solicitada')
+                                        .toList();
 
-                                final confirmadas = citas
-                                    .where((c) => c.estado == 'confirmada')
-                                    .toList();
+                                final confirmadas =
+                                    citas
+                                        .where((c) => c.estado == 'confirmada')
+                                        .toList();
 
-                                final otras = citas
-                                    .where(
-                                      (c) =>
-                                          c.estado != 'solicitada' &&
-                                          c.estado != 'confirmada',
-                                    )
-                                    .toList();
+                                final otras =
+                                    citas
+                                        .where(
+                                          (c) =>
+                                              c.estado != 'solicitada' &&
+                                              c.estado != 'confirmada',
+                                        )
+                                        .toList();
+
+                                List<Widget> buildSection({
+                                  required String title,
+                                  required List<PsychologistAppointmentModel>
+                                  items,
+                                }) {
+                                  if (items.isEmpty) return [];
+
+                                  return [
+                                    _SectionLabel(text: title),
+                                    const SizedBox(height: 8),
+                                    ...items.map(
+                                      (cita) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 10,
+                                        ),
+                                        child: _AppointmentTile(
+                                          appointment: cita,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                  ];
+                                }
+
+                                if (_filter == 'solicitada' &&
+                                    solicitadas.isEmpty) {
+                                  return _AppointmentsStateMessage(
+                                    icon: Icons.event_note_rounded,
+                                    title: 'Sin solicitudes pendientes',
+                                    message:
+                                        'Cuando un paciente solicite una cita, aparecerá aquí.',
+                                    actionText: 'Ver todas',
+                                    onAction:
+                                        () => setState(() => _filter = 'todas'),
+                                  );
+                                }
+
+                                if (_filter == 'confirmada' &&
+                                    confirmadas.isEmpty) {
+                                  return _AppointmentsStateMessage(
+                                    icon: Icons.event_available_rounded,
+                                    title: 'Sin citas confirmadas',
+                                    message:
+                                        'Cuando aceptes una cita, aparecerá en esta sección.',
+                                    actionText: 'Ver todas',
+                                    onAction:
+                                        () => setState(() => _filter = 'todas'),
+                                  );
+                                }
+
+                                if (_filter == 'historial' && otras.isEmpty) {
+                                  return _AppointmentsStateMessage(
+                                    icon: Icons.history_rounded,
+                                    title: 'Sin historial',
+                                    message:
+                                        'Las citas rechazadas o canceladas aparecerán aquí.',
+                                    actionText: 'Ver todas',
+                                    onAction:
+                                        () => setState(() => _filter = 'todas'),
+                                  );
+                                }
 
                                 return ListView(
                                   children: [
-                                    if (solicitadas.isNotEmpty) ...[
-                                      const _SectionLabel(
-                                        text: 'Solicitudes pendientes',
+                                    if (_filter == 'todas' ||
+                                        _filter == 'solicitada')
+                                      ...buildSection(
+                                        title: 'Solicitudes pendientes',
+                                        items: solicitadas,
                                       ),
-                                      const SizedBox(height: 8),
-                                      ...solicitadas.map(
-                                        (cita) => Padding(
-                                          padding:
-                                              const EdgeInsets.only(bottom: 10),
-                                          child: _AppointmentTile(
-                                            appointment: cita,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                    ],
 
-                                    if (confirmadas.isNotEmpty) ...[
-                                      const _SectionLabel(
-                                        text: 'Citas confirmadas',
+                                    if (_filter == 'todas' ||
+                                        _filter == 'confirmada')
+                                      ...buildSection(
+                                        title: 'Citas confirmadas',
+                                        items: confirmadas,
                                       ),
-                                      const SizedBox(height: 8),
-                                      ...confirmadas.map(
-                                        (cita) => Padding(
-                                          padding:
-                                              const EdgeInsets.only(bottom: 10),
-                                          child: _AppointmentTile(
-                                            appointment: cita,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                    ],
 
-                                    if (otras.isNotEmpty) ...[
-                                      const _SectionLabel(
-                                        text: 'Historial',
+                                    if (_filter == 'todas' ||
+                                        _filter == 'historial')
+                                      ...buildSection(
+                                        title: 'Historial',
+                                        items: otras,
                                       ),
-                                      const SizedBox(height: 8),
-                                      ...otras.map(
-                                        (cita) => Padding(
-                                          padding:
-                                              const EdgeInsets.only(bottom: 10),
-                                          child: _AppointmentTile(
-                                            appointment: cita,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
                                   ],
                                 );
                               },
@@ -180,31 +254,35 @@ class _PsychologistAppointmentsScreenState extends State<PsychologistAppointment
                   items: [
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/pacientes.svg",
-                      onTap: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PsychologistPatientsScreen(),
-                        ),
-                      ),
+                      onTap:
+                          () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => const PsychologistPatientsScreen(),
+                            ),
+                          ),
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/house.svg",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PsychologistHomeScreen(),
-                        ),
-                      ),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PsychologistHomeScreen(),
+                            ),
+                          ),
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/disponi.svg",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              const PsychologistAvailabilityScreen(),
-                        ),
-                      ),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => const PsychologistAvailabilityScreen(),
+                            ),
+                          ),
                     ),
                   ],
                 ),
@@ -220,9 +298,7 @@ class _PsychologistAppointmentsScreenState extends State<PsychologistAppointment
 class _AppointmentTile extends StatelessWidget {
   final PsychologistAppointmentModel appointment;
 
-  const _AppointmentTile({
-    required this.appointment,
-  });
+  const _AppointmentTile({required this.appointment});
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/'
@@ -271,7 +347,13 @@ class _AppointmentTile extends StatelessWidget {
         return const Color(0xFF22C55E);
       case 'rechazada':
       case 'cancelada':
+      case 'cancelada_por_psicologo':
+      case 'cancelada_por_paciente':
         return const Color(0xFFEF4444);
+      case 'completada':
+        return const Color(0xFF0EA5E9);
+      case 'no_asistio':
+        return const Color(0xFFF97316);
       case 'solicitada':
       default:
         return AppColors.fondo3;
@@ -286,10 +368,177 @@ class _AppointmentTile extends StatelessWidget {
         return 'Rechazada';
       case 'cancelada':
         return 'Cancelada';
+      case 'cancelada_por_psicologo':
+        return 'Cancelada por psicólogo';
+      case 'cancelada_por_paciente':
+        return 'Cancelada por paciente';
+      case 'completada':
+        return 'Completada';
+      case 'no_asistio':
+        return 'No asistió';
       case 'solicitada':
       default:
         return 'Solicitada';
     }
+  }
+
+  Future<String?> _askMeetUrl(
+    BuildContext context, {
+    required String title,
+    String initialValue = '',
+  }) async {
+    final controller = TextEditingController(text: initialValue);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.url,
+            decoration: InputDecoration(
+              hintText: 'https://meet.google.com/...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.fondo3,
+              ),
+              onPressed: () {
+                Navigator.pop(ctx, controller.text.trim());
+              },
+              child: const Text(
+                'Guardar',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    return result;
+  }
+
+  Future<bool> _confirmAction(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String confirmText,
+  }) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(22),
+              ),
+              title: Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: 'Kantumruy Pro',
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              content: Text(
+                message,
+                style: const TextStyle(
+                  fontFamily: 'Kantumruy Pro',
+                  height: 1.35,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.fondo3,
+                  ),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(
+                    confirmText,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  Future<String?> _askCancelReason(BuildContext context) async {
+    final controller = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Text(
+            'Cancelar cita',
+            style: TextStyle(
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Motivo de cancelación opcional',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Volver'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+              ),
+              onPressed: () {
+                Navigator.pop(ctx, controller.text.trim());
+              },
+              child: const Text(
+                'Cancelar cita',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    return result;
   }
 
   @override
@@ -326,9 +575,7 @@ class _AppointmentTile extends StatelessWidget {
                     color: AppColors.fondo3,
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,9 +590,7 @@ class _AppointmentTile extends StatelessWidget {
                           fontSize: 15,
                         ),
                       ),
-
                       const SizedBox(height: 3),
-
                       Text(
                         '${_formatDate(appointment.fechaInicio)} · '
                         '${_formatHour(appointment.fechaInicio)}',
@@ -358,7 +603,6 @@ class _AppointmentTile extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 _StatusBadge(
                   text: _statusText(appointment.estado),
                   color: statusColor,
@@ -387,9 +631,26 @@ class _AppointmentTile extends StatelessWidget {
               ],
             ),
 
+            if (appointment.estado == 'confirmada') ...[
+              const SizedBox(height: 12),
+              AppointmentAccessCard(
+                modalidad: appointment.modalidad,
+                estado: appointment.estado,
+                meetUrl: appointment.meetUrl,
+                ubicacion: '',
+              ),
+              const SizedBox(height: 12),
+              _ConfirmedAppointmentActions(
+                isOnline: appointment.modalidad == 'online',
+                onEditMeet: () => _editMeetUrl(context),
+                onComplete: () => _complete(context),
+                onNoShow: () => _markNoShow(context),
+                onCancel: () => _cancel(context),
+              ),
+            ],
+
             if (appointment.estado == 'solicitada') ...[
               const SizedBox(height: 14),
-
               Row(
                 children: [
                   Expanded(
@@ -406,9 +667,7 @@ class _AppointmentTile extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 10),
-
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () => _confirm(context),
@@ -433,9 +692,33 @@ class _AppointmentTile extends StatelessWidget {
   }
 
   Future<void> _confirm(BuildContext context) async {
+    String? meetUrl;
+
+    if (appointment.modalidad == 'online') {
+      meetUrl = await _askMeetUrl(
+        context,
+        title: 'Enlace de videollamada',
+        initialValue: appointment.meetUrl,
+      );
+
+      if (meetUrl == null) return;
+
+      if (meetUrl.trim().isEmpty) {
+        if (!context.mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Agrega el enlace de la videollamada.'),
+          ),
+        );
+        return;
+      }
+    }
+
     try {
       await PsychologistAppointmentsService.instance.confirmAppointment(
         appointment: appointment,
+        meetUrl: meetUrl,
       );
 
       if (!context.mounted) return;
@@ -489,6 +772,127 @@ class _AppointmentTile extends StatelessWidget {
     }
   }
 
+  Future<void> _editMeetUrl(BuildContext context) async {
+    final meetUrl = await _askMeetUrl(
+      context,
+      title: 'Editar enlace de videollamada',
+      initialValue: appointment.meetUrl,
+    );
+
+    if (meetUrl == null) return;
+
+    if (meetUrl.trim().isEmpty) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El enlace no puede estar vacío.')),
+      );
+      return;
+    }
+
+    try {
+      await PsychologistAppointmentsService.instance.updateMeetUrl(
+        appointment: appointment,
+        meetUrl: meetUrl,
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enlace actualizado.')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo actualizar el enlace: $e')),
+      );
+    }
+  }
+
+  Future<void> _complete(BuildContext context) async {
+    final confirm = await _confirmAction(
+      context,
+      title: 'Completar cita',
+      message: '¿Deseas marcar esta cita como completada?',
+      confirmText: 'Completar',
+    );
+
+    if (!confirm) return;
+
+    try {
+      await PsychologistAppointmentsService.instance.completeAppointment(
+        appointment: appointment,
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cita marcada como completada.')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo completar la cita: $e')),
+      );
+    }
+  }
+
+  Future<void> _markNoShow(BuildContext context) async {
+    final confirm = await _confirmAction(
+      context,
+      title: 'Marcar como no asistió',
+      message: '¿Deseas marcar que el paciente no asistió a esta cita?',
+      confirmText: 'Marcar',
+    );
+
+    if (!confirm) return;
+
+    try {
+      await PsychologistAppointmentsService.instance.markNoShow(
+        appointment: appointment,
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cita marcada como no asistió.')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo actualizar la cita: $e')),
+      );
+    }
+  }
+
+  Future<void> _cancel(BuildContext context) async {
+    final reason = await _askCancelReason(context);
+
+    if (reason == null) return;
+
+    try {
+      await PsychologistAppointmentsService.instance.cancelAppointment(
+        appointment: appointment,
+        reason: reason,
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cita cancelada.')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo cancelar la cita: $e')),
+      );
+    }
+  }
+
   void _showDetails(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -505,9 +909,9 @@ class _AppointmentTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
+                const Text(
                   'Detalle de cita',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontFamily: 'Kantumruy Pro',
                     fontWeight: FontWeight.w900,
@@ -540,6 +944,17 @@ class _AppointmentTile extends StatelessWidget {
                   label: 'Modalidad',
                   value: _modalidadLabel(appointment.modalidad),
                 ),
+
+                const SizedBox(height: 10),
+
+                AppointmentAccessCard(
+                  modalidad: appointment.modalidad,
+                  estado: appointment.estado,
+                  meetUrl: appointment.meetUrl,
+                  ubicacion: '',
+                ),
+
+                const SizedBox(height: 10),
 
                 _DetailRow(
                   icon: Icons.payments_rounded,
@@ -613,6 +1028,29 @@ class _AppointmentTile extends StatelessWidget {
                       ),
                     ],
                   ),
+
+                if (appointment.estado == 'confirmada') ...[
+                  const SizedBox(height: 16),
+                  _ConfirmedAppointmentActions(
+                    isOnline: appointment.modalidad == 'online',
+                    onEditMeet: () {
+                      Navigator.pop(ctx);
+                      _editMeetUrl(context);
+                    },
+                    onComplete: () {
+                      Navigator.pop(ctx);
+                      _complete(context);
+                    },
+                    onNoShow: () {
+                      Navigator.pop(ctx);
+                      _markNoShow(context);
+                    },
+                    onCancel: () {
+                      Navigator.pop(ctx);
+                      _cancel(context);
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -622,12 +1060,88 @@ class _AppointmentTile extends StatelessWidget {
   }
 }
 
+class _ConfirmedAppointmentActions extends StatelessWidget {
+  final bool isOnline;
+  final VoidCallback onEditMeet;
+  final VoidCallback onComplete;
+  final VoidCallback onNoShow;
+  final VoidCallback onCancel;
+
+  const _ConfirmedAppointmentActions({
+    required this.isOnline,
+    required this.onEditMeet,
+    required this.onComplete,
+    required this.onNoShow,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        if (isOnline)
+          OutlinedButton.icon(
+            onPressed: onEditMeet,
+            icon: const Icon(Icons.link_rounded, size: 18),
+            label: const Text('Editar enlace'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.fondo3,
+              side: const BorderSide(color: Color(0xFFC7D2FE)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+
+        OutlinedButton.icon(
+          onPressed: onCancel,
+          icon: const Icon(Icons.cancel_outlined, size: 18),
+          label: const Text('Cancelar'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.redAccent,
+            side: const BorderSide(color: Color(0xFFFECACA)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+
+        OutlinedButton.icon(
+          onPressed: onNoShow,
+          icon: const Icon(Icons.person_off_outlined, size: 18),
+          label: const Text('No asistió'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFFF97316),
+            side: const BorderSide(color: Color(0xFFFED7AA)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+
+        FilledButton.icon(
+          onPressed: onComplete,
+          icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+          label: const Text('Completar'),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF22C55E),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _SectionLabel extends StatelessWidget {
   final String text;
 
-  const _SectionLabel({
-    required this.text,
-  });
+  const _SectionLabel({required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -647,10 +1161,7 @@ class _StatusBadge extends StatelessWidget {
   final String text;
   final Color color;
 
-  const _StatusBadge({
-    required this.text,
-    required this.color,
-  });
+  const _StatusBadge({required this.text, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -678,10 +1189,7 @@ class _MiniInfoChip extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _MiniInfoChip({
-    required this.icon,
-    required this.text,
-  });
+  const _MiniInfoChip({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -782,10 +1290,7 @@ class _AppointmentsStateMessage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: onAction,
-              child: Text(actionText),
-            ),
+            OutlinedButton(onPressed: onAction, child: Text(actionText)),
           ],
         ),
       ),
@@ -896,3 +1401,40 @@ class _EmptyAppointmentsState extends StatelessWidget {
     );
   }
 }
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontFamily: 'Kantumruy Pro',
+          fontWeight: FontWeight.w700,
+          color: selected ? Colors.white : Colors.black87,
+        ),
+      ),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      selectedColor: AppColors.fondo3,
+      backgroundColor: Colors.white,
+      side: BorderSide(
+        color: selected ? AppColors.fondo3 : const Color(0xFFE5E7EB),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      showCheckmark: false,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    );
+  }
+}
+

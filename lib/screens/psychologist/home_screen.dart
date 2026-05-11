@@ -27,9 +27,7 @@ class PsychologistHomeScreen extends StatelessWidget {
                 DropMenu(
                   avatarBuilder: (_) => const _PsychologistHeaderAvatar(),
                 ),
-                MaxWidthContainer(
-                  child: _ProfessionalProfileGate(),
-                ),
+                MaxWidthContainer(child: _ProfessionalProfileGate()),
               ],
             ),
           ),
@@ -45,26 +43,37 @@ class PsychologistHomeScreen extends StatelessWidget {
                   // Citas
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/agenda.svg",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PsychologistAppointmentsScreen()),
-                    ),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => const PsychologistAppointmentsScreen(),
+                          ),
+                        ),
                   ),
                   // Pacientes
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/pacientes.svg",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PsychologistPatientsScreen()),
-                    ),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PsychologistPatientsScreen(),
+                          ),
+                        ),
                   ),
                   // Disponibilidad
                   RadialMenuItem(
                     iconAsset: "assets/images/icon/disponi.svg",
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PsychologistAvailabilityScreen()),
-                    ),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => const PsychologistAvailabilityScreen(),
+                          ),
+                        ),
                   ),
                 ],
               ),
@@ -108,7 +117,10 @@ class _PsychologistHeaderAvatar extends StatelessWidget {
 
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream:
-          FirebaseFirestore.instance.collection('psicologos').doc(user.uid).snapshots(),
+          FirebaseFirestore.instance
+              .collection('usuariosPsicologos')
+              .doc(user.uid)
+              .snapshots(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return Shimmer.fromColors(
@@ -193,14 +205,17 @@ class _ProfessionalProfileGate extends StatelessWidget {
           return const _ProfessionalProfileForm();
         }
 
-        return _DashboardContent();
+        return _DashboardContent(profile: profile);
       },
     );
   }
 }
 
 class _ProfessionalProfileForm extends StatefulWidget {
-  const _ProfessionalProfileForm();
+  final PsychologistPublicProfileModel? initialProfile;
+  final bool isEditing;
+
+  const _ProfessionalProfileForm({this.initialProfile, this.isEditing = false});
 
   @override
   State<_ProfessionalProfileForm> createState() =>
@@ -219,7 +234,7 @@ class _ProfessionalProfileFormState extends State<_ProfessionalProfileForm> {
 
   bool _saving = false;
 
-  static const Map<String, String> _especialidadesDisponibles = {
+  static const Map<String, String> especialidadesDisponiblesPublic = {
     'ansiedad': 'Ansiedad',
     'depresion': 'Depresión',
     'estres': 'Estrés',
@@ -232,7 +247,7 @@ class _ProfessionalProfileFormState extends State<_ProfessionalProfileForm> {
     'orientacion_vocacional': 'Orientación vocacional',
   };
 
-  static const Map<String, String> _modalidadesDisponibles = {
+  static const Map<String, String> modalidadesDisponiblesPublic = {
     'online': 'En línea',
     'presencial': 'Presencial',
   };
@@ -251,6 +266,27 @@ class _ProfessionalProfileFormState extends State<_ProfessionalProfileForm> {
     'parejas': 'Parejas',
     'familias': 'Familias',
   };
+
+  @override
+  void initState() {
+    super.initState();
+
+    final profile = widget.initialProfile;
+
+    if (profile != null) {
+      _honorariosCtrl.text = profile.honorariosSesion.toString();
+      _descripcionCtrl.text = profile.descripcionProfesional;
+
+      if (profile.aniosExperiencia != null) {
+        _aniosCtrl.text = profile.aniosExperiencia.toString();
+      }
+
+      _especialidades.addAll(profile.especialidades);
+      _modalidades.addAll(profile.modalidades);
+      _enfoques.addAll(profile.enfoquesTerapia);
+      _atiendeA.addAll(profile.atiendeA);
+    }
+  }
 
   @override
   void dispose() {
@@ -291,10 +327,18 @@ class _ProfessionalProfileFormState extends State<_ProfessionalProfileForm> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Perfil profesional publicado correctamente.'),
+        SnackBar(
+          content: Text(
+            widget.isEditing
+                ? 'Perfil profesional actualizado correctamente.'
+                : 'Perfil profesional publicado correctamente.',
+          ),
         ),
       );
+
+      if (widget.isEditing && mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -337,7 +381,7 @@ class _ProfessionalProfileFormState extends State<_ProfessionalProfileForm> {
             title: 'Especialidades',
             subtitle: 'Selecciona una o varias áreas de atención.',
             child: _ChipGroup(
-              options: _especialidadesDisponibles,
+              options: especialidadesDisponiblesPublic,
               selected: _especialidades,
               onTap: (value) => _toggle(_especialidades, value),
             ),
@@ -349,7 +393,7 @@ class _ProfessionalProfileFormState extends State<_ProfessionalProfileForm> {
             title: 'Modalidades',
             subtitle: 'Indica cómo puedes atender a tus pacientes.',
             child: _ChipGroup(
-              options: _modalidadesDisponibles,
+              options: modalidadesDisponiblesPublic,
               selected: _modalidades,
               onTap: (value) => _toggle(_modalidades, value),
             ),
@@ -378,8 +422,7 @@ class _ProfessionalProfileFormState extends State<_ProfessionalProfileForm> {
 
           _ProfileFormCard(
             title: 'Descripción profesional',
-            subtitle:
-                'Escribe una breve presentación. Mínimo 80 caracteres.',
+            subtitle: 'Escribe una breve presentación. Mínimo 80 caracteres.',
             child: TextField(
               controller: _descripcionCtrl,
               maxLines: 5,
@@ -447,7 +490,11 @@ class _ProfessionalProfileFormState extends State<_ProfessionalProfileForm> {
                 foregroundColor: Colors.white,
               ),
               child: Text(
-                _saving ? 'Guardando...' : 'Publicar perfil',
+                _saving
+                    ? 'Guardando...'
+                    : widget.isEditing
+                    ? 'Guardar cambios'
+                    : 'Publicar perfil',
                 style: const TextStyle(
                   fontFamily: 'Kantumruy Pro',
                   fontWeight: FontWeight.w700,
@@ -462,9 +509,14 @@ class _ProfessionalProfileFormState extends State<_ProfessionalProfileForm> {
 }
 
 class _DashboardContent extends StatelessWidget {
+  final PsychologistPublicProfileModel profile;
+
+  const _DashboardContent({required this.profile});
+
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
+
     if (uid == null) {
       return const Padding(
         padding: EdgeInsets.all(24.0),
@@ -472,101 +524,250 @@ class _DashboardContent extends StatelessWidget {
       );
     }
 
-    return Column(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 130),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 10),
+
+          const TitleSection(
+            texto: 'Inicio',
+            maxLines: 2,
+            padding: EdgeInsets.only(top: 32),
+          ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            'Resumen de tu actividad profesional',
+            style: TextStyles.textDicho.copyWith(fontSize: 14),
+          ),
+
+          const SizedBox(height: 16),
+
+          _ProfessionalProfileSummaryCard(profile: profile),
+
+          const SizedBox(height: 14),
+
+          _TodayAppointmentsCard(psychologistUid: uid),
+
+          const SizedBox(height: 14),
+
+          _PendingRequestsCard(psychologistUid: uid),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfessionalProfileSummaryCard extends StatelessWidget {
+  final PsychologistPublicProfileModel profile;
+
+  const _ProfessionalProfileSummaryCard({required this.profile});
+
+  String _joinLabels(List<String> values, Map<String, String> labels) {
+    if (values.isEmpty) return 'Sin datos';
+    return values.map((v) => labels[v] ?? v).join(', ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final especialidades = _joinLabels(
+      profile.especialidades,
+      _ProfessionalProfileFormState.especialidadesDisponiblesPublic,
+    );
+
+    final modalidades = _joinLabels(
+      profile.modalidades,
+      _ProfessionalProfileFormState.modalidadesDisponiblesPublic,
+    );
+
+    return Ink(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.badge_outlined, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Perfil profesional',
+                    style: TextStyles.textEditar.copyWith(fontSize: 18),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => _ProfessionalProfileEditScreen(
+                              profile: profile,
+                            ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Editar'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              profile.descripcionProfesional,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.35,
+                color: Colors.black54,
+                fontFamily: 'Kantumruy Pro',
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            _ProfileMiniRow(
+              icon: Icons.psychology_outlined,
+              title: 'Especialidades',
+              value: especialidades,
+            ),
+
+            const SizedBox(height: 8),
+
+            _ProfileMiniRow(
+              icon: Icons.videocam_outlined,
+              title: 'Modalidades',
+              value: modalidades,
+            ),
+
+            const SizedBox(height: 8),
+
+            _ProfileMiniRow(
+              icon: Icons.payments_outlined,
+              title: 'Honorarios',
+              value: '\$${profile.honorariosSesion} MXN por sesión',
+            ),
+
+            if (profile.aniosExperiencia != null) ...[
+              const SizedBox(height: 8),
+              _ProfileMiniRow(
+                icon: Icons.workspace_premium_outlined,
+                title: 'Experiencia',
+                value: '${profile.aniosExperiencia} años',
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileMiniRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const _ProfileMiniRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 10),
-        const TitleSection(
-          texto: 'Inicio',
-          maxLines: 2,
-          padding: EdgeInsets.only(top: 32),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Resumen del día',
-          style: TextStyles.textDicho.copyWith(fontSize: 14),
-        ),
-        const SizedBox(height: 16),
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('citas')
-              .where('psicologoId', isEqualTo: uid)
-              .orderBy('fecha')
-              .snapshots(),
-          builder: (context, snap) {
-            if (snap.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            final docs = snap.data?.docs ?? [];
-            final now = DateTime.now();
-            final startOfDay = DateTime(now.year, now.month, now.day);
-            final endOfDay = startOfDay.add(const Duration(days: 1));
-
-            final all = docs.map((e) => (e.data() as Map<String, dynamic>? ?? {})).toList();
-            // Próximas confirmadas de hoy
-            final todaysConfirmed = all
-                .where((d) {
-                  final ts = d['fecha'];
-                  if (ts is! Timestamp) return false;
-                  final dt = ts.toDate();
-                  final status = (d['estado'] ?? '').toString();
-                  return dt.isAfter(startOfDay) && dt.isBefore(endOfDay) && status == 'confirmada';
-                })
-                .toList()
-              ..sort((a, b) => (a['fecha'] as Timestamp).toDate().compareTo((b['fecha'] as Timestamp).toDate()));
-
-            // Solicitudes pendientes (sin restricción de día)
-            final pending = all.where((d) => (d['estado'] ?? '').toString() == 'pendiente').toList()
-              ..sort((a, b) => (a['fecha'] as Timestamp).toDate().compareTo((b['fecha'] as Timestamp).toDate()));
-
-            return Column(
+        Icon(icon, size: 18, color: Colors.black45),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black87,
+                fontFamily: 'Kantumruy Pro',
+              ),
               children: [
-                _InfoCard(
-                  title: 'Próximas citas de hoy',
-                  emptyText: 'No hay citas confirmadas para hoy',
-                  items: todaysConfirmed.take(3).map((d) {
-                    final name = (d['patientName'] ?? 'Paciente').toString();
-                    final dt = (d['fecha'] as Timestamp).toDate();
-                    final hour = dt.hour.toString().padLeft(2, '0');
-                    final min = dt.minute.toString().padLeft(2, '0');
-                    return '$hour:$min · $name';
-                  }).toList(),
-                  trailing: todaysConfirmed.isNotEmpty
-                      ? Text('${todaysConfirmed.length} en total', style: const TextStyle(fontSize: 12, color: Colors.black54))
-                      : null,
+                TextSpan(
+                  text: '$title: ',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 12),
-                _InfoCard(
-                  title: 'Solicitudes pendientes',
-                  emptyText: 'Sin solicitudes por ahora',
-                  items: pending.take(3).map((d) {
-                    final name = (d['patientName'] ?? 'Paciente').toString();
-                    return name;
-                  }).toList(),
-                  trailing: pending.isNotEmpty
-                      ? Text('${pending.length} pendientes', style: const TextStyle(fontSize: 12, color: Colors.black54))
-                      : null,
+                TextSpan(
+                  text: value,
+                  style: const TextStyle(color: Colors.black54),
                 ),
-                const SizedBox(height: 120),
               ],
-            );
-          },
+            ),
+          ),
         ),
       ],
     );
   }
 }
 
-class _InfoCard extends StatelessWidget {
+class _ProfessionalProfileEditScreen extends StatelessWidget {
+  final PsychologistPublicProfileModel profile;
+
+  const _ProfessionalProfileEditScreen({required this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Editar perfil profesional'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: MaxWidthContainer(
+            child: _ProfessionalProfileForm(
+              initialProfile: profile,
+              isEditing: true,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SimpleDashboardCard extends StatelessWidget {
   final String title;
   final List<String> items;
   final String emptyText;
   final Widget? trailing;
 
-  const _InfoCard({required this.title, required this.items, required this.emptyText, this.trailing});
+  const _SimpleDashboardCard({
+    required this.title,
+    required this.items,
+    required this.emptyText,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -576,7 +777,11 @@ class _InfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: const [
-          BoxShadow(color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color(0x0F000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Padding(
@@ -601,7 +806,14 @@ class _InfoCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             if (items.isEmpty)
-              Text(emptyText, style: const TextStyle(fontSize: 13, color: Colors.black54, fontFamily: 'Kantumruy Pro'))
+              Text(
+                emptyText,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black54,
+                  fontFamily: 'Kantumruy Pro',
+                ),
+              )
             else
               Column(
                 children: [
@@ -610,15 +822,46 @@ class _InfoCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Row(
                         children: [
-                          const Icon(Icons.chevron_right, size: 18, color: Colors.black38),
+                          const Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: Colors.black38,
+                          ),
                           const SizedBox(width: 6),
-                          Expanded(child: Text(it, style: const TextStyle(fontSize: 14, fontFamily: 'Kantumruy Pro'))),
+                          Expanded(
+                            child: Text(
+                              it,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontFamily: 'Kantumruy Pro',
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
                 ],
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardCardSkeleton extends StatelessWidget {
+  const _DashboardCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        height: 120,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
     );
@@ -698,27 +941,179 @@ class _ChipGroup extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: options.entries.map((entry) {
-        final isSelected = selected.contains(entry.key);
+      children:
+          options.entries.map((entry) {
+            final isSelected = selected.contains(entry.key);
 
-        return ChoiceChip(
-          label: Text(entry.value),
-          selected: isSelected,
-          selectedColor: const Color(0xFFEEF2FF),
-          backgroundColor: Colors.white,
-          labelStyle: TextStyle(
-            color: isSelected ? AppColors.primary : Colors.black87,
-            fontFamily: 'Kantumruy Pro',
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-          ),
-          side: BorderSide(
-            color: isSelected
-                ? AppColors.primary
-                : const Color(0xFFE2E8F0),
-          ),
-          onSelected: (_) => onTap(entry.key),
+            return ChoiceChip(
+              label: Text(entry.value),
+              selected: isSelected,
+              selectedColor: const Color(0xFFEEF2FF),
+              backgroundColor: Colors.white,
+              labelStyle: TextStyle(
+                color: isSelected ? AppColors.primary : Colors.black87,
+                fontFamily: 'Kantumruy Pro',
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+              ),
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+              ),
+              onSelected: (_) => onTap(entry.key),
+            );
+          }).toList(),
+    );
+  }
+}
+
+class _TodayAppointmentsCard extends StatelessWidget {
+  final String psychologistUid;
+
+  const _TodayAppointmentsCard({
+    required this.psychologistUid,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('citas')
+          .where('psychologistUid', isEqualTo: psychologistUid)
+          .where('estado', isEqualTo: 'confirmada')
+          .where(
+            'fechaInicio',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+          )
+          .where(
+            'fechaInicio',
+            isLessThan: Timestamp.fromDate(endOfDay),
+          )
+          .orderBy('fechaInicio')
+          .limit(3)
+          .snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const _DashboardCardSkeleton();
+        }
+
+        if (snap.hasError) {
+          return const _SimpleDashboardCard(
+            title: 'Próximas citas de hoy',
+            emptyText: 'No se pudieron cargar tus próximas citas.',
+            items: [],
+          );
+        }
+
+        final docs = snap.data?.docs ?? [];
+
+        final items = docs.map((doc) {
+          final data = doc.data();
+          final patientName = (data['patientName'] ?? 'Paciente').toString();
+          final modalidad = (data['modalidad'] ?? '').toString();
+          final fecha = (data['fechaInicio'] as Timestamp?)?.toDate();
+
+          if (fecha == null) return patientName;
+
+          final hour = fecha.hour.toString().padLeft(2, '0');
+          final minute = fecha.minute.toString().padLeft(2, '0');
+
+          return '$hour:$minute · $patientName${modalidad.isNotEmpty ? ' · $modalidad' : ''}';
+        }).toList();
+
+        return _SimpleDashboardCard(
+          title: 'Próximas citas de hoy',
+          emptyText: 'No hay citas confirmadas para hoy',
+          items: items,
+          trailing: docs.isNotEmpty
+              ? Text(
+                  '${docs.length} próximas',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    fontFamily: 'Kantumruy Pro',
+                  ),
+                )
+              : null,
         );
-      }).toList(),
+      },
+    );
+  }
+}
+
+class _PendingRequestsCard extends StatelessWidget {
+  final String psychologistUid;
+
+  const _PendingRequestsCard({
+    required this.psychologistUid,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('citas')
+          .where('psychologistUid', isEqualTo: psychologistUid)
+          .where('estado', isEqualTo: 'solicitada')
+          .orderBy('fechaInicio')
+          .limit(3)
+          .snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const _DashboardCardSkeleton();
+        }
+
+        if (snap.hasError) {
+          return const _SimpleDashboardCard(
+            title: 'Solicitudes pendientes',
+            emptyText: 'No se pudieron cargar las solicitudes.',
+            items: [],
+          );
+        }
+
+        final docs = snap.data?.docs ?? [];
+
+        final items = docs.map((doc) {
+          final data = doc.data();
+          final patientName = (data['patientName'] ?? 'Paciente').toString();
+          final motivo = (data['motivoConsulta'] ?? '').toString();
+          final fecha = (data['fechaInicio'] as Timestamp?)?.toDate();
+
+          String dateText = '';
+
+          if (fecha != null) {
+            final day = fecha.day.toString().padLeft(2, '0');
+            final month = fecha.month.toString().padLeft(2, '0');
+            final hour = fecha.hour.toString().padLeft(2, '0');
+            final minute = fecha.minute.toString().padLeft(2, '0');
+            dateText = '$day/$month · $hour:$minute';
+          }
+
+          if (motivo.isEmpty) {
+            return '$patientName${dateText.isNotEmpty ? ' · $dateText' : ''}';
+          }
+
+          return '$patientName · $dateText · $motivo';
+        }).toList();
+
+        return _SimpleDashboardCard(
+          title: 'Solicitudes pendientes',
+          emptyText: 'Sin solicitudes por ahora',
+          items: items,
+          trailing: docs.isNotEmpty
+              ? Text(
+                  '${docs.length} pendientes',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    fontFamily: 'Kantumruy Pro',
+                  ),
+                )
+              : null,
+        );
+      },
     );
   }
 }

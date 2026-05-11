@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/services/patient_appointments_service.dart';
+import 'package:flutter_application_1/components/appointment_access_card.dart';
+import 'package:flutter_application_1/components/appointment_access_card.dart';
 
 class MisCitasScreen extends StatelessWidget {
   const MisCitasScreen({super.key});
@@ -74,7 +76,8 @@ class MisCitasScreen extends StatelessWidget {
 
             Expanded(
               child: StreamBuilder<List<PatientAppointmentModel>>(
-                stream: PatientAppointmentsService.instance.watchMyAppointments(),
+                stream:
+                    PatientAppointmentsService.instance.watchMyAppointments(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -99,21 +102,24 @@ class MisCitasScreen extends StatelessWidget {
                     );
                   }
 
-                  final solicitadas = citas
-                      .where((cita) => cita.estado == 'solicitada')
-                      .toList();
+                  final solicitadas =
+                      citas
+                          .where((cita) => cita.estado == 'solicitada')
+                          .toList();
 
-                  final confirmadas = citas
-                      .where((cita) => cita.estado == 'confirmada')
-                      .toList();
+                  final confirmadas =
+                      citas
+                          .where((cita) => cita.estado == 'confirmada')
+                          .toList();
 
-                  final historial = citas
-                      .where(
-                        (cita) =>
-                            cita.estado != 'solicitada' &&
-                            cita.estado != 'confirmada',
-                      )
-                      .toList();
+                  final historial =
+                      citas
+                          .where(
+                            (cita) =>
+                                cita.estado != 'solicitada' &&
+                                cita.estado != 'confirmada',
+                          )
+                          .toList();
 
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -167,9 +173,7 @@ class MisCitasScreen extends StatelessWidget {
 class _PatientAppointmentCard extends StatelessWidget {
   final PatientAppointmentModel cita;
 
-  const _PatientAppointmentCard({
-    required this.cita,
-  });
+  const _PatientAppointmentCard({required this.cita});
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/'
@@ -196,6 +200,14 @@ class _PatientAppointmentCard extends StatelessWidget {
         return 'Rechazada';
       case 'cancelada':
         return 'Cancelada';
+      case 'cancelada_por_psicologo':
+        return 'Cancelada por psicólogo';
+      case 'cancelada_por_paciente':
+        return 'Cancelada por ti';
+      case 'completada':
+        return 'Completada';
+      case 'no_asistio':
+        return 'No asistió';
       case 'solicitada':
       default:
         return 'Solicitada';
@@ -208,7 +220,13 @@ class _PatientAppointmentCard extends StatelessWidget {
         return const Color(0xFF22C55E);
       case 'rechazada':
       case 'cancelada':
+      case 'cancelada_por_psicologo':
+      case 'cancelada_por_paciente':
         return const Color(0xFFEF4444);
+      case 'completada':
+        return const Color(0xFF0EA5E9);
+      case 'no_asistio':
+        return const Color(0xFFF97316);
       case 'solicitada':
       default:
         return AppColors.fondo3;
@@ -286,10 +304,7 @@ class _PatientAppointmentCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                _StatusBadge(
-                  text: _statusLabel(cita.estado),
-                  color: color,
-                ),
+                _StatusBadge(text: _statusLabel(cita.estado), color: color),
               ],
             ),
 
@@ -328,6 +343,7 @@ class _PatientAppointmentCard extends StatelessWidget {
 
             if (cita.estado == 'confirmada') ...[
               const SizedBox(height: 12),
+
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -347,11 +363,114 @@ class _PatientAppointmentCard extends StatelessWidget {
                   ),
                 ),
               ),
+
+              const SizedBox(height: 12),
+
+              AppointmentAccessCard(
+                modalidad: cita.modalidad,
+                estado: cita.estado,
+                meetUrl: cita.meetUrl,
+                ubicacion: '',
+              ),
+
+              const SizedBox(height: 12),
+
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _cancel(context),
+                  icon: const Icon(Icons.cancel_outlined),
+                  label: const Text('Cancelar cita'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    side: const BorderSide(color: Color(0xFFFECACA)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ],
         ),
       ),
     );
+  }
+
+  Future<String?> _askCancelReason(BuildContext context) async {
+    final controller = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Text(
+            'Cancelar cita',
+            style: TextStyle(
+              fontFamily: 'Kantumruy Pro',
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: TextField(
+            controller: controller,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Motivo de cancelación opcional',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Volver'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () {
+                Navigator.pop(ctx, controller.text.trim());
+              },
+              child: const Text(
+                'Cancelar cita',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    return result;
+  }
+
+  Future<void> _cancel(BuildContext context) async {
+    final reason = await _askCancelReason(context);
+
+    if (reason == null) return;
+
+    try {
+      await PatientAppointmentsService.instance.cancelAppointment(
+        appointment: cita,
+        reason: reason,
+      );
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cita cancelada.')));
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo cancelar la cita: $e')),
+      );
+    }
   }
 
   void _showDetails(BuildContext context) {
@@ -406,6 +525,22 @@ class _PatientAppointmentCard extends StatelessWidget {
                   value: _modalidadLabel(cita.modalidad),
                 ),
 
+                const SizedBox(height: 10),
+
+                AppointmentAccessCard(
+                  modalidad: cita.modalidad,
+                  estado: cita.estado,
+                  meetUrl: cita.meetUrl,
+                  ubicacion: '',
+                ),
+
+                AppointmentAccessCard(
+                  modalidad: cita.modalidad,
+                  estado: cita.estado,
+                  meetUrl: cita.meetUrl,
+                  ubicacion: '',
+                ),
+
                 _DetailRow(
                   icon: Icons.payments_rounded,
                   label: 'Pago',
@@ -451,6 +586,28 @@ class _PatientAppointmentCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (cita.estado == 'confirmada') ...[
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _cancel(context);
+                      },
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text('Cancelar cita'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        side: const BorderSide(color: Color(0xFFFECACA)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -463,9 +620,7 @@ class _PatientAppointmentCard extends StatelessWidget {
 class _SectionTitle extends StatelessWidget {
   final String text;
 
-  const _SectionTitle({
-    required this.text,
-  });
+  const _SectionTitle({required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -485,10 +640,7 @@ class _StatusBadge extends StatelessWidget {
   final String text;
   final Color color;
 
-  const _StatusBadge({
-    required this.text,
-    required this.color,
-  });
+  const _StatusBadge({required this.text, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -516,10 +668,7 @@ class _MiniChip extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _MiniChip({
-    required this.icon,
-    required this.text,
-  });
+  const _MiniChip({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {

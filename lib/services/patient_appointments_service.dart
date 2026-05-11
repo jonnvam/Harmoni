@@ -16,6 +16,7 @@ class PatientAppointmentModel {
   final String moneda;
   final String metodoPago;
   final String pagoEstado;
+  final String meetUrl;
 
   const PatientAppointmentModel({
     required this.id,
@@ -32,6 +33,7 @@ class PatientAppointmentModel {
     required this.moneda,
     required this.metodoPago,
     required this.pagoEstado,
+    required this.meetUrl,
   });
 
   factory PatientAppointmentModel.fromDoc(
@@ -53,14 +55,16 @@ class PatientAppointmentModel {
       modalidad: (data['modalidad'] ?? '').toString(),
       estado: (data['estado'] ?? 'solicitada').toString(),
       motivoConsulta: (data['motivoConsulta'] ?? '').toString(),
-      precio: data['precio'] is int
-          ? data['precio'] as int
-          : data['precio'] is num
+      precio:
+          data['precio'] is int
+              ? data['precio'] as int
+              : data['precio'] is num
               ? (data['precio'] as num).toInt()
               : 0,
       moneda: (data['moneda'] ?? 'MXN').toString(),
       metodoPago: (data['metodoPago'] ?? 'pendiente').toString(),
       pagoEstado: (data['pagoEstado'] ?? 'pendiente').toString(),
+      meetUrl: (data['meetUrl'] ?? '').toString(),
     );
   }
 }
@@ -75,23 +79,57 @@ class PatientAppointmentsService {
 
   String? get currentUid => _auth.currentUser?.uid;
 
-  Stream<List<PatientAppointmentModel>> watchMyAppointments() {
+  Future<void> cancelAppointment({
+  required PatientAppointmentModel appointment,
+  String? reason,
+}) async {
   final uid = currentUid;
 
   if (uid == null) {
-    return const Stream.empty();
+    throw FirebaseAuthException(
+      code: 'not-authenticated',
+      message: 'Debes iniciar sesión.',
+    );
   }
 
-  return _db
-      .collection('citas')
-      .where('patientUid', isEqualTo: uid)
-      .orderBy('fechaInicio', descending: true)
-      .snapshots()
-      .map((snapshot) {
-    return snapshot.docs
-        .map(PatientAppointmentModel.fromDoc)
-        .toList();
+  if (appointment.patientUid != uid) {
+    throw FirebaseException(
+      plugin: 'cloud_firestore',
+      code: 'permission-denied',
+      message: 'No puedes cancelar una cita que no te pertenece.',
+    );
+  }
+
+  if (appointment.estado != 'confirmada') {
+    throw ArgumentError('Solo puedes cancelar citas confirmadas.');
+  }
+
+  final cleanReason = reason?.trim();
+
+  await _db.collection('citas').doc(appointment.id).update({
+    'estado': 'cancelada_por_paciente',
+    'cancelledAt': FieldValue.serverTimestamp(),
+    'cancelledBy': uid,
+    'cancelReason':
+        cleanReason == null || cleanReason.isEmpty ? null : cleanReason,
+    'updatedAt': FieldValue.serverTimestamp(),
   });
 }
 
+  Stream<List<PatientAppointmentModel>> watchMyAppointments() {
+    final uid = currentUid;
+
+    if (uid == null) {
+      return const Stream.empty();
+    }
+
+    return _db
+        .collection('citas')
+        .where('patientUid', isEqualTo: uid)
+        .orderBy('fechaInicio', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map(PatientAppointmentModel.fromDoc).toList();
+        });
+  }
 }

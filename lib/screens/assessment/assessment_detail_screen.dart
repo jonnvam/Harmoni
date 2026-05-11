@@ -637,9 +637,7 @@ class _AnswerCard extends StatelessWidget {
 class _ShareWithPsychologistButton extends StatefulWidget {
   final String assessmentId;
 
-  const _ShareWithPsychologistButton({
-    required this.assessmentId,
-  });
+  const _ShareWithPsychologistButton({required this.assessmentId});
 
   @override
   State<_ShareWithPsychologistButton> createState() =>
@@ -654,12 +652,13 @@ class _ShareWithPsychologistButtonState
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
 
-    final assessmentDoc = await FirebaseFirestore.instance
-        .collection(UserProfileService.collectionUsuariosPacientes)
-        .doc(user.uid)
-        .collection('assessments')
-        .doc(widget.assessmentId)
-        .get();
+    final assessmentDoc =
+        await FirebaseFirestore.instance
+            .collection(UserProfileService.collectionUsuariosPacientes)
+            .doc(user.uid)
+            .collection('assessments')
+            .doc(widget.assessmentId)
+            .get();
 
     return assessmentDoc.data()?['consent'] as Map<String, dynamic>?;
   }
@@ -674,66 +673,76 @@ class _ShareWithPsychologistButtonState
       return;
     }
 
+    setState(() => _loading = true);
+
     try {
-      final patientDoc = await FirebaseFirestore.instance
-          .collection(UserProfileService.collectionUsuariosPacientes)
-          .doc(user.uid)
-          .get();
+      final linksSnap =
+          await FirebaseFirestore.instance
+              .collection('vinculosPacientePsicologo')
+              .where('patientUid', isEqualTo: user.uid)
+              .where('status', isEqualTo: 'activo')
+              .limit(1)
+              .get();
 
       if (!context.mounted) return;
 
-      final data = patientDoc.data();
-      final activePsychologist = data?['activePsychologist'];
-
-      if (activePsychologist is! Map ||
-          activePsychologist['uid'] == null ||
-          activePsychologist['nombre'] == null) {
+      if (linksSnap.docs.isEmpty) {
         await showDialog<void>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            title: const Text(
-              'Aún no tienes psicólogo vinculado',
-              style: TextStyle(
-                fontFamily: 'Kantumruy Pro',
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            content: const Text(
-              'Para compartir tu evaluación, primero debes reservar una cita con un psicólogo y esperar a que quede confirmada.',
-              style: TextStyle(
-                fontFamily: 'Kantumruy Pro',
-                height: 1.35,
-              ),
-            ),
-            actions: [
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
+          builder:
+              (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Entendido'),
+                title: const Text(
+                  'Aún no tienes psicólogo vinculado',
+                  style: TextStyle(
+                    fontFamily: 'Kantumruy Pro',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                content: const Text(
+                  'Para compartir tu evaluación, primero debes reservar una cita con un psicólogo y esperar a que quede confirmada.',
+                  style: TextStyle(fontFamily: 'Kantumruy Pro', height: 1.35),
+                ),
+                actions: [
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Entendido'),
+                  ),
+                ],
               ),
-            ],
-          ),
         );
 
         return;
       }
 
-      final psychologistUid = activePsychologist['uid'].toString();
-      final psychologistName = activePsychologist['nombre'].toString();
+      final linkData = linksSnap.docs.first.data();
+
+      final psychologistUid = (linkData['psychologistUid'] ?? '').toString();
+      final psychologistName =
+          (linkData['psychologistName'] ?? 'Psicólogo vinculado').toString();
+
+      if (psychologistUid.isEmpty) {
+        throw FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'invalid-link',
+          message: 'El vínculo no tiene psychologistUid.',
+        );
+      }
 
       final result = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
-          builder: (_) => ShareAssessmentConsentScreen(
-            assessmentId: widget.assessmentId,
-            psychologistUid: psychologistUid,
-            psychologistName: psychologistName,
-          ),
+          builder:
+              (_) => ShareAssessmentConsentScreen(
+                assessmentId: widget.assessmentId,
+                psychologistUid: psychologistUid,
+                psychologistName: psychologistName,
+              ),
         ),
       );
 
@@ -748,52 +757,55 @@ class _ShareWithPsychologistButtonState
           content: Text('No se pudo verificar tu psicólogo vinculado: $e'),
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   Future<void> _handleRevoke(BuildContext context) async {
-    final confirm = await showDialog<bool>(
+    final confirm =
+        await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            title: const Text(
-              'Revocar consentimiento',
-              style: TextStyle(
-                fontFamily: 'Kantumruy Pro',
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            content: const Text(
-              'Tu psicólogo dejará de tener autorización para consultar esta evaluación. Podrás volver a compartirla más adelante si lo decides.',
-              style: TextStyle(
-                fontFamily: 'Kantumruy Pro',
-                height: 1.35,
-              ),
-            ),
-            actions: [
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
+          builder:
+              (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                title: const Text(
+                  'Revocar consentimiento',
+                  style: TextStyle(
+                    fontFamily: 'Kantumruy Pro',
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Revocar'),
+                content: const Text(
+                  'Tu psicólogo dejará de tener autorización para consultar esta evaluación. Podrás volver a compartirla más adelante si lo decides.',
+                  style: TextStyle(fontFamily: 'Kantumruy Pro', height: 1.35),
+                ),
+                actions: [
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                    ),
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancelar'),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('Revocar'),
+                  ),
+                ],
               ),
-            ],
-          ),
         ) ??
         false;
 
@@ -810,18 +822,14 @@ class _ShareWithPsychologistButtonState
 
       setState(() {});
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Consentimiento revocado.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Consentimiento revocado.')));
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No se pudo revocar el consentimiento: $e'),
-        ),
+        SnackBar(content: Text('No se pudo revocar el consentimiento: $e')),
       );
     } finally {
       if (mounted) {
@@ -837,16 +845,15 @@ class _ShareWithPsychologistButtonState
       builder: (context, snap) {
         final consent = snap.data;
 
-        final isShared = consent?['sharedWithPsychologist'] == true &&
+        final isShared =
+            consent?['sharedWithPsychologist'] == true &&
             consent?['revokedAt'] == null;
 
-        final text = isShared
-            ? 'Revocar consentimiento'
-            : 'Compartir con mi psicólogo';
+        final text =
+            isShared ? 'Revocar consentimiento' : 'Compartir con mi psicólogo';
 
-        final icon = isShared
-            ? Icons.link_off_rounded
-            : Icons.ios_share_rounded;
+        final icon =
+            isShared ? Icons.link_off_rounded : Icons.ios_share_rounded;
 
         return SizedBox(
           width: double.infinity,
@@ -860,46 +867,47 @@ class _ShareWithPsychologistButtonState
                 borderRadius: BorderRadius.circular(18),
               ),
             ),
-            onPressed: _loading || snap.connectionState == ConnectionState.waiting
-                ? null
-                : () {
-                    if (isShared) {
-                      _handleRevoke(context);
-                    } else {
-                      _handleShare(context);
-                    }
-                  },
-            child: _loading || snap.connectionState == ConnectionState.waiting
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, size: 20),
-                      const SizedBox(width: 10),
-                      Text(
-                        text,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontFamily: 'Kantumruy Pro',
-                          fontWeight: FontWeight.w700,
-                        ),
+            onPressed:
+                _loading || snap.connectionState == ConnectionState.waiting
+                    ? null
+                    : () {
+                      if (isShared) {
+                        _handleRevoke(context);
+                      } else {
+                        _handleShare(context);
+                      }
+                    },
+            child:
+                _loading || snap.connectionState == ConnectionState.waiting
+                    ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
+                    )
+                    : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(icon, size: 20),
+                        const SizedBox(width: 10),
+                        Text(
+                          text,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontFamily: 'Kantumruy Pro',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
           ),
         );
       },
     );
   }
 }
-
 
 class _ErrorState extends StatelessWidget {
   final String message;

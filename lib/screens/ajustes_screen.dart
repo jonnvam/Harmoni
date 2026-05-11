@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
-import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/sign_login.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';

@@ -11,10 +11,10 @@ class AssessmentConsentService {
 
   String buildConsentId({
     required String patientUid,
-    required String assessmentId,
     required String psychologistUid,
+    required String assessmentId,
   }) {
-    return '${patientUid}_${assessmentId}_$psychologistUid';
+    return '${patientUid}_${psychologistUid}_$assessmentId';
   }
 
   Future<void> grantAssessmentConsent({
@@ -35,8 +35,8 @@ class AssessmentConsentService {
 
     final consentId = buildConsentId(
       patientUid: patientUid,
-      assessmentId: assessmentId,
       psychologistUid: psychologistUid,
+      assessmentId: assessmentId,
     );
 
     final consentRef = _db.collection('assessmentConsents').doc(consentId);
@@ -61,7 +61,8 @@ class AssessmentConsentService {
       'assessmentPath': assessmentPath,
       'status': 'active',
       'allowedData': [
-        'scores',
+        'phq9',
+        'gad7',
         'severity',
         'answers',
       ],

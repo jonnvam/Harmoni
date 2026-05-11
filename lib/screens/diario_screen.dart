@@ -11,7 +11,6 @@ import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
-import 'package:flutter_application_1/screens/second_principal_screen.dart';
 import 'package:flutter_application_1/screens/psicologos.dart';
 import 'package:flutter_application_1/utils/navigation_helper.dart';
 import 'package:flutter_application_1/state/app_state.dart';

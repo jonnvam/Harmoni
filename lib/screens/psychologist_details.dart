@@ -4,13 +4,16 @@ import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/services/appointments_service.dart';
 
+
 class PsychologistDetailsScreen extends StatelessWidget {
   final Psychologist psychologist;
-  const PsychologistDetailsScreen({super.key, required this.psychologist});
+
+  const PsychologistDetailsScreen({
+    super.key,
+    required this.psychologist,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    final p = psychologist;
   Widget build(BuildContext context) {
     final p = psychologist;
 
@@ -27,82 +30,113 @@ class PsychologistDetailsScreen extends StatelessWidget {
             fontFamily: 'Kantumruy Pro',
           ),
         ),
-        icon: const Icon(Icons.calendar_today_rounded, color: Colors.white),
+        icon: const Icon(
+          Icons.calendar_today_rounded,
+          color: Colors.white,
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _BackButtonCircle(onTap: () => Navigator.pop(context)),
-
-              const SizedBox(height: 16),
-
-              _ProfileHeaderCard(psychologist: p),
-
-              const SizedBox(height: 18),
-
-              _InfoSection(
-                title: 'Descripción profesional',
-                icon: Icons.description_rounded,
-                child: Text(
-                  p.descripcionProfesional.trim().isEmpty
-                      ? 'Este profesional aún no agregó una descripción.'
-                      : p.descripcionProfesional,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.4,
-                    color: Colors.black87,
-                    fontFamily: 'Kantumruy Pro',
-                  ),
-                ),
-              ),
-
-              _InfoSection(
-                title: 'Especialidades',
-                icon: Icons.psychology_rounded,
-                child: _ChipWrap(items: p.specialties),
-              ),
-
-              _InfoSection(
-                title: 'Modalidades de atención',
-                icon: Icons.video_call_rounded,
-                child: _ChipWrap(items: p.modalidades),
-              ),
-
-              _InfoSection(
-                title: 'Enfoque terapéutico',
-                icon: Icons.lightbulb_rounded,
-                child: _ChipWrap(items: p.enfoquesTerapia),
-              ),
-
-              _InfoSection(
-                title: 'Población que atiende',
-                icon: Icons.groups_rounded,
-                child: _ChipWrap(items: p.atiendeA),
-              ),
-
-              if (p.aniosExperiencia != null)
-                _InfoSection(
-                  title: 'Experiencia',
-                  icon: Icons.workspace_premium_rounded,
-                  child: Text(
-                    p.aniosExperiencia == 1
-                        ? '1 año de experiencia'
-                        : '${p.aniosExperiencia} años de experiencia',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontFamily: 'Kantumruy Pro',
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w600,
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _BackButtonCircle(
+                      onTap: () => Navigator.pop(context),
                     ),
-                  ),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Perfil del psicólogo',
+                          style: TextStyles.tituloBienvenida.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 44),
+                  ],
                 ),
+              ),
 
-              _FeeCard(psychologist: p),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 8),
 
-              const SizedBox(height: 120),
+                    _ProfileHeaderCard(psychologist: p),
+
+                    const SizedBox(height: 28),
+
+                    _InfoSection(
+                      title: 'Descripción profesional',
+                      icon: Icons.description_rounded,
+                      child: Text(
+                        p.descripcionProfesional.trim().isEmpty
+                            ? 'Este profesional aún no agregó una descripción.'
+                            : p.descripcionProfesional,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          height: 1.4,
+                          color: Colors.black87,
+                          fontFamily: 'Kantumruy Pro',
+                        ),
+                      ),
+                    ),
+
+                    _InfoSection(
+                      title: 'Especialidades',
+                      icon: Icons.psychology_rounded,
+                      child: _ChipWrap(items: p.specialties),
+                    ),
+
+                    _InfoSection(
+                      title: 'Modalidades de atención',
+                      icon: Icons.video_call_rounded,
+                      child: _ChipWrap(items: p.modalidades),
+                    ),
+
+                    _InfoSection(
+                      title: 'Enfoque terapéutico',
+                      icon: Icons.lightbulb_rounded,
+                      child: _ChipWrap(items: p.enfoquesTerapia),
+                    ),
+
+                    _InfoSection(
+                      title: 'Población que atiende',
+                      icon: Icons.groups_rounded,
+                      child: _ChipWrap(items: p.atiendeA),
+                    ),
+
+                    if (p.aniosExperiencia != null)
+                      _InfoSection(
+                        title: 'Experiencia',
+                        icon: Icons.workspace_premium_rounded,
+                        child: Text(
+                          p.aniosExperiencia == 1
+                              ? '1 año de experiencia'
+                              : '${p.aniosExperiencia} años de experiencia',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontFamily: 'Kantumruy Pro',
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+
+                    _FeeCard(psychologist: p),
+
+                    const SizedBox(height: 120),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -116,7 +150,9 @@ class PsychologistDetailsScreen extends StatelessWidget {
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
       builder: (_) => BookingSheet(psychologist: p),
     );
@@ -214,30 +250,26 @@ class _ProfileHeaderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ====== Avatar Section ======
           CircleAvatar(
             radius: isMobile ? 48 : 52,
             backgroundColor: const Color(0xFFF2EEFF),
-            backgroundImage:
-                (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
-                    ? NetworkImage(p.avatarUrl!)
-                    : (p.avatarAsset != null && p.avatarAsset!.isNotEmpty)
+            backgroundImage: (p.avatarUrl != null && p.avatarUrl!.isNotEmpty)
+                ? NetworkImage(p.avatarUrl!)
+                : (p.avatarAsset != null && p.avatarAsset!.isNotEmpty)
                     ? AssetImage(p.avatarAsset!) as ImageProvider
                     : null,
-            child:
-                (p.avatarUrl == null &&
-                        (p.avatarAsset == null || p.avatarAsset!.isEmpty))
-                    ? const Icon(
-                      Icons.person_rounded,
-                      size: 50,
-                      color: AppColors.fondo3,
-                    )
-                    : null,
+            child: (p.avatarUrl == null &&
+                    (p.avatarAsset == null || p.avatarAsset!.isEmpty))
+                ? Icon(
+                    Icons.person_rounded,
+                    size: isMobile ? 48 : 52,
+                    color: AppColors.fondo3,
+                  )
+                : null,
           ),
 
           const SizedBox(height: 16),
 
-          // ====== Name Section ======
           Text(
             p.name,
             textAlign: TextAlign.center,
@@ -250,7 +282,6 @@ class _ProfileHeaderCard extends StatelessWidget {
 
           const SizedBox(height: 6),
 
-          // ====== Specialties Section ======
           Text(
             p.specialties.isEmpty ? 'Psicología' : p.specialties.join(' • '),
             textAlign: TextAlign.center,
@@ -265,7 +296,6 @@ class _ProfileHeaderCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // ====== Chips Section (Modalidades + Precio) ======
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Wrap(
@@ -275,7 +305,7 @@ class _ProfileHeaderCard extends StatelessWidget {
               children: [
                 ...p.modalidades.map((m) => _TagChip(text: m)),
                 _TagChip(
-                  text: '\$${p.price} ${p.moneda}',
+                  text: '\$${p.price} ${p.moneda} / sesión',
                   color: AppColors.fondo3,
                   bg: const Color(0xFFEEF2FF),
                 ),
@@ -419,20 +449,74 @@ class _FeeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.payments_rounded, color: AppColors.fondo3, size: 26),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Honorarios por sesión',
-              style: TextStyles.textDicho.copyWith(fontSize: 14),
-            ),
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.fondo3.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.payments_rounded,
+                  color: AppColors.fondo3,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Honorarios por sesión',
+                  style: TextStyles.textDicho.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
-          Text(
-            '\$${p.price} ${p.moneda}',
-            style: TextStyles.tituloBienvenida.copyWith(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-            ),
+
+          const SizedBox(height: 14),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                '\$',
+                style: TextStyles.tituloBienvenida.copyWith(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.fondo3,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Text(
+                    p.price.toString(),
+                    style: TextStyles.tituloBienvenida.copyWith(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.fondo3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                p.moneda,
+                style: TextStyles.textDicho.copyWith(
+                  fontSize: 14,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ],
       ),

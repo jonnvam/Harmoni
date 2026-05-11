@@ -22,6 +22,41 @@ class PublicPsychologistsService {
     );
   }
 
+  Future<Psychologist?> fetchPublicPsychologistByUid(String uid) async {
+  final mainDoc = await _db.collection('usuariosPsicologos').doc(uid).get();
+
+  if (!mainDoc.exists || mainDoc.data() == null) {
+    return null;
+  }
+
+  final mainData = mainDoc.data()!;
+
+  final isVisible =
+      mainData['estadoValidacion'] == 'VALIDADO_OFICIAL' &&
+      mainData['professionalProfileCompleted'] == true &&
+      mainData['profileVisible'] == true;
+
+  if (!isVisible) {
+    return null;
+  }
+
+  final publicProfileDoc = await _db
+      .collection('usuariosPsicologos')
+      .doc(uid)
+      .collection('perfilProfesional')
+      .doc('publico')
+      .get();
+
+  final publicData = publicProfileDoc.data() ?? {};
+
+  final mergedData = <String, dynamic>{
+    ...mainData,
+    ...publicData,
+  };
+
+  return _psychologistFromFirestore(uid, mergedData);
+}
+
   Future<List<Psychologist>> fetchPublicPsychologists({
   String? query,
   int? maxPrice,

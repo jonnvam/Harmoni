@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
@@ -8,31 +6,14 @@ import 'package:flutter_application_1/screens/psychologist/home_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/appointments_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/availability_screen.dart';
 import 'package:flutter_application_1/screens/psychologist/patient_detail_screen.dart';
-import 'package:flutter_application_1/services/appointment_service.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_application_1/services/psychologist_patients_service.dart';
 
-class PsychologistPatientsScreen extends StatefulWidget {
+class PsychologistPatientsScreen extends StatelessWidget {
   const PsychologistPatientsScreen({super.key});
 
   @override
-  State<PsychologistPatientsScreen> createState() =>
-      _PsychologistPatientsScreenState();
-}
-
-class _PsychologistPatientsScreenState extends State<PsychologistPatientsScreen> {
-  Stream<List<DocumentSnapshot<Map<String, dynamic>>>>? _patientsStream;
-
-  void _loadStream(String uid) {
-    _patientsStream =
-        AppointmentService.instance.getAssignedPatients(uid);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null && _patientsStream == null) {
-      _loadStream(uid);
-    }
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -43,85 +24,93 @@ class _PsychologistPatientsScreenState extends State<PsychologistPatientsScreen>
                 const DropMenu(),
                 Expanded(
                   child: MaxWidthContainer(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Pacientes',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            fontFamily: 'Kantumruy Pro',
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 130),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Pacientes',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'Kantumruy Pro',
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Listado de pacientes con citas reservadas',
-                          style: TextStyle(fontSize: 13, color: Colors.black54, fontFamily: 'Kantumruy Pro'),
-                        ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: uid == null
-                              ? const Center(child: Text('Inicia sesión para ver tus pacientes'))
-                              : StreamBuilder<List<DocumentSnapshot<Map<String, dynamic>>>>(
-                                  stream: _patientsStream,
-                                  builder: (context, snap) {
-                                    if (snap.connectionState == ConnectionState.waiting) {
-                                      return const _PatientSkeletonList();
-                                    }
-                                    if (snap.hasError) {
-                                      return _StateMessage(
-                                        icon: Icons.error_outline,
-                                        title: 'No se pudieron cargar tus pacientes',
-                                        message: 'Revisa tu conexión e inténtalo de nuevo.',
-                                        actionText: 'Reintentar',
-                                        onAction: () {
-                                          setState(() {
-                                            _loadStream(uid);
-                                          });
-                                        },
-                                      );
-                                    }
-                                    final docs = snap.data ?? [];
-                                    if (docs.isEmpty) {
-                                      return _StateMessage(
-                                        icon: Icons.groups_outlined,
-                                        title: 'Sin pacientes aún',
-                                        message: 'Cuando tengas citas activas verás a tus pacientes aquí.',
-                                        actionText: 'Actualizar',
-                                        onAction: () {
-                                          setState(() {
-                                            _loadStream(uid);
-                                          });
-                                        },
-                                      );
-                                    }
-                                    return ListView.separated(
-                                      itemCount: docs.length,
-                                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                                      itemBuilder: (context, i) {
-                                        final doc = docs[i];
-                                        final data = doc.data() ?? {};
-                                        final name = _patientNameFrom(data);
-                                        final photoUrl = _patientPhotoFrom(data);
-                                        return _PatientTile(
-                                          name: name,
-                                          count: null,
-                                          patientId: doc.id,
-                                          photoUrl: photoUrl,
-                                        );
-                                      },
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Listado de pacientes vinculados contigo.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.black54,
+                              fontFamily: 'Kantumruy Pro',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          Expanded(
+                            child: StreamBuilder<List<LinkedPatientModel>>(
+                              stream:
+                                  PsychologistPatientsService.instance
+                                      .watchMyLinkedPatients(),
+                              builder: (context, snap) {
+                                if (snap.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const _PatientSkeletonList();
+                                }
+
+                                if (snap.hasError) {
+                                  return _StateMessage(
+                                    icon: Icons.error_outline,
+                                    title:
+                                        'No se pudieron cargar tus pacientes',
+                                    message:
+                                        'Revisa tu conexión e inténtalo de nuevo.',
+                                    actionText: 'Reintentar',
+                                    onAction: () {},
+                                  );
+                                }
+
+                                final patients = snap.data ?? [];
+
+                                if (patients.isEmpty) {
+                                  return const _StateMessage(
+                                    icon: Icons.groups_outlined,
+                                    title: 'Sin pacientes aún',
+                                    message:
+                                        'Cuando confirmes una cita, el paciente aparecerá aquí.',
+                                    actionText: 'Actualizar',
+                                    onAction: null,
+                                  );
+                                }
+
+                                return ListView.separated(
+                                  itemCount: patients.length,
+                                  separatorBuilder:
+                                      (_, __) => const SizedBox(height: 10),
+                                  itemBuilder: (context, i) {
+                                    final patient = patients[i];
+
+                                    return _PatientTile(
+                                      name: patient.patientName,
+                                      count: null,
+                                      patientId: patient.patientUid,
+                                      photoUrl: null,
+                                      linkedAt: patient.createdAt,
                                     );
                                   },
-                                ),
-                        ),
-                      ],
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
+
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
@@ -132,25 +121,35 @@ class _PsychologistPatientsScreenState extends State<PsychologistPatientsScreen>
                   items: [
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/agenda.svg",
-                      onTap: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PsychologistAppointmentsScreen()),
-                      ),
+                      onTap:
+                          () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => const PsychologistAppointmentsScreen(),
+                            ),
+                          ),
                     ),
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/house.svg",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PsychologistHomeScreen()),
-                      ),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PsychologistHomeScreen(),
+                            ),
+                          ),
                     ),
-                    
                     RadialMenuItem(
                       iconAsset: "assets/images/icon/disponi.svg",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PsychologistAvailabilityScreen()),
-                      ),
+                      onTap:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => const PsychologistAvailabilityScreen(),
+                            ),
+                          ),
                     ),
                   ],
                 ),
@@ -161,25 +160,6 @@ class _PsychologistPatientsScreenState extends State<PsychologistPatientsScreen>
       ),
     );
   }
-
-  String _patientNameFrom(Map<String, dynamic> data) {
-    final displayName = (data['displayName'] ?? '').toString().trim();
-    final nombre = (data['nombre'] ?? '').toString().trim();
-    final apellido = (data['apellido'] ?? '').toString().trim();
-    final full = [nombre, apellido]
-        .where((value) => value.isNotEmpty)
-        .join(' ')
-        .trim();
-    return displayName.isNotEmpty
-        ? displayName
-        : (full.isNotEmpty ? full : 'Paciente');
-  }
-
-  String _patientPhotoFrom(Map<String, dynamic> data) {
-    return (data['photoUrl'] ?? data['foto'] ?? data['fotoUrl'])
-        .toString()
-        .trim();
-  }
 }
 
 class _PatientTile extends StatelessWidget {
@@ -187,26 +167,53 @@ class _PatientTile extends StatelessWidget {
   final int? count;
   final String patientId;
   final String? photoUrl;
+  final DateTime? linkedAt;
+
   const _PatientTile({
     required this.name,
     required this.count,
     required this.patientId,
     this.photoUrl,
+    this.linkedAt,
   });
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final subtitle =
+        linkedAt == null
+            ? 'Paciente activo'
+            : 'Paciente activo · Vinculado el ${_formatDate(linkedAt!)}';
+
     return Ink(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 4))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: ListTile(
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontFamily: 'Kantumruy Pro')),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        title: Text(
+          name,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Kantumruy Pro',
+          ),
+        ),
         subtitle: Text(
-          count == null ? 'Paciente activo' : '$count citas',
+          count == null ? subtitle : '$count citas',
           style: const TextStyle(
             fontSize: 12,
             color: Colors.black54,
@@ -214,13 +221,22 @@ class _PatientTile extends StatelessWidget {
           ),
         ),
         leading: _PatientAvatar(photoUrl: photoUrl, name: name),
-        trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.black38),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PatientDetailScreen(patientId: patientId, patientName: name),
-          ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          size: 18,
+          color: Colors.black38,
         ),
+        onTap:
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (_) => PatientDetailScreen(
+                      patientId: patientId,
+                      patientName: name,
+                    ),
+              ),
+            ),
       ),
     );
   }
@@ -247,9 +263,7 @@ class _PatientAvatar extends StatelessWidget {
       return CircleAvatar(child: Text(_initialsFrom(name)));
     }
 
-    return CircleAvatar(
-      backgroundImage: CachedNetworkImageProvider(url),
-    );
+    return CircleAvatar(backgroundImage: CachedNetworkImageProvider(url));
   }
 }
 
@@ -283,14 +297,14 @@ class _StateMessage extends StatelessWidget {
   final String title;
   final String message;
   final String actionText;
-  final VoidCallback onAction;
+  final VoidCallback? onAction;
 
   const _StateMessage({
     required this.icon,
     required this.title,
     required this.message,
     required this.actionText,
-    required this.onAction,
+    this.onAction,
   });
 
   @override
@@ -322,11 +336,10 @@ class _StateMessage extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: onAction,
-              child: Text(actionText),
-            ),
+            if (onAction != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton(onPressed: onAction, child: Text(actionText)),
+            ],
           ],
         ),
       ),

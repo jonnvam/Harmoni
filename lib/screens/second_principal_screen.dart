@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/reusable_widgets.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
-import 'package:flutter_application_1/core/text_styles.dart';
 import 'package:flutter_application_1/screens/diario_screen.dart';
 import 'package:flutter_application_1/screens/ia_screen.dart';
 import 'package:flutter_application_1/screens/metas_screen.dart';
@@ -19,10 +18,10 @@ import 'package:flutter_application_1/services/goals_firestore_service.dart';
 import 'package:flutter_application_1/services/diary_firestore_service.dart';
 import 'package:flutter_application_1/widgets/psychologist_card.dart';
 import 'package:flutter_application_1/models/psychologist.dart';
-import 'package:flutter_application_1/services/public_psychologists_service.dart';
 import 'package:flutter_application_1/screens/psychologist_details.dart';
-import 'package:flutter_application_1/services/appointment_service.dart';
 import 'package:flutter_application_1/screens/mis_citas_screen.dart';
+import 'package:flutter_application_1/services/patient_psychologist_link_service.dart';
+
 
 class SecondPrincipalScreen extends StatefulWidget {
   const SecondPrincipalScreen({super.key});
@@ -50,12 +49,12 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
-  CollectionReference<Map<String, dynamic>>? _notesCol() {
+  /*CollectionReference<Map<String, dynamic>>? _notesCol() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return null;
 
     return DiaryFirestoreService.instance.notesCol(uid);
-  }
+  }*/
 
   Future<void> _openMoodModal(
     BuildContext parentContext,
@@ -359,8 +358,8 @@ class _SecondPrincipalScreenState extends State<SecondPrincipalScreen> {
                 _PsychologistCardSection(),
 
                 const SizedBox(height: 18),
-                /// es esta parte esta el enlace a las citas del paciente
 
+                /// es esta parte esta el enlace a las citas del paciente
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24),
                   child: _QuickAppointmentCard(),
@@ -970,85 +969,14 @@ class _AssessmentSummaryCard extends StatelessWidget {
 
 /// Widget que renderiza un PsychologistCard con datos desde Firestore
 /// Estados: loading (skeleton), empty, error, success
-class _PsychologistCardSection extends StatefulWidget {
+class _PsychologistCardSection extends StatelessWidget {
   const _PsychologistCardSection();
 
   @override
-  State<_PsychologistCardSection> createState() =>
-      _PsychologistCardSectionState();
-}
-
-class _PsychologistCardSectionState extends State<_PsychologistCardSection> {
-  late Future<Psychologist?> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _fetchAssignedPsychologist();
-  }
-
-  Future<Psychologist?> _fetchAssignedPsychologist() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return null;
-
-    final doc = await AppointmentService.instance.getAssignedPsychologist(uid);
-    if (doc == null || doc.data() == null) return null;
-
-    final data = doc.data()!;
-    return _psychologistFromDoc(doc.id, data);
-  }
-
-  Psychologist _psychologistFromDoc(
-    String id,
-    Map<String, dynamic> data,
-  ) {
-    final displayName = (data['displayName'] ?? '').toString().trim();
-    final nombre = (data['nombre'] ?? '').toString().trim();
-    final apellido = (data['apellido'] ?? '').toString().trim();
-
-    final fullName = [nombre, apellido]
-        .where((value) => value.isNotEmpty)
-        .join(' ')
-        .trim();
-
-    final name =
-        displayName.isNotEmpty ? displayName : (fullName.isNotEmpty ? fullName : 'Psicologo');
-
-    final specialtyRaw = data['specialty'] ?? data['especialidad'];
-    final specialtiesList = specialtyRaw is List
-        ? specialtyRaw.map((e) => e.toString()).where((e) => e.isNotEmpty).toList()
-        : <String>[];
-    final specialtyText =
-        specialtiesList.isNotEmpty ? specialtiesList : <String>[(specialtyRaw ?? 'Psicologia').toString()];
-
-    final avatarUrl = (data['photoUrl'] ?? data['avatarUrl'] ?? data['foto'] ?? data['fotoUrl'])
-        .toString()
-        .trim();
-
-    final priceValue = data['price'] ?? data['honorariosSesion'];
-    final price = priceValue is num ? priceValue.toInt() : 0;
-
-    final availability = data['availability'];
-    final isAvailable = availability is bool ? availability : false;
-
-    return Psychologist(
-      id: id,
-      name: name,
-      rating: 0,
-      price: price,
-      specialties: specialtyText,
-      moneda: (data['moneda'] ?? 'MXN').toString(),
-      avatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
-      isAvailable: isAvailable,
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Psychologist?>(
-      future: _future,
+    return StreamBuilder<Psychologist?>(
+      stream: PatientPsychologistLinkService.instance.watchLinkedPsychologist(),
       builder: (context, snapshot) {
-        // LOADING state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return PsychologistCard(
             name: 'Cargando...',
@@ -1058,7 +986,6 @@ class _PsychologistCardSectionState extends State<_PsychologistCardSection> {
           );
         }
 
-        // ERROR state
         if (snapshot.hasError) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1066,40 +993,25 @@ class _PsychologistCardSectionState extends State<_PsychologistCardSection> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: const Color(0xFFFFF7F7),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.shade200),
+                border: Border.all(color: const Color(0xFFFFD6D6)),
               ),
-              child: Column(
+              child: const Column(
                 children: [
-                  Icon(Icons.error_outline, color: Colors.red.shade700),
-                  const SizedBox(height: 8),
+                  Icon(
+                    Icons.error_outline,
+                    color: Color(0xFFE57373),
+                  ),
+                  SizedBox(height: 8),
                   Text(
-                    'No se pudieron cargar los psicólogos.',
+                    'No se pudo cargar tu psicólogo vinculado.',
                     style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontWeight: FontWeight.w500,
+                      color: Color(0xFFE57373),
+                      fontWeight: FontWeight.w600,
                       fontFamily: 'Kantumruy Pro',
                     ),
                     textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _future = _fetchAssignedPsychologist();
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade700,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Reintentar',
-                      style: TextStyle(color: Colors.white),
-                    ),
                   ),
                 ],
               ),
@@ -1107,41 +1019,51 @@ class _PsychologistCardSectionState extends State<_PsychologistCardSection> {
           );
         }
 
-        // EMPTY state
-        if (!snapshot.hasData || snapshot.data == null) {
+        final psychologist = snapshot.data;
+
+        if (psychologist == null) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
+                color: const Color(0xFFF8F6FF),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE4DEFF)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0F000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.person_outline,
                     size: 48,
-                    color: Colors.grey.shade400,
+                    color: AppColors.fondo3,
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Sin psicólogo asignado',
+                    'Sin psicólogo vinculado',
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       fontFamily: 'Kantumruy Pro',
+                      color: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Busca y encuentra un psicólogo que se adapte a tus necesidades.',
+                  const Text(
+                    'Cuando un psicólogo acepte tu cita, aparecerá aquí.',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey.shade600,
+                      color: Colors.black54,
                       fontFamily: 'Kantumruy Pro',
+                      height: 1.3,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -1154,18 +1076,19 @@ class _PsychologistCardSectionState extends State<_PsychologistCardSection> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.fondo3,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    icon: const Icon(Icons.search, color: Colors.white),
+                    icon: const Icon(Icons.search),
                     label: const Text(
                       'Buscar psicólogos',
                       style: TextStyle(
-                        color: Colors.white,
                         fontFamily: 'Kantumruy Pro',
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -1174,9 +1097,6 @@ class _PsychologistCardSectionState extends State<_PsychologistCardSection> {
             ),
           );
         }
-
-        // SUCCESS state
-        final psychologist = snapshot.data!;
 
         return PsychologistCard(
           photoUrl: psychologist.avatarUrl,

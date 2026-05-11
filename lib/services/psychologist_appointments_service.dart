@@ -16,6 +16,7 @@ class PsychologistAppointmentModel {
   final String moneda;
   final String metodoPago;
   final String pagoEstado;
+  final String meetUrl;
 
   const PsychologistAppointmentModel({
     required this.id,
@@ -32,6 +33,7 @@ class PsychologistAppointmentModel {
     required this.moneda,
     required this.metodoPago,
     required this.pagoEstado,
+    required this.meetUrl,
   });
 
   factory PsychologistAppointmentModel.fromDoc(
@@ -61,6 +63,7 @@ class PsychologistAppointmentModel {
       moneda: (data['moneda'] ?? 'MXN').toString(),
       metodoPago: (data['metodoPago'] ?? 'pendiente').toString(),
       pagoEstado: (data['pagoEstado'] ?? 'pendiente').toString(),
+      meetUrl: (data['meetUrl'] ?? '').toString(),
     );
   }
 }
@@ -88,14 +91,13 @@ class PsychologistAppointmentsService {
         .orderBy('fechaInicio')
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
-          .map(PsychologistAppointmentModel.fromDoc)
-          .toList();
+      return snapshot.docs.map(PsychologistAppointmentModel.fromDoc).toList();
     });
   }
 
   Future<void> confirmAppointment({
     required PsychologistAppointmentModel appointment,
+    String? meetUrl,
   }) async {
     final uid = currentUid;
 
@@ -118,19 +120,35 @@ class PsychologistAppointmentsService {
       throw ArgumentError('Solo puedes confirmar citas solicitadas.');
     }
 
+    final cleanMeetUrl = meetUrl?.trim() ?? '';
+
+    if (appointment.modalidad == 'online' && cleanMeetUrl.isEmpty) {
+      throw ArgumentError(
+        'Las citas en línea necesitan un enlace de videollamada.',
+      );
+    }
+
     final citaRef = _db.collection('citas').doc(appointment.id);
 
-    final vinculoId = '${appointment.patientUid}_${appointment.psychologistUid}';
+    final vinculoId =
+        '${appointment.patientUid}_${appointment.psychologistUid}';
 
-    final vinculoRef =
-        _db.collection('vinculosPacientePsicologo').doc(vinculoId);
+    final vinculoRef = _db
+        .collection('vinculosPacientePsicologo')
+        .doc(vinculoId);
 
     final batch = _db.batch();
 
-    batch.update(citaRef, {
+    final citaUpdateData = <String, dynamic>{
       'estado': 'confirmada',
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (appointment.modalidad == 'online') {
+      citaUpdateData['meetUrl'] = cleanMeetUrl;
+    }
+
+    batch.update(citaRef, citaUpdateData);
 
     batch.set(
       vinculoRef,
@@ -179,6 +197,154 @@ class PsychologistAppointmentsService {
 
     await _db.collection('citas').doc(appointment.id).update({
       'estado': 'rechazada',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateMeetUrl({
+    required PsychologistAppointmentModel appointment,
+    required String meetUrl,
+  }) async {
+    final uid = currentUid;
+
+    if (uid == null) {
+      throw FirebaseAuthException(
+        code: 'not-authenticated',
+        message: 'Debes iniciar sesión.',
+      );
+    }
+
+    if (appointment.psychologistUid != uid) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'No puedes editar una cita que no te pertenece.',
+      );
+    }
+
+    if (appointment.estado != 'confirmada') {
+      throw ArgumentError(
+        'Solo puedes editar el enlace de una cita confirmada.',
+      );
+    }
+
+    if (appointment.modalidad != 'online') {
+      throw ArgumentError(
+        'Solo las citas en línea pueden tener enlace de videollamada.',
+      );
+    }
+
+    final cleanMeetUrl = meetUrl.trim();
+
+    if (cleanMeetUrl.isEmpty) {
+      throw ArgumentError('El enlace de la videollamada no puede estar vacío.');
+    }
+
+    await _db.collection('citas').doc(appointment.id).update({
+      'meetUrl': cleanMeetUrl,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> completeAppointment({
+    required PsychologistAppointmentModel appointment,
+  }) async {
+    final uid = currentUid;
+
+    if (uid == null) {
+      throw FirebaseAuthException(
+        code: 'not-authenticated',
+        message: 'Debes iniciar sesión.',
+      );
+    }
+
+    if (appointment.psychologistUid != uid) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'No puedes completar una cita que no te pertenece.',
+      );
+    }
+
+    if (appointment.estado != 'confirmada') {
+      throw ArgumentError('Solo puedes completar citas confirmadas.');
+    }
+
+    await _db.collection('citas').doc(appointment.id).update({
+      'estado': 'completada',
+      'completedAt': FieldValue.serverTimestamp(),
+      'completedBy': uid,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> markNoShow({
+    required PsychologistAppointmentModel appointment,
+  }) async {
+    final uid = currentUid;
+
+    if (uid == null) {
+      throw FirebaseAuthException(
+        code: 'not-authenticated',
+        message: 'Debes iniciar sesión.',
+      );
+    }
+
+    if (appointment.psychologistUid != uid) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'No puedes modificar una cita que no te pertenece.',
+      );
+    }
+
+    if (appointment.estado != 'confirmada') {
+      throw ArgumentError(
+        'Solo puedes marcar como no asistió una cita confirmada.',
+      );
+    }
+
+    await _db.collection('citas').doc(appointment.id).update({
+      'estado': 'no_asistio',
+      'noShowAt': FieldValue.serverTimestamp(),
+      'markedBy': uid,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> cancelAppointment({
+    required PsychologistAppointmentModel appointment,
+    String? reason,
+  }) async {
+    final uid = currentUid;
+
+    if (uid == null) {
+      throw FirebaseAuthException(
+        code: 'not-authenticated',
+        message: 'Debes iniciar sesión.',
+      );
+    }
+
+    if (appointment.psychologistUid != uid) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: 'permission-denied',
+        message: 'No puedes cancelar una cita que no te pertenece.',
+      );
+    }
+
+    if (appointment.estado != 'confirmada') {
+      throw ArgumentError('Solo puedes cancelar citas confirmadas.');
+    }
+
+    final cleanReason = reason?.trim();
+
+    await _db.collection('citas').doc(appointment.id).update({
+      'estado': 'cancelada_por_psicologo',
+      'cancelledAt': FieldValue.serverTimestamp(),
+      'cancelledBy': uid,
+      'cancelReason':
+          cleanReason == null || cleanReason.isEmpty ? null : cleanReason,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
